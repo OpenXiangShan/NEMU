@@ -146,6 +146,15 @@ config RV_AME
   bool "RISC-V Matrix Extension (Internal Spec)"
   default n
 
+config RV_XBITMTE
+  bool "Xbitmte native signed i8/i4 by packed ternary/binary MMA"
+  depends on RV_AME
+  depends on RV_AME_TLEN = 65536 && RV_AME_TRLEN = 512 && RV_AME_MLEN = 32
+  default n
+  help
+    Enable FP2PACK4 (type 13) and I1PACK8 (type 15), full raw input
+    tiles, and the eighteen fixed-shape native MMA windows.
+
 config RV_AME_FP4
   bool "Raw packed FP4 matrix load/store"
   depends on RV_AME

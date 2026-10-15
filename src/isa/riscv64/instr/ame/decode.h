@@ -98,8 +98,13 @@ def_THelper(mldst) {
 }
 
 def_THelper(mma) {
+#ifdef CONFIG_RV_XBITMTE
+  //             func  0 slice ms2 0  ms1 func3 0  md   opcode
+  def_INSTR_TAB("0000  00??? 0?? 00 0?? ???   00 1?? ????? ??", mmacc);
+#else
   //             func  0     ms2 0  ms1 func3 0  md   opcode
   def_INSTR_TAB("0000  00000 0?? 00 0?? ???   00 1?? ????? ??", mmacc);
+#endif
   
   return EXEC_ID_inv;
 }

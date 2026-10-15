@@ -54,6 +54,7 @@ uint8_t get_size(mcfg_t cfg) {
     case MTYPECODE_MXFP4:
     case MTYPECODE_FP2PACK4:
     case MTYPECODE_FP2PACK5:
+    case MTYPECODE_I1PACK8:
       dsize = 0;
       break;
     case MTYPECODE_FP16:
@@ -72,8 +73,24 @@ uint8_t get_size(mcfg_t cfg) {
   return dsize;
 }
 
+#ifdef CONFIG_RV_XBITMTE
+/* Identify the native i4 A load when constructing its MLS event. */
+bool bitmte_native_i4_a_load_event(
+    uint64_t cfg, uint32_t instruction, uint64_t m, uint64_t k,
+    unsigned reg, bool store, bool transpose, bool is_acc, bool is_a,
+    unsigned rows, unsigned columns, unsigned width) {
+  const bool ordinary_mla =
+      (instruction & UINT32_C(0xfe007c7f)) == UINT32_C(0x0000102b);
+  return reg < 4 && !store && !transpose && !is_acc && is_a &&
+         ordinary_mla && ((instruction >> 7) & 7) == reg &&
+         (cfg & 255) == 0 && m == 128 && k == 128 &&
+         rows == 128 && columns == 64 && width == 0;
+}
+#endif
+
 void check_size(Decode *s, uint64_t rmax_mreg, uint64_t cmax_mreg,
-                char m_name, uint8_t dsize, bool raw_fp4) {
+                char m_name, uint8_t dsize, bool raw_fp4,
+                bool is_trans, bool is_store) {
   // Validate CSR values before narrowing them for the int-based memory API.
   bool valid = rmax_mreg <= ROWNUM && rmax_mreg <= INT_MAX &&
                cmax_mreg <= INT_MAX;
@@ -93,6 +110,15 @@ void check_size(Decode *s, uint64_t rmax_mreg, uint64_t cmax_mreg,
     default:
       valid = false;
       break;
+  }
+  const mcfg_t cfg = cpu.mcfg[s->dest.reg];
+  if (cfg.type_code == MTYPECODE_FP2PACK4 || cfg.type_code == MTYPECODE_I1PACK8) {
+#ifdef CONFIG_RV_XBITMTE
+    valid = valid && cfg.table_set == 0 && s->dest.reg < 4 &&
+            m_name == 'b' && !is_store && !is_trans && rmax_mreg == 128;
+#else
+    valid = false;
+#endif
   }
   if (!valid) {
     longjmp_exception(EX_II);
@@ -224,7 +250,19 @@ void mld(Decode *s, bool is_trans, char m_name) {
       break;
   }
 
-  check_size(s, rmax_mreg, cmax_mreg, m_name, dsize, raw_fp4);
+  if (cpu.mcfg[td].type_code == MTYPECODE_FP2PACK4 ||
+      cpu.mcfg[td].type_code == MTYPECODE_I1PACK8) {
+    cmax_mreg = TRENUM8;
+  }
+#ifdef CONFIG_RV_XBITMTE
+  if (td < 4 && cpu.mcfg[td].table_set == 0 &&
+      cpu.mcfg[td].type_code == MTYPECODE_INT4 &&
+      m_name == 'a' && !is_trans &&
+      rmax_mreg == 128 && cmax_mreg == 128) {
+    cmax_mreg = TRENUM8;
+  }
+#endif
+  check_size(s, rmax_mreg, cmax_mreg, m_name, dsize, raw_fp4, is_trans, false);
   exec_mld(s, reg_l(s->src1.reg), reg_l(s->src2.reg), td,
     (int)rmax_mreg, (int)cmax_mreg, dsize, is_trans, m_name, raw_fp4);
 }
@@ -253,7 +291,7 @@ void mst(Decode *s, bool is_trans, char m_name) {
       break;
   }
 
-  check_size(s, rmax_mreg, cmax_mreg, m_name, dsize, raw_fp4);
+  check_size(s, rmax_mreg, cmax_mreg, m_name, dsize, raw_fp4, is_trans, true);
   exec_mst(s, reg_l(s->src1.reg), reg_l(s->src2.reg), ts3,
     (int)rmax_mreg, (int)cmax_mreg, dsize, is_trans, m_name, raw_fp4);
 }

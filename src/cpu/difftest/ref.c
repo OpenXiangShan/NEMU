@@ -292,6 +292,13 @@ void difftest_get_store_event_other_info(void *info) {
 #endif //CONFIG_DIFFTEST_STORE_COMMIT
 
 
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+const amu_abi_descriptor_t *difftest_get_ame_abi(void) {
+  static const amu_abi_descriptor_t abi = AME_ABI_DESCRIPTOR_INITIALIZER;
+  return &abi;
+}
+#endif
+
 void difftest_get_amu_ctrl_event_other_info(void *info) {
 #if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
   *(uint64_t*)info = get_amu_ctrl_info().pc;

@@ -420,7 +420,8 @@ typedef struct {
       uint32_t ms1       : 3;
       uint32_t res1      : 2;
       uint32_t ms2       : 3;
-      uint32_t res2      : 5;
+      uint32_t kslice    : 3;
+      uint32_t res2      : 2;
       uint32_t func      : 4;
     } mma;
     struct {

@@ -46,9 +46,11 @@ def_EHelper(mmacc) {
   uint64_t ts1 = s->src1.reg;
   uint64_t ts2 = s->src2.reg;
   uint64_t td = s->dest.reg;
+  const uint8_t kslice = s->isa.instr.mma.kslice;
   mcfg_t dmcfg = cpu.mcfg[td];
   mcfg_t s1mcfg = cpu.mcfg[ts1];
   mcfg_t s2mcfg = cpu.mcfg[ts2];
+  const uint8_t packed_mode = bitmte_mode(s2mcfg.type_code);
 #ifdef CONFIG_RV_AME_FP4
   if (is_raw_fp4_type_code(s1mcfg) || is_raw_fp4_type_code(s2mcfg) ||
       is_raw_fp4_type_code(dmcfg)) {
@@ -64,6 +66,16 @@ def_EHelper(mmacc) {
                      tile_n <= (ARENUM8 >> dsize);
   bool tilek_valid = tile_k <= (TRENUM8 >> s1size) * get_pack(s1mcfg) &&
                      tile_k <= (TRENUM8 >> s2size) * get_pack(s2mcfg);
+  if (packed_mode != BITMTE_ORDINARY) {
+    const unsigned window = s1mcfg.type_code == MTYPECODE_INT8 ? 64 : 128;
+    const unsigned resident = packed_mode == BITMTE_TERNARY ? 256 : 512;
+    tilem_valid = tile_m == 128 && ts1 < 4 && ts2 < 4 &&
+                   td >= 4 && td < 8 && ts1 != ts2;
+    tilen_valid = tile_n == 128;
+    tilek_valid = tile_k == window && kslice < resident / window;
+  } else {
+    tilek_valid = tilek_valid && kslice == 0;
+  }
   if (!tilem_valid || !tilen_valid || !tilek_valid) {
     longjmp_exception(EX_II);
   }
@@ -75,14 +87,24 @@ def_EHelper(mmacc) {
   bool s2_signed = is_signed_int_mtype(s2mcfg.type_code);
 #ifdef CONFIG_AME_TILEREG_UB_CHECK
   if (tile_m != 0 && tile_n != 0 && tile_k != 0) {
-    ame_matrix_region_check_read(ts1, tile_m, tile_k << s1size, s->pc);
-    ame_matrix_region_check_read(ts2, tile_n, tile_k << s2size, s->pc);
+    ame_matrix_region_check_read(ts1, tile_m, packed_mode ? 64 : tile_k << s1size, s->pc);
+    ame_matrix_region_check_read(ts2, tile_n, packed_mode ? 64 : tile_k << s2size, s->pc);
     ame_matrix_region_check_read(td, tile_m, tile_n << dsize, s->pc);
   }
 #endif // CONFIG_AME_TILEREG_UB_CHECK
 #ifndef CONFIG_SHARE_REF
   // When NEMU is not used as a reference model, execute MMA here directly.
-  if (mmacc_type == MMACC_TYPE_INTEGER) {
+  if (packed_mode != BITMTE_ORDINARY) {
+    const bool int4 = s1mcfg.type_code == MTYPECODE_INT4;
+    for (unsigned i = 0; i < 128; ++i) {
+      const uint8_t *a = get_mreg_row_addr(ts1, i);
+      uint32_t *c = (uint32_t *)get_mreg_row_addr(td, i);
+      for (unsigned j = 0; j < 128; ++j) {
+        const uint8_t *b = get_mreg_row_addr(ts2, j);
+        c[j] = bitmte_dot(a, b, c[j], int4, packed_mode, kslice, msaten->val != 0);
+      }
+    }
+  } else if (mmacc_type == MMACC_TYPE_INTEGER) {
 #ifdef CONFIG_AME_MMACC_VECTORIZE
     bool auto_vectorized = try_auto_vectorized_int8_mmacc(
       td, ts1, ts2, tile_m, tile_n, tile_k,
@@ -180,22 +202,28 @@ def_EHelper(mmacc) {
   }
 #endif // CONFIG_AME_TILEREG_UB_CHECK
 #if defined(CONFIG_DIFFTEST_AMU_CTRL) || defined(CONFIG_SHARE_CTRL) || defined(PRINT_AMUCTRLIO)
-  uint8_t m_s_sz = s1size;
-  uint8_t m_d_sz = dsize;
+  uint8_t m_types1 = packed_mode ? (s1mcfg.type_code == MTYPECODE_INT4 ? 7 : 4) :
+                     (s1_signed << 2) | s1size;
+  uint8_t m_types2 = packed_mode == BITMTE_TERNARY ? 4 :
+                     packed_mode == BITMTE_BINARY ? 0 :
+                     (s2_signed << 2) | s1size;
+  uint8_t m_typed = packed_mode ? 2 : dsize;
   bool is_float_mmacc = mmacc_type == MMACC_TYPE_FLOAT;
 #endif
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mma_emplace(
     td, mxrm->val, msaten->val, is_float_mmacc, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val,
-    (s1_signed << 2) | m_s_sz, (s2_signed << 2) | m_s_sz, m_d_sz
+    m_types1, m_types2, m_typed,
+    packed_mode, kslice
   );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
   cutest_mma_emplace(
     td, mxrm->val, msaten->val, is_float_mmacc, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val,
-    (s1_signed << 2) | m_s_sz, (s2_signed << 2) | m_s_sz, m_d_sz
+    m_types1, m_types2, m_typed,
+    packed_mode, kslice
   );
 #endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
@@ -205,7 +233,7 @@ def_EHelper(mmacc) {
     "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types1=%#x, types2=%#x, typed=%#x\n",
     td, msaten->val, is_float_mmacc, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val,
-    (s1_signed << 2) | m_s_sz, (s2_signed << 2) | m_s_sz, m_d_sz);
+    m_types1, m_types2, m_typed);
 #endif // PRINT_AMUCTRLIO
 }
 

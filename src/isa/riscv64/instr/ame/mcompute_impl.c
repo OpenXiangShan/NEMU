@@ -113,9 +113,48 @@ uint8_t get_pack(mcfg_t cfg) {
       return 4;
     case MTYPECODE_FP2PACK5:
       return 5;
+    case MTYPECODE_I1PACK8:
+      return 8;
     default:
       return 1;
   }
+}
+
+unsigned bitmte_mode(unsigned b_type) {
+  return b_type == MTYPECODE_FP2PACK4 ? BITMTE_TERNARY :
+         b_type == MTYPECODE_I1PACK8 ? BITMTE_BINARY : BITMTE_ORDINARY;
+}
+
+static int bitmte_a_value(const uint8_t *a, unsigned k, bool int4) {
+  unsigned raw = int4 ? (a[k / 2] >> (4 * (k % 2))) & 15 : a[k];
+  return int4 ? (raw < 8 ? (int)raw : (int)raw - 16) :
+                (raw < 128 ? (int)raw : (int)raw - 256);
+}
+
+static int bitmte_b_value(const uint8_t *b, unsigned k, unsigned mode) {
+  if (mode == BITMTE_BINARY) return (b[k / 8] >> (k % 8)) & 1;
+  const unsigned raw = (b[k / 4] >> (2 * (k % 4))) & 3;
+  /* 10 is data UB. Returning zero here is an implementation choice. */
+  return (raw & 1) ? (raw & 2 ? -1 : 1) : 0;
+}
+
+uint32_t bitmte_dot(const uint8_t *a, const uint8_t *b, uint32_t acc,
+                    bool int4, unsigned mode, unsigned slice, bool saturation) {
+  const unsigned count = int4 ? 128 : 64;
+  for (unsigned k = 0; k < count; ++k) {
+    const int product = bitmte_a_value(a, k, int4) *
+                        bitmte_b_value(b, slice * count + k, mode);
+    if (saturation) {
+      const int64_t signed_acc = acc <= INT32_MAX ? (int64_t)acc :
+                                 (int64_t)acc - (INT64_C(1) << 32);
+      const int64_t sum = signed_acc + product;
+      acc = sum > INT32_MAX ? (uint32_t)INT32_MAX :
+            sum < INT32_MIN ? (uint32_t)INT32_MIN : (uint32_t)sum;
+    } else {
+      acc += (uint32_t)product;
+    }
+  }
+  return acc;
 }
 
 int_mmacc_type_t get_int_mmacc_type(
@@ -124,6 +163,12 @@ int_mmacc_type_t get_int_mmacc_type(
   if (d_type != MTYPECODE_INT32) {
     return INT_MMACC_UNSUPPORTED;
   }
+#ifdef CONFIG_RV_XBITMTE
+  if ((s1_type == MTYPECODE_INT4 || s1_type == MTYPECODE_INT8) &&
+      (s2_type == MTYPECODE_FP2PACK4 || s2_type == MTYPECODE_I1PACK8)) {
+    return INT_MMACC_BITMTE_INT32;
+  }
+#endif
   bool s1_int4 = s1_type == MTYPECODE_INT4 || s1_type == MTYPECODE_UINT4;
   bool s2_int4 = s2_type == MTYPECODE_INT4 || s2_type == MTYPECODE_UINT4;
   if (s1_int4 && s2_int4) {

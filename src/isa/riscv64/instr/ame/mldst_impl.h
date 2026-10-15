@@ -25,7 +25,8 @@
 
 uint8_t get_size(mcfg_t cfg);
 void check_size(Decode *s, uint64_t rmax_mreg, uint64_t cmax_mreg,
-                char m_name, uint8_t dsize, bool raw_fp4);
+                char m_name, uint8_t dsize, bool raw_fp4,
+                bool is_trans, bool is_store);
 void exec_mld(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
               uint64_t td, int row, int column, uint8_t dsize,
               bool is_trans, char m_name, bool raw_fp4);

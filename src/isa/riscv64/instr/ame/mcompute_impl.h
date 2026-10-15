@@ -28,6 +28,11 @@ void require_matrix();
 uint8_t get_pack(mcfg_t cfg);
 bool is_signed_int_mtype(uint64_t type_code);
 
+enum { BITMTE_ORDINARY = 0, BITMTE_TERNARY = 1, BITMTE_BINARY = 2 };
+unsigned bitmte_mode(unsigned b_type);
+uint32_t bitmte_dot(const uint8_t *a, const uint8_t *b, uint32_t acc,
+                    bool int4, unsigned mode, unsigned slice, bool saturation);
+
 typedef enum {
   MMACC_TYPE_INVALID,
   MMACC_TYPE_INTEGER,
@@ -38,6 +43,7 @@ typedef enum {
   INT_MMACC_UNSUPPORTED,
   INT_MMACC_INT4_INT4_INT32,
   INT_MMACC_INT8_INT8_INT32,
+  INT_MMACC_BITMTE_INT32,
 } int_mmacc_type_t;
 
 typedef enum {

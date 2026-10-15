@@ -9,7 +9,8 @@ extern Decode *prev_s;
 void cutest_mma_emplace(uint8_t md, uint8_t rm, bool sat, bool isfp,
                                 uint8_t ms1, uint8_t ms2, uint16_t mtilem,
                                 uint16_t mtilen, uint16_t mtilek, uint8_t types1,
-                                uint8_t types2, uint8_t typed) {
+                                uint8_t types2, uint8_t typed,
+                                uint8_t packedMode, uint8_t kslice) {
   amu_ctrl_event_t event = {0};
   event.valid = true;
   event.op = 0;
@@ -25,6 +26,8 @@ void cutest_mma_emplace(uint8_t md, uint8_t rm, bool sat, bool isfp,
   event.types1 = types1;
   event.types2 = types2;
   event.typed = typed;
+  event.packedMode = packedMode;
+  event.kslice = kslice;
   event.pc = prev_s->pc;
   amu_ctrl_callback_(event);
 }
@@ -46,6 +49,15 @@ void cutest_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,
   event.mtilen = column;
   event.typed = msew;
   event.pc = prev_s->pc;
+#ifdef CONFIG_RV_XBITMTE
+  if (ms < 4 && bitmte_native_i4_a_load_event(
+      cpu.mcfg[ms].val, prev_s->isa.instr.val,
+      csr_array[0xcc4], csr_array[0xcc6], ms,
+      ls, transpose, isacc, isA, row, column, msew)) {
+    event.mtilen = 128;
+    event.typed = 7;
+  }
+#endif
   amu_ctrl_callback_(event);
 }
 

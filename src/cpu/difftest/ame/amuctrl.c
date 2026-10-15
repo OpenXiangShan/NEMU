@@ -60,7 +60,8 @@ static bool cmp_amu_ctrl(amu_ctrl_event_t *l, amu_ctrl_event_t *r) {
   bool cmp_mrelease = l->op == 2 && r->op == 2 && l->mtilem == r->mtilem;
   bool cmp_mzero = l->op == 3 && r->op == 3 && l->md == r->md && l->base == r->base;
   bool cmp_pc = l->pc == r->pc;
-  return !((cmp_mma || cmp_mls || cmp_mrelease || cmp_mzero) && cmp_pc);
+  bool cmp_mode_slice = l->packedMode == r->packedMode && l->kslice == r->kslice;
+  return !(((cmp_mma && cmp_mode_slice) || cmp_mls || cmp_mrelease || cmp_mzero) && cmp_pc);
 }
 
 int check_amu_ctrl(amu_ctrl_event_t *cmp) {
@@ -83,6 +84,8 @@ int check_amu_ctrl(amu_ctrl_event_t *cmp) {
     cmp->base = 0;
     cmp->stride = 0;
     cmp->pc = 0;
+    cmp->packedMode = 0;
+    cmp->kslice = 0;
     result = -1;
   } else {
     amu_ctrl_event_data = amu_ctrl_queue_front();
@@ -107,6 +110,8 @@ int check_amu_ctrl(amu_ctrl_event_t *cmp) {
           cmp->types1 = amu_ctrl_event_data.types1;
           cmp->types2 = amu_ctrl_event_data.types2;
           cmp->typed = amu_ctrl_event_data.typed;
+          cmp->packedMode = amu_ctrl_event_data.packedMode;
+          cmp->kslice = amu_ctrl_event_data.kslice;
           break;
         case 1:
           // case Matrix load/store
@@ -145,6 +150,13 @@ static void exec_amu_load_store(void *amu_ctrl) {
     uint32_t tmp = row;
     row = column;
     column = tmp;
+  }
+  if (msew == 7) {
+    Assert(ls == 0 && m_name == 'a' && !transpose && ms < 4 &&
+           row == 128 && column == 128 && TRLEN == 512 && ROWNUM == 128,
+           "Invalid raw signed-int4 A event");
+    column = 64;
+    msew = 0;
   }
   if (ls == 0) { // matrix load
     pmem_read_matrix(base, stride, row, column, msew, transpose, m_name, ms);
@@ -185,6 +197,13 @@ static bool get_amu_write_region(const amu_ctrl_event_t *event, amu_write_region
     region->active_rows = region->reg_size_bytes / region->reg_row_bytes;
     region->active_columns = region->reg_row_bytes / sizeof(uint64_t);
     region->element_bytes = sizeof(uint64_t);
+  } else if (event->op == 1 && event->sat == 0 && event->typed == 7 &&
+             !is_acc && !event->types1 && event->types2 && !event->isfp &&
+             event->mtilem == 128 && event->mtilen == 128 &&
+             region->reg_row_bytes == 64 && region->reg_size_bytes == 8192) {
+    region->active_rows = 128;
+    region->active_columns = 64;
+    region->element_bytes = 1;
   } else if (event->op == 1 && event->sat == 0 && event->typed <= 3) {
     const bool is_b = !event->types1 && !event->types2;
     region->active_rows = is_b ? event->mtilen : event->mtilem;

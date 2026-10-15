@@ -76,9 +76,22 @@ void ctrl_info(void *reg_buf) {
   }
 }
 
-// Register callback function for AmuCtrlIO events
-void ctrl_register_amu_callback(void (*callback)(amu_ctrl_event_t)) {
+const amu_abi_descriptor_t *ctrl_get_ame_abi(void) {
+  static const amu_abi_descriptor_t abi = AME_ABI_DESCRIPTOR_INITIALIZER;
+  return &abi;
+}
+
+int ctrl_register_amu_callback_v2(void (*callback)(amu_ctrl_event_t),
+                                  const amu_abi_descriptor_t *client_abi) {
+  const amu_abi_descriptor_t *abi = ctrl_get_ame_abi();
+  if (client_abi == NULL || client_abi->version != abi->version ||
+      client_abi->event_size != abi->event_size) {
+    fprintf(stderr, "NEMU SHARE_CTRL: incompatible AME ABI; require version %u, event size %u\n",
+            abi->version, abi->event_size);
+    return -1;
+  }
   amu_ctrl_callback_ = callback;
+  return 0;
 }
 
 void ctrl_mtok_advance(uint8_t tok) {
