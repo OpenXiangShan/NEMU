@@ -157,12 +157,19 @@ typedef struct {
   uint64_t tinfo;
 #endif // CONFIG_DIFFTEST_CHECK_SDTRIG
 
+#ifdef CONFIG_RV_CFI
+  uint64_t ssp;
+#endif
+
   uint64_t difftest_state_end;
   /** Above will be used and synced by regcpy when run difftest, DO NOT TOUCH ***/
 
 
   // exec state
   bool amo;
+#ifdef CONFIG_RV_CFI
+  bool shadow_stack_access;
+#endif
   uint32_t pbmt;
   bool isVldst;
   bool isVecUnitStore;
@@ -202,7 +209,7 @@ typedef struct {
   bool virtualInterruptIsHvictlInject;
 #endif
 
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
   uint8_t elp;
 #endif
 
@@ -389,7 +396,7 @@ typedef struct {
       uint32_t imm10     : 10;
       uint32_t ctrl      : 1;
       uint32_t res0      : 2;
-      uint32_t func      : 4;      
+      uint32_t func      : 4;
     } mcfgi;
     struct {
       uint32_t opcode    : 7;
@@ -410,7 +417,7 @@ typedef struct {
       uint32_t rs2       : 5;
       uint32_t ls        : 1;
       uint32_t res1      : 2;
-      uint32_t func      : 4;      
+      uint32_t func      : 4;
     } mldst;
     struct {
       uint32_t opcode    : 7;
@@ -545,7 +552,7 @@ enum { MODE_U = 0, MODE_S, MODE_RS, MODE_M };
 
 enum { OP_OR = 0, OP_AND, OP_XOR, OP_ADD = 4 };
 
-#ifdef CONFIG_RV_ZICFILP
+#ifdef CONFIG_RV_CFI
 enum { ELP_NO_LP_EXPECTED = 0, ELP_LP_EXPECTED = 1 };
 #endif
 

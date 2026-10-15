@@ -19,6 +19,12 @@
 #include <cpu/decode.h>
 #include "../local-include/rtl.h"
 
+#ifdef CONFIG_RV_CFI
+#define ZICFISS_AMO_INSTR(f) f(ssamoswap_w) f(ssamoswap_d)
+#else
+#define ZICFISS_AMO_INSTR(f)
+#endif
+
 #if defined(CONFIG_DEBUG) || defined(CONFIG_SHARE)
 #define AMO_INSTR_BINARY(f) \
   f(lr_w) f(lr_d)
@@ -37,7 +43,8 @@
   f(amomin_w) f(amomax_w) f(amominu_w) f(amomaxu_w) \
   f(amoadd_d) f(amoswap_d) f(amoxor_d) f(amoor_d) f(amoand_d) \
   f(amomin_d) f(amomax_d) f(amominu_d) f(amomaxu_d) \
-  AMO_ZABHA_INSTR(f)
+  AMO_ZABHA_INSTR(f) \
+  ZICFISS_AMO_INSTR(f)
 #ifdef CONFIG_RV_ZACAS
 #if defined(CONFIG_RV_ZABHA)
 #define AMO_ZABHA_CAS_INSTR(f) f(amocas_b) f(amocas_h)
