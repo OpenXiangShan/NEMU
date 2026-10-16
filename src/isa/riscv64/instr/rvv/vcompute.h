@@ -1317,4 +1317,18 @@ def_EHelper(vwsll) {
   ARITH_WIDE(SLL, UNSIGNED)
 }
 
+#ifdef CONFIG_CUSTOM_LOW_PRECISION
+def_EHelper(vfncvtxx8_int8) {
+  vfncvtxx8_execute(s, VFNCVTXX8_FORMAT_INT8);
+}
+
+def_EHelper(vfncvtxx8_e4m3) {
+  vfncvtxx8_execute(s, VFNCVTXX8_FORMAT_E4M3);
+}
+
+def_EHelper(vfncvtxx8_e5m2) {
+  vfncvtxx8_execute(s, VFNCVTXX8_FORMAT_E5M2);
+}
+#endif // CONFIG_CUSTOM_LOW_PRECISION
+
 #endif // CONFIG_RVV

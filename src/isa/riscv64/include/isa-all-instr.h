@@ -118,6 +118,13 @@
   f(csrrwi) f(csrrsi) f(csrrci)
 
 
+#ifdef CONFIG_CUSTOM_LOW_PRECISION
+#define LOW_PRECISION_INSTR_TERNARY(f) \
+  f(vfncvtxx8_int8) f(vfncvtxx8_e4m3) f(vfncvtxx8_e5m2)
+#else
+#define LOW_PRECISION_INSTR_TERNARY(f)
+#endif // CONFIG_CUSTOM_LOW_PRECISION
+
 #ifdef CONFIG_RVV
 #define VECTOR_INSTR_TERNARY(f) \
   f(vadd) f(vsub) f(vrsub) f(vminu) f(vmin) \
@@ -159,7 +166,7 @@
   f(vfwcvt_ffv) f(vfwcvt_rtz_xufv) f(vfwcvt_rtz_xfv) f(vfncvt_xufw) \
   f(vfncvt_xfw) f(vfncvt_fxuw) f(vfncvt_fxw) f(vfncvt_ffw) \
   f(vfncvt_rod_ffw) f(vfncvt_rtz_xufw) f(vfncvt_rtz_xfw) \
-  f(vfncvtxx8_int8) f(vfncvtxx8_e4m3) f(vfncvtxx8_e5m2) f(vfsqrt_v) \
+  f(vfsqrt_v) \
   f(vfrsqrt7_v) f(vfrec7_v) f(vfclass_v) f(vfmerge) \
   f(vmfeq) f(vmfle) f(vmflt) f(vmfne) f(vmfgt) f(vmfge) f(vfdiv) f(vfrdiv) \
   f(vfmul) f(vfrsub) f(vfmadd) f(vfnmadd) f(vfmsub) f(vfnmsub) \
@@ -167,7 +174,8 @@
   f(vfwsub) f(vfwredosum) f(vfwadd_w) f(vfwsub_w) \
   f(vfwmul) f(vfwmacc) f(vfwnmacc) f(vfwmsac) f(vfwnmsac) \
   f(vandn) f(vbrev_v) f(vbrev8_v) f(vrev8_v) f(vclz_v) f(vctz_v) \
-  f(vrol) f(vror) f(vwsll) f(vcpop_v)
+  f(vrol) f(vror) f(vwsll) f(vcpop_v) \
+  LOW_PRECISION_INSTR_TERNARY(f)
 #else // CONFIG_RVV
 #define VECTOR_INSTR_TERNARY(f)
 #endif // CONFIG_RVV

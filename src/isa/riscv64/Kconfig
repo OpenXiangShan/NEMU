@@ -93,6 +93,13 @@ config RVV
   bool "RISC-V Vector Extension v1.0"
   default y
 
+config CUSTOM_LOW_PRECISION
+  bool "RISC-V custom low-precision vector operators"
+  depends on RVV
+  default n
+  help
+    Enable the non-standard vfncvtxx8 (fp32 -> int8/e4m3/e5m2) vector operators.
+
 config CUSTOM_TENSOR
   depends on !FPU_NONE
   bool "RISC-V Tensor Extension (Internal Spec)"

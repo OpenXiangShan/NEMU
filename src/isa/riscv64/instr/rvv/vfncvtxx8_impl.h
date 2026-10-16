@@ -18,7 +18,7 @@ typedef struct {
   uint32_t flags;
 } vfncvtxx8_result_t;
 
-static inline float vfncvtxx8_float_from_bits(uint32_t bits) {
+static float vfncvtxx8_float_from_bits(uint32_t bits) {
   union {
     uint32_t bits;
     float value;
@@ -26,7 +26,7 @@ static inline float vfncvtxx8_float_from_bits(uint32_t bits) {
   return data.value;
 }
 
-static inline uint32_t vfncvtxx8_fp8_to_fp32_bits(
+static uint32_t vfncvtxx8_fp8_to_fp32_bits(
     uint8_t value, int fraction_bits, int exponent_bias) {
   const uint32_t fraction_mask = (1u << fraction_bits) - 1;
   const uint32_t exponent = value >> fraction_bits;
@@ -49,7 +49,7 @@ static inline uint32_t vfncvtxx8_fp8_to_fp32_bits(
        | ((fraction - (1u << leading_bit)) << (23 - leading_bit));
 }
 
-static inline vfncvtxx8_result_t vfncvtxx8_convert_int8(uint32_t source, uint32_t rm) {
+static vfncvtxx8_result_t vfncvtxx8_convert_int8(uint32_t source, uint32_t rm) {
   const bool sign = source >> 31;
   const uint32_t magnitude = source & 0x7fffffff;
   const uint32_t exponent = magnitude >> 23;
@@ -98,7 +98,7 @@ static inline vfncvtxx8_result_t vfncvtxx8_convert_int8(uint32_t source, uint32_
   return result;
 }
 
-static inline uint8_t vfncvtxx8_overflow_e5m2(bool sign, uint32_t rm) {
+static uint8_t vfncvtxx8_overflow_e5m2(bool sign, uint32_t rm) {
   const uint8_t maximum = sign ? 0xfb : 0x7b;
   const uint8_t infinity = sign ? 0xfc : 0x7c;
   if (rm == VFNCVTXX8_RTZ) {
@@ -113,7 +113,7 @@ static inline uint8_t vfncvtxx8_overflow_e5m2(bool sign, uint32_t rm) {
   return infinity;
 }
 
-static inline vfncvtxx8_result_t vfncvtxx8_convert_fp8(
+static vfncvtxx8_result_t vfncvtxx8_convert_fp8(
     uint32_t source, uint32_t rm, int fraction_bits, int exponent_bias,
     uint8_t maximum_code, uint8_t canonical_nan,
     bool has_infinity) {
@@ -188,11 +188,11 @@ static inline vfncvtxx8_result_t vfncvtxx8_convert_fp8(
   return result;
 }
 
-static inline vfncvtxx8_result_t vfncvtxx8_convert_e4m3(uint32_t source, uint32_t rm) {
+static vfncvtxx8_result_t vfncvtxx8_convert_e4m3(uint32_t source, uint32_t rm) {
   return vfncvtxx8_convert_fp8(source, rm, 3, 7, 0x7e, 0x7f, false);
 }
 
-static inline vfncvtxx8_result_t vfncvtxx8_convert_e5m2(uint32_t source, uint32_t rm) {
+static vfncvtxx8_result_t vfncvtxx8_convert_e5m2(uint32_t source, uint32_t rm) {
   return vfncvtxx8_convert_fp8(source, rm, 2, 15, 0x7b, 0x7e, true);
 }
 
