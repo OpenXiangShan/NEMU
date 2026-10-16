@@ -362,6 +362,15 @@ config RV_ZIHINTPAUSE
     bool "RISC-V Zihintpause for Pause Hint, v2.0"
     default y
 
+config RV_ZIFENCETIME
+  bool "Experimental FENCE.TIME local-v0"
+  default n
+  help
+    Enable the project-local FENCE.TIME encoding v0. This is an
+    experimental project-local encoding, not a standard extension.
+    The instruction uses MISC-MEM with funct3=011 and flags in
+    inst[23:20].
+
 config RV_ZIHPM
   bool "RISC-V Zihpm Extensions for Hardware Performance Counters, v2.0"
   default y

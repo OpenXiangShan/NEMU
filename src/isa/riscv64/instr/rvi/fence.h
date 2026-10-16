@@ -34,6 +34,11 @@ def_EHelper(fence) {
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));
 }
 
+#ifdef CONFIG_RV_ZIFENCETIME
+def_EHelper(fence_time) {
+}
+#endif // CONFIG_RV_ZIFENCETIME
+
 #ifdef CONFIG_RV_ZIHINTPAUSE
 def_EHelper(pause) {
   IFNDEF(CONFIG_DIFFTEST_REF_NEMU, difftest_skip_dut(1, 2));

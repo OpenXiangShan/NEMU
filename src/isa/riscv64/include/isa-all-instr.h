@@ -425,10 +425,18 @@
 #define ZIHINTPAUSE_INSTR_NULLARY(f)
 #endif //CONFIG_RV_ZIHINTPAUSE
 
+#ifdef CONFIG_RV_ZIFENCETIME
+#define ZIFENCETIME_INSTR_NULLARY(f) \
+  f(fence_time)
+#else
+#define ZIFENCETIME_INSTR_NULLARY(f)
+#endif // CONFIG_RV_ZIFENCETIME
+
 #define INSTR_NULLARY(f) \
   f(inv) f(rt_inv) f(nemu_trap) \
   ZIHINTPAUSE_INSTR_NULLARY(f) \
   f(fence_i) f(fence) \
+  ZIFENCETIME_INSTR_NULLARY(f) \
   SYS_INSTR_NULLARY(f)   \
   f(p_ret) \
   ZAWRS_INSTR_NULLARY(f) \
