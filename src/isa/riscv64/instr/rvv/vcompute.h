@@ -1149,6 +1149,19 @@ def_EHelper(vfncvt_rtz_xfw) {
   FLOAT_ARITH_DNARROW(FNCVT_RTZ_XF, UNSIGNED)
 }
 
+#ifdef CONFIG_CUSTOM_LOW_PRECISION
+def_EHelper(vfncvtxx8_int8) {
+  vfncvtxx8_execute(s, VFNCVTXX8_FORMAT_INT8);
+}
+
+def_EHelper(vfncvtxx8_e4m3) {
+  vfncvtxx8_execute(s, VFNCVTXX8_FORMAT_E4M3);
+}
+
+def_EHelper(vfncvtxx8_e5m2) {
+  vfncvtxx8_execute(s, VFNCVTXX8_FORMAT_E5M2);
+}
+
 def_EHelper(vfncvtmxfp4_ffw) {
   vfncvtmxfp_instr(s, 4);
 }
@@ -1156,6 +1169,7 @@ def_EHelper(vfncvtmxfp4_ffw) {
 def_EHelper(vfncvtmxfp8_ffw) {
   vfncvtmxfp_instr(s, 8);
 }
+#endif // CONFIG_CUSTOM_LOW_PRECISION
 
 def_EHelper(vfsqrt_v) {
   FLOAT_ARITH(FSQRT, UNSIGNED)

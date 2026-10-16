@@ -14,6 +14,8 @@
 ***************************************************************************************/
 
 #include "vcfg.h"
-#include "vcompute.h"
+#ifdef CONFIG_CUSTOM_LOW_PRECISION
 #include "vfncvtxx8.h"
+#endif
+#include "vcompute.h"
 #include "vldst.h"

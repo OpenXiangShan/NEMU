@@ -137,6 +137,14 @@ config CUSTOM_XVEXP2_BF16
   help
     Enable the non-standard vfexp2bf16.v instruction for BF16.
 
+config CUSTOM_LOW_PRECISION
+  bool "RISC-V custom low-precision vector operators"
+  depends on RVV
+  default n
+  help
+    Enable the non-standard vfncvtxx8 (fp32 -> int8/e4m3/e5m2) and
+    vfncvtmxfp4/mxfp8 vector operators.
+
 config CUSTOM_TENSOR
   depends on !FPU_NONE
   bool "RISC-V Tensor Extension (Internal Spec)"
