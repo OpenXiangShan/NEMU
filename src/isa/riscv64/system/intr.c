@@ -21,6 +21,9 @@
 #include "../local-include/aia.h"
 
 void update_mmu_state();
+#ifdef CONFIG_RVV
+void vp_set_dirty();
+#endif
 
 
 #ifdef CONFIG_RVH
@@ -72,6 +75,13 @@ static word_t get_trap_pc(word_t xtvec, word_t xcause) {
 
 word_t raise_intr(word_t NO, vaddr_t epc) {
   IFDEF(CONFIG_SHARE, csr_difftest_mark_dirty());
+#ifdef CONFIG_RVV
+  // A vector-store fault can leave vstart at the faulting element.
+  if (cpu.isVstoreActive) {
+    if (vstart->val != 0) vp_set_dirty();
+    cpu.isVstoreActive = false;
+  }
+#endif
   Logti("raise intr cause NO: %lx, epc: %lx\n", NO, epc);
 #ifdef CONFIG_DIFFTEST_REF_SPIKE
   switch (NO) {
@@ -128,7 +138,8 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   bool isNMI = MUXDEF(CONFIG_RV_SMRNMI, cpu.hasNMI && (NO & INTR_BIT), false);
   bool delegS = intr_deleg_S(NO);
   bool delegM = !delegS && !isNMI;
-  bool s_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP, delegS && mstatus->sdt, false);
+  bool s_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP,
+    delegS && (sstatus_read(false, true) & SSTATUS_SDT) != 0, false);
   bool m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
   word_t trap_pc = 0;
 #ifdef CONFIG_RVH
@@ -151,7 +162,8 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     delegM = !delegS && !delegVS && !isNMI;
   }
 #endif
-  bool vs_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP, delegVS && vsstatus->sdt, false);
+  bool vs_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP,
+    delegVS && vsstatus->sdt && menvcfg->dte && henvcfg->dte, false);
   m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
   if ((delegVS && !vs_EX_DT) || (virtualInterruptIsHvictlInject && !isNMI)){
 #ifdef CONFIG_RV_IMSIC

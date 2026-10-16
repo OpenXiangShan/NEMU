@@ -375,7 +375,8 @@ static inline bool paddr_read_check(paddr_t addr, int len, int type,
                                     int cross_page_load) {
   IFDEF(CONFIG_SHARE, hardware_error_check(vaddr);)
 
-  assert(type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ || type == MEM_TYPE_MATRIX_WRITE);
+  assert(type == MEM_TYPE_READ || type == MEM_TYPE_READ_EXEC || type == MEM_TYPE_IFETCH_READ ||
+    type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ || type == MEM_TYPE_MATRIX_WRITE);
   if (cpu.pbmt != 0) {
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
   }
