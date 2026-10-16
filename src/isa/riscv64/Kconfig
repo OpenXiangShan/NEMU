@@ -1,5 +1,12 @@
 menu "ISA-dependent Options for riscv64"
 
+config XS_KMHV2
+  bool "XiangShan Kunminghu V2 compatibility"
+  default n
+  help
+    Match Kunminghu V2 CSR availability and execution behavior while
+    retaining the mainline reference-model implementation.
+
 config HAS_CLINT
   bool
   default y
@@ -71,6 +78,7 @@ config RV_MBMC
     isolation of the Confidential Virtual Machine(CVM) using a bitmap.
 
 config RV_MPT_CHECK
+  depends on !XS_KMHV2
   bool "RISC-V MMPT (Memory Protection Table) Register"
   default n
   help
@@ -100,6 +108,7 @@ config RV_ZICOND
   default y
 
 config RV_ZICFILP
+  depends on !XS_KMHV2
   bool "RISC-V Landing Pad (Zicfilp) Extension v1.0"
   default n
   help
@@ -121,6 +130,7 @@ config RV_ZFA
   default n
 
 config RV_ZFBF_MIN
+  depends on !XS_KMHV2
   bool "RISC-V Zfbfmin Extension V1.0"
   depends on !FPU_NONE
   default n
@@ -131,6 +141,7 @@ config RVV
   default y
 
 config CUSTOM_XVEXP2
+  depends on !XS_KMHV2
   bool "RISC-V Xvexp2 Custom Vector Extension"
   depends on RVV
   default n
@@ -150,6 +161,7 @@ config CUSTOM_TENSOR
   default n
 
 config RV_AME
+  depends on !XS_KMHV2
   bool "RISC-V Matrix Extension (Internal Spec)"
   default n
 
@@ -237,6 +249,7 @@ config RV_ZVFH
   default y
 
 config RV_ZVFBF_MIN
+  depends on !XS_KMHV2
   bool "RISC-V Zvfbfmin Extension V1.0"
   depends on RVV
   default n
@@ -510,12 +523,12 @@ config PMP_GRANULARITY
   int "PMP granularity"
   default 12
 
-comment "PMP Check Disabled when enabling PERF_OPT"
+comment "PMP Check Disabled for standalone PERF_OPT"
   depends on PERF_OPT
   depends on !RV_PMP_ENTRY_0
 
 config RV_PMP_CHECK
-  # todo: pmp check still not work when enable PERF_OPT
+  # PERF_OPT_SHARE uses paddr checks rather than the direct HostTLB.
   depends on !PERF_OPT
   depends on !RV_PMP_ENTRY_0
   bool "Enable PMP Check"
@@ -588,7 +601,7 @@ config PMA_GRANULARITY
   int "PMA granularity"
   default 12
 
-comment "PMA Check Disabled when enabling PERF_OPT"
+comment "PMA Check Disabled for standalone PERF_OPT"
   depends on PERF_OPT
   depends on !RV_PMA_ENTRY_0
 
@@ -731,6 +744,7 @@ config RV_SSCOFPMF
   default n
 
 config RV_SMCNTRPMF
+  depends on !XS_KMHV2
   bool "(Beta)Enable Smcntrpmf extension(Cycle and Instret Privilege Mode Filtering)"
   default n
 
@@ -781,7 +795,7 @@ config MIMPID_VALUE
 config PMPTABLE_EXTENSION
   # PMPTable covers PMPChecker function,
   # close PMPChecker when using PMPTable.
-  depends on !PERF_OPT
+  depends on !PERF_OPT && !PERF_OPT_SHARE
   depends on !RV_PMP_CHECK
   depends on RV_PMP_CSR
   bool "Enable PMPTable extension"
@@ -823,6 +837,7 @@ config RV_ZACAS
   default n
 
 config RV_ZABHA
+  depends on !XS_KMHV2
   bool "RISC-V Extension for Byte and Halfword Atomic Memory Operations, Version 1.0"
   default n
 
