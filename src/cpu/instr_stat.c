@@ -116,6 +116,7 @@ static const InstrStatCategory instr_stat_print_order[] = {
 
 #define RV64_FENCE_INSTR(f) \
   f(fence_i) f(fence) \
+  ZIFENCETIME_INSTR_NULLARY(f) \
   ZIHINTPAUSE_INSTR_NULLARY(f) \
   ZAWRS_INSTR_NULLARY(f) \
   CBO_INSTR_TERNARY(f)
