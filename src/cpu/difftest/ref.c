@@ -38,6 +38,10 @@ unsigned ref_hartid = 0;
 #ifdef CONFIG_FAST_REF
 int difftest_exec_mode = DIFFTEST_EXEC_SLOW;
 
+#ifdef CONFIG_ISA_riscv64
+void csr_prepare(void);
+#endif
+
 void difftest_set_exec_mode(int mode) {
   assert(mode == DIFFTEST_EXEC_FAST || mode == DIFFTEST_EXEC_SLOW);
   if (difftest_exec_mode == mode) return;
@@ -547,6 +551,9 @@ void difftest_flush_state(void) {
 int difftest_state_hash(void *dest) {
   if (!dest || !MUXDEF(CONFIG_STORE_LOG_HASH, store_log_hash_enabled(), false))
     return -1;
+#ifdef CONFIG_ISA_riscv64
+  csr_prepare();
+#endif
   difftest_state_hash_t *hash = (difftest_state_hash_t *)dest;
   difftest_hash_bytes(&hash->state_lo, &hash->state_hi, &cpu, DIFFTEST_REG_SIZE);
 #ifdef CONFIG_STORE_LOG_HASH

@@ -36,6 +36,12 @@ typedef struct {
 extern "C" {
 #endif
 
+void difftest_set_exec_mode(int mode);
+uint64_t difftest_get_instr_count(void);
+uint64_t difftest_get_pc(void);
+void difftest_skip_one(bool isRVC, bool wen, uint32_t wdest, uint64_t wdata);
+void difftest_flush_state(void);
+int difftest_state_hash(void *dest);
 void difftest_set_store_hash(bool enabled);
 void difftest_store_hash_reset(void);
 

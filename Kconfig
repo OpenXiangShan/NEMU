@@ -559,7 +559,7 @@ config PERF_OPT
   default y
 
 config PERF_OPT_SHARE
-  depends on SHARE_REF && !LIGHTQS
+  depends on SHARE_REF && ISA_riscv64 && !LIGHTQS
   bool "Performance optimization for shared reference"
   default n
   help
