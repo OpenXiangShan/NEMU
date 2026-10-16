@@ -166,9 +166,13 @@ long load_zstd_img(const char *filename, uint8_t* load_start, size_t img_size){
       break;
     }
 
-    assert(decompress_file_buffer_size * sizeof(uint64_t) == output.pos);
+    // The final decompression call may produce a short block when the
+    // checkpoint's effective physical-memory range is not a multiple of the
+    // streaming buffer size.  Process the exact number of bytes returned by
+    // zstd instead of requiring every block to be full-sized.
+    assert(output.pos % sizeof(uint64_t) == 0);
 
-    for (uint64_t x = 0; x < decompress_file_buffer_size; x++) {
+    for (uint64_t x = 0; x < output.pos / sizeof(uint64_t); x++) {
       pmem_current = (uint64_t *)(pmem_start + total_write_size) + x;
       uint64_t read_data = *(decompress_file_buffer + x);
       if (read_data != 0 || *pmem_current != 0) {
