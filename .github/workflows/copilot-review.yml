@@ -1,0 +1,112 @@
+name: Copilot PR Review
+
+on:
+  # Run with the base repository's token so fork PRs can be reviewed too.
+  # This workflow never checks out or executes code from the pull request.
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: copilot-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  request-review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    name: Request Copilot review
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Request Copilot review
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            const reviewer = 'copilot-pull-request-reviewer[bot]';
+            const { owner, repo } = context.repo;
+            const pull_number = context.payload.pull_request.number;
+
+            const requested = await github.rest.pulls.listRequestedReviewers({
+              owner,
+              repo,
+              pull_number,
+            });
+            const alreadyRequested = [
+              ...requested.data.users,
+              ...requested.data.teams,
+            ].some((entry) => entry.login === reviewer || entry.name === reviewer);
+
+            if (alreadyRequested) {
+              core.info('Copilot review is already requested.');
+            } else {
+              try {
+                await github.rest.pulls.requestReviewers({
+                  owner,
+                  repo,
+                  pull_number,
+                  reviewers: [reviewer],
+                });
+                core.info('Copilot review requested.');
+              } catch (error) {
+                // Two synchronize events can race while GitHub cancels an
+                // older run. Treat an already-pending request as success.
+                if (error.status === 422) {
+                  const after = await github.rest.pulls.listRequestedReviewers({
+                    owner,
+                    repo,
+                    pull_number,
+                  });
+                  const requestedConcurrently = [
+                    ...after.data.users,
+                    ...after.data.teams,
+                  ].some((entry) => entry.login === reviewer || entry.name === reviewer);
+                  if (requestedConcurrently) {
+                    core.info('Copilot review was requested concurrently.');
+                  } else {
+                    throw error;
+                  }
+                } else {
+                  throw error;
+                }
+              }
+            }
+
+            // Keep one concise, visible checklist on the PR.  The marker makes
+            // synchronize events update this comment instead of adding noise.
+            const marker = '<!-- copilot-review-checklist -->';
+            const body = [
+              marker,
+              '@copilot Please review this PR with focus on:',
+              '',
+              '- ISA ref/DUT configuration alignment, including intentional exceptions.',
+              '- Correctness, error paths, and edge cases in the changed code.',
+              '- Redundant, over-complicated, or unnecessarily broad changes.',
+              '- Test coverage and missing regression tests.',
+            ].join('\n');
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number: pull_number,
+              per_page: 100,
+            });
+            const previous = comments.find((comment) =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker));
+
+            if (previous) {
+              await github.rest.issues.updateComment({
+                owner,
+                repo,
+                comment_id: previous.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pull_number,
+                body,
+              });
+            }

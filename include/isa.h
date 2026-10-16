@@ -59,6 +59,12 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type);
 vaddr_t get_effective_address(vaddr_t vaddr, int type);
 #endif
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type);
+#ifdef CONFIG_RVH
+void isa_mmu_tlb_flush(void);
+#else
+static inline void isa_mmu_tlb_flush(void) {
+}
+#endif
 bool isa_pmp_check_permission(paddr_t addr, int len, int type, int mode);
 bool isa_pma_check_permission(paddr_t addr, int len, int type);
 #ifdef CONFIG_RV_MBMC
@@ -67,6 +73,15 @@ bool isa_pma_check_permission(paddr_t addr, int len, int type);
  * return true if the address is in the Confidential Memory, otherwise return false.
  */
 bool isa_bmc_check_permission(paddr_t addr, int len, int type, int out_mode);
+#endif
+
+#ifdef CONFIG_RV_MPT_CHECK
+bool isa_pmp_check_permission_mmode(paddr_t addr, int len, int type);
+/**
+ * @brief Check if the address is allowed to access with the current security domain.
+ * return true if the address is allowed, otherwise return false.
+ */
+bool isa_mpt_check_permission(paddr_t addr, int len, int type, int out_mode);
 #endif
 
 // interrupt

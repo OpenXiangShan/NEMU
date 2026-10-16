@@ -14,15 +14,15 @@
 ***************************************************************************************/
 
 #include <assert.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <isa.h>
 #include <macro.h>
+#include <memory/elfloader.h>
 #include <memory/paddr.h>
-#include <memory/sparseram.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <device/flash.h>
-#include <sys/mman.h>
 #include <unistd.h>
 #include <zlib.h>
 #ifdef CONFIG_ZSTD_COMPRESS
@@ -74,8 +74,8 @@ long load_zstd_img(const char *filename, uint8_t* load_start, size_t img_size){
   assert(filename);
 
   int fd = -1;
-  int file_size = 0;
-  int compressed_file_buffer_size = 0;
+  off_t file_size = 0;
+  size_t compressed_file_buffer_size = 0;
   uint8_t *compress_file_buffer = NULL;
 
   fd = open(filename, O_RDONLY);
@@ -85,8 +85,14 @@ long load_zstd_img(const char *filename, uint8_t* load_start, size_t img_size){
   }
 
   file_size = lseek(fd, 0, SEEK_END);
+  if (file_size == (off_t)-1) {
+    printf("Cannot get compressed file size\n");
+    close(fd);
+    return -1;
+  }
   if (file_size == 0) {
     printf("File size is zero\n");
+    close(fd);
     return -1;
   }
 
@@ -100,14 +106,21 @@ long load_zstd_img(const char *filename, uint8_t* load_start, size_t img_size){
   }
 
   // read compressed file
-  compressed_file_buffer_size = read(fd, compress_file_buffer, file_size);
-  printf("read file size %d\n", compressed_file_buffer_size);
-  if (compressed_file_buffer_size != file_size) {
-    printf("Compress file read failed\n");
-    free(compress_file_buffer);
-    close(fd);
-    return -1;
+  while (compressed_file_buffer_size < (size_t)file_size) {
+    ssize_t bytes_read = read(fd, compress_file_buffer + compressed_file_buffer_size,
+                              (size_t)file_size - compressed_file_buffer_size);
+    if (bytes_read < 0 && errno == EINTR) {
+      continue;
+    }
+    if (bytes_read <= 0) {
+      printf("Compress file read failed\n");
+      free(compress_file_buffer);
+      close(fd);
+      return -1;
+    }
+    compressed_file_buffer_size += bytes_read;
   }
+  printf("read file size %zu\n", compressed_file_buffer_size);
 
   close(fd);
 
@@ -223,6 +236,14 @@ long load_img(const char* img_name, const char *which_img, uint8_t* load_start, 
 #endif
   }
 
+  if (is_elf_file(loading_img)) {
+    long loaded_size = load_elf_image(loading_img, load_start, img_size ? img_size : MEMORY_SIZE,
+                                      CONFIG_MBASE);
+    Assert(loaded_size >= 0, "Failed to load ELF image '%s'", loading_img);
+    Log("Loaded ELF image %s", loading_img);
+    return loaded_size;
+  }
+
   // RAW image
   FILE *fp = fopen(loading_img, "rb");
   Assert(fp, "Can not open '%s'", loading_img);
@@ -238,23 +259,8 @@ long load_img(const char* img_name, const char *which_img, uint8_t* load_start, 
   }
 
 
-#ifdef CONFIG_USE_SPARSEMM
-  if (file_is_elf(loading_img)) {
-    sparse_mem_elf(get_sparsemm(), loading_img);
-    Log("load elf %s to sparse mem complete", loading_img);
-    sparse_mem_info(get_sparsemm());
-  } else {
-    int fd = open(loading_img, O_RDONLY);
-    char *buf = (char *)mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
-    paddr_t load_start_paddr = host_to_guest(load_start);
-    sparse_mem_write(get_sparsemm(), load_start_paddr, size, buf);
-    close(fd);
-    munmap(buf, size);
-  }
-#else
   int ret = fread((uint8_t*)(load_start), size, 1, fp);
   assert(ret == 1);
-#endif
   Log("Read %lu bytes from file %s to 0x%p", size, img_name, load_start);
 
   fclose(fp);
@@ -274,11 +280,13 @@ void fill_memory(const char* img_file, const char* flash_image, const char* cpt_
   assert(img_file);
   uint8_t* bbl_start = (uint8_t*)get_pmem();
   *img_size = load_img(img_file, "image (checkpoint/bare metal app/bbl) from cmdline", bbl_start, 0);
+  Assert(*img_size >= 0, "Failed to load image '%s'", img_file);
 
 #ifdef CONFIG_HAS_FLASH
   uint8_t* flash_start = get_flash_base();
   if(flash_image) {
     *flash_size = load_img(flash_image, "flash image from cmdline", flash_start, get_flash_size());
+    Assert(*flash_size >= 0, "Failed to load flash image '%s'", flash_image);
   }
 #else
   if(flash_image) {
@@ -304,10 +312,11 @@ void fill_memory(const char* img_file, const char* flash_image, const char* cpt_
     fclose(restore_fp);
 
 #ifdef CONFIG_HAS_FLASH
-    load_img(cpt_image, "Gcpt restorer from cmdline", flash_start, restore_size);
+    long loaded_size = load_img(cpt_image, "Gcpt restorer from cmdline", flash_start, restore_size);
 #else
-    load_img(cpt_image, "Gcpt restorer from cmdline", bbl_start, restore_size);
+    long loaded_size = load_img(cpt_image, "Gcpt restorer from cmdline", bbl_start, restore_size);
 #endif
+    Assert(loaded_size >= 0, "Failed to load Gcpt restorer '%s'", cpt_image);
   }
 
   patch_bootloader_rng_seed(bbl_start);

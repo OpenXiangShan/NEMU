@@ -20,7 +20,6 @@
 #include <memory/paddr.h>
 #include <memory/host.h>
 #include <memory/store_queue_wrapper.h>
-#include <memory/sparseram.h>
 #include <cpu/cpu.h>
 #include <difftest.h>
 #include <string.h>
@@ -39,14 +38,10 @@ void ctrl_init() {
 
 // ctrl_memcpy_init
 void ctrl_memcpy_init(paddr_t nemu_addr, void *dut_buf, size_t n, bool direction) {
-#ifdef CONFIG_USE_SPARSEMM
-  nemu_sparse_mem_copy(nemu_addr, dut_buf, n, direction);
-#else
 #ifdef CONFIG_LARGE_COPY
   nemu_memcpy_helper(nemu_addr, dut_buf, n, direction, nemu_large_memcpy);
 #else
   nemu_memcpy_helper(nemu_addr, dut_buf, n, direction, memcpy);
-#endif
 #endif
 }
 
@@ -84,6 +79,11 @@ void ctrl_info(void *reg_buf) {
 // Register callback function for AmuCtrlIO events
 void ctrl_register_amu_callback(void (*callback)(amu_ctrl_event_t)) {
   amu_ctrl_callback_ = callback;
+}
+
+void ctrl_mtok_advance(uint8_t tok) {
+  uint8_t tok_i = check_mtok_idx(tok);
+  cpu.mtokr[tok_i]++;
 }
 
 #endif // CONFIG_SHARE_CTRL

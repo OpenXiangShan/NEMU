@@ -179,6 +179,23 @@ config CC_ASAN
   depends on !MODE_USER
   bool "Enable address sanitizer"
   default n
+
+config AME_MMACC_VECTORIZE
+  depends on RV_AME && !SHARE
+  bool "Enable AME MMACC optimization"
+  default n
+  help
+    Enable optimized execution paths for supported AME integer and
+    floating-point MMACC operations. Unsupported combinations use the scalar
+    implementation.
+
+config AME_MLDST_VECTORIZE
+  depends on RV_AME && !SHARE
+  bool "Enable AME matrix load/store optimization"
+  default n
+  help
+    Enable optimized row copies and transposed matrix load/store operations.
+    Unsupported cases use the scalar implementation.
 endmenu
 
 menu "Testing and Debugging"
@@ -235,12 +252,37 @@ config DIFFTEST_STORE_COMMIT
   default n
 
 config AME_REG_ACCESS_CHECK
-  depends on RV_AME
+  depends on RV_AME && !AME_MMACC_VECTORIZE && !AME_MLDST_VECTORIZE
   bool "Check AME matrix register accesses"
   default n
   help
     Enable debug checks for AME matrix register numbers, rows, and element
     indices. Disable this for higher perf.
+
+config AME_TILEREG_UB_CHECK
+  depends on RV_AME
+  bool "Check tile register undefined regions"
+  default n
+  help
+    Report mstore and MMA reads that extend beyond the latest mload, mzero,
+    or MMA write region of a matrix register. The AME specification leaves
+    values outside a partial write unspecified, so consuming them is treated
+    as undefined behavior. This is a diagnostic and is disabled by default.
+
+config AME_MEM_ACCESS_CHECK
+  depends on RV_AME
+  bool "Check AME memory access synchronization"
+  default n
+  help
+    Report scalar and vector loads that overlap a matrix store which has not
+    been released and acquired through the AME synchronization protocol.
+    Also report AME matrix loads that overlap scalar or vector stores without
+    a preceding visibility barrier, using mfence, W-to-R FENCE ordering,
+    acquire-release atomics and same-block CBO clean/flush ordering.
+    This is a diagnostic, not a cycle-accurate store buffer model. Checking
+    runs in instruction order in the standalone interpreter and REF mode,
+    before deferred AMU execution. Speculative memory rollback is unsupported.
+    Checking also covers HostTLB hits and bulk vector accesses.
 
 config DIFFTEST_REF_QEMU
   depends on DIFFTEST_REF_QEMU_DL || DIFFTEST_REF_QEMU_SOCKET
@@ -297,6 +339,7 @@ config SIMPOINT_LOG
   default n
 
 config TRACE_MATRIX_LOAD_STORE
+  depends on RV_AME
   bool "Enable Log for matrix load/store"
   default n
 

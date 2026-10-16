@@ -1,0 +1,55 @@
+name: Review CI
+
+on:
+  # Trusted workflow: review every non-draft PR update, including fork PRs.
+  # We never check out or execute the untrusted PR code in this job.
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_url:
+        description: "Pull request URL (for manual runs)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  review:
+    name: PR-Agent review
+    runs-on: bosc
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request_target' &&
+       github.event.pull_request.draft == false) ||
+      (github.event.issue.pull_request &&
+       startsWith(github.event.comment.body, '@review-bot') &&
+       contains(github.event.comment.body, 'review') &&
+       (github.event.comment.author_association == 'OWNER' ||
+        github.event.comment.author_association == 'MEMBER' ||
+        github.event.comment.author_association == 'COLLABORATOR'))
+    timeout-minutes: 20
+    steps:
+      - name: Checkout workflow configuration
+        uses: actions/checkout@v7
+        with:
+          # For pull_request_target this is the trusted base-branch revision.
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 1
+
+      - name: Run PR-Agent on node004
+        env:
+          # issue_comment.issue.html_url points at /issues/<n>, not /pull/<n>.
+          # Use the PR URL when available and construct the pull URL for
+          # comment-triggered runs.
+          PR_URL: ${{ github.event.inputs.pr_url || github.event.pull_request.html_url || format('{0}/{1}/pull/{2}', github.server_url, github.event.repository.full_name, github.event.issue.number) }}
+          PR_AGENT_BIN: /nfs/home/fengkehan/.local/pr-agent-venv/bin/python
+          PR_AGENT_GITHUB_TOKEN: ${{ secrets.PR_AGENT_GITHUB_TOKEN || github.token }}
+          OPENAI_API_KEY: ${{ secrets.PR_AGENT_OPENAI_API_KEY || '' }}
+          OPENAI_BASE_URL: ${{ secrets.PR_AGENT_OPENAI_BASE_URL || '' }}
+        run: bash .github/scripts/run-pr-agent-review.sh

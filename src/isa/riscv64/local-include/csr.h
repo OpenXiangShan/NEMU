@@ -37,7 +37,6 @@
 #define CUSTOM_CSR_MCOREPWR   0xbc0
 #define CUSTOM_CSR_MFLUSHPWR  0xbc1
 #define CUSTOM_CSR_MBMC       0xbC2
-
 #ifdef CONFIG_CUSTOM_CSR_KMHV3
 #define CUSTOM_CSR_SBPCTL_WMASK     0xff
 #else // CONFIG_CUSTOM_CSR_KMHV3
@@ -377,8 +376,15 @@
   CSRS_M_GUEST_TRAP_HANDLING(f)
 
 /** Machine Configuration **/
+#ifdef CONFIG_RV_CSR_MSECCFG
+  #define CSRS_M_MSECCFG(f) \
+    f(mseccfg    , 0x747)
+#else // CONFIG_RV_CSR_MSECCFG
+  #define CSRS_M_MSECCFG(f)
+#endif // CONFIG_RV_CSR_MSECCFG
+
 #define CSRS_M_CONFIGURATION(f) \
-  f(menvcfg    , 0x30A) f(mseccfg    , 0x747)
+  f(menvcfg    , 0x30A) CSRS_M_MSECCFG(f)
 
 /** Machine Memory Protection (PMP) **/
 #ifdef CONFIG_RV_PMP_ENTRY_0
@@ -461,6 +467,7 @@
 #define CSRS_M_CNTR(f) \
   f(mcycle     , 0xB00) f(minstret   , 0xB02)
 
+#ifdef CONFIG_RV_ZIHPM
 #define CSRS_M_HPMCOUNTER(f) \
   f(mhpmcounter3   , 0xB03) \
   f(mhpmcounter4   , 0xB04) f(mhpmcounter5   , 0xB05) f(mhpmcounter6   , 0xB06) f(mhpmcounter7   , 0xB07) \
@@ -470,12 +477,16 @@
   f(mhpmcounter20  , 0xB14) f(mhpmcounter21  , 0xB15) f(mhpmcounter22  , 0xB16) f(mhpmcounter23  , 0xB17) \
   f(mhpmcounter24  , 0xB18) f(mhpmcounter25  , 0xB19) f(mhpmcounter26  , 0xB1A) f(mhpmcounter27  , 0xB1B) \
   f(mhpmcounter28  , 0xB1C) f(mhpmcounter29  , 0xB1D) f(mhpmcounter30  , 0xB1E) f(mhpmcounter31  , 0xB1F)
+#else // CONFIG_RV_ZIHPM
+#define CSRS_M_HPMCOUNTER(f)
+#endif // CONFIG_RV_ZIHPM
 
 #define CSRS_M_COUNTER_TIMERS(f)\
   CSRS_M_CNTR(f) \
   CSRS_M_HPMCOUNTER(f)
 
 /** Machine Counter Setup **/
+#ifdef CONFIG_RV_ZIHPM
 #define CSRS_M_HPMEVENT(f) \
   f(mhpmevent3     , 0x323) \
   f(mhpmevent4     , 0x324) f(mhpmevent5     , 0x325) f(mhpmevent6     , 0x326) f(mhpmevent7     , 0x327) \
@@ -485,6 +496,9 @@
   f(mhpmevent20    , 0x334) f(mhpmevent21    , 0x335) f(mhpmevent22    , 0x336) f(mhpmevent23    , 0x337) \
   f(mhpmevent24    , 0x338) f(mhpmevent25    , 0x339) f(mhpmevent26    , 0x33A) f(mhpmevent27    , 0x33B) \
   f(mhpmevent28    , 0x33C) f(mhpmevent29    , 0x33D) f(mhpmevent30    , 0x33E) f(mhpmevent31    , 0x33F)
+#else // CONFIG_RV_ZIHPM
+#define CSRS_M_HPMEVENT(f)
+#endif // CONFIG_RV_ZIHPM
 
 #ifdef CONFIG_RV_CSR_MCOUNTINHIBIT
   #define CSRS_M_MCOUNTINHIBIT(f) \
@@ -534,6 +548,13 @@
   #define CSRS_M_MBMC(f)
 #endif // CONFIG_RV_MBMC
 
+#ifdef CONFIG_RV_MPT_CHECK
+  #define CSRS_M_MMPT(f) \
+    f(mmpt       , 0x382)
+#else // CONFIG_RV_MPT_CHECK
+  #define CSRS_M_MMPT(f)
+#endif // CONFIG_RV_MMPT
+
 #define CSRS_M_CUSTOM(f) \
   f(mcorepwr   , 0xBC0) f(mflushpwr  , 0xBC1) \
   CSRS_M_MBMC(f)
@@ -582,6 +603,7 @@
   CSRS_M_CSRIND(f) \
   CSRS_M_SMRNMI(f) \
   CSRS_DEBUG_MODE(f) \
+  CSRS_M_MMPT(f) \
   CSRS_M_CUSTOM(f)
 
 
@@ -663,7 +685,11 @@ CSR_STRUCT_START(mstatus)
   uint64_t tvm : 1; // [20]
   uint64_t tw  : 1; // [21]
   uint64_t tsr : 1; // [22]
+#ifdef CONFIG_RV_ZICFILP
+  uint64_t spelp: 1; // [23]
+#else
   uint64_t pad3: 1; // [23]
+#endif
   uint64_t sdt : 1; // [24]
   uint64_t ms  : 2; // [26:25]
   uint64_t pad4: 5; // [31:27]
@@ -677,7 +703,12 @@ CSR_STRUCT_START(mstatus)
 #else
   uint64_t pad5: 2; // [39:38]
 #endif
+#ifdef CONFIG_RV_ZICFILP
+  uint64_t pad6: 1; // [40]
+  uint64_t mpelp: 1; // [41]
+#else
   uint64_t pad6: 2; // [41:40]
+#endif
   uint64_t mdt : 1; // [42]
   uint64_t pad7:20; // [62:43]
   uint64_t sd  : 1; // [63]
@@ -764,7 +795,9 @@ CSR_STRUCT_START(minstret)
   uint64_t pad0 : 64;
 CSR_STRUCT_END(minstret)
 
+#ifdef CONFIG_RV_ZIHPM
 CSR_STRUCT_DUMMY_LIST(CSRS_M_HPMCOUNTER)
+#endif // CONFIG_RV_ZIHPM
 
 #define CSRS_M_HPMEVENTS_STRUCT(name, addr) \
   typedef union {                   \
@@ -852,7 +885,13 @@ CSR_STRUCT_END(mconfigptr)
 
 CSR_STRUCT_START(menvcfg)
   uint64_t fiom   : 1; // [0]
+#ifdef CONFIG_RV_ZICFILP
+  uint64_t pad0   : 1; // [1]
+  uint64_t lpe    : 1; // [2]
+  uint64_t pad0_1 : 1; // [3]
+#else
   uint64_t pad0   : 3; // [3:1]
+#endif
   uint64_t cbie   : 2; // [5:4]
   uint64_t cbcfe  : 1; // [6]
   uint64_t cbze   : 1; // [7]
@@ -873,7 +912,11 @@ CSR_STRUCT_START(mseccfg)
   uint64_t pad0  : 5; // [7:3]
   uint64_t useed : 1; // [8]
   uint64_t sseed : 1; // [9]
+#ifdef CONFIG_RV_ZICFILP
   uint64_t mlpe  : 1; // [10]
+#else
+  uint64_t pad1_0: 1; // [10]
+#endif
   uint64_t pad1  :21; // [31:11]
   uint64_t pmm   : 2; // [33:32]
   uint64_t pad2  :30; // [63:34]
@@ -983,7 +1026,12 @@ CSR_STRUCT_START(dcsr)
   uint64_t ebreakm  : 1 ; // [15]
   uint64_t ebreakvu : 1 ; // [16]
   uint64_t ebreakvs : 1 ; // [17]
+#ifdef CONFIG_RV_ZICFILP
+  uint64_t pelp     : 1 ; // [18]
+  uint64_t pad1     : 9 ; // [27:19]
+#else
   uint64_t pad1     : 10; // [27:18]
+#endif
   uint64_t debugver : 4 ; // [31:28]
 CSR_STRUCT_END(dcsr)
 
@@ -1150,8 +1198,12 @@ CSR_STRUCT_START(sstatus)
   uint64_t pad5 : 1;  // [18]
   uint64_t sum  : 1;  // [19]
   uint64_t mxr  : 1;  // [20]
+#ifdef CONFIG_RV_ZICFILP
   uint64_t pad6 : 2;  // [22:21]
   uint64_t spelp: 1;  // [23]
+#else
+  uint64_t pad6 : 3;  // [23:21]
+#endif
   uint64_t sdt  : 1;  // [24]
   uint64_t ms   : 2;  // [26:25]
   uint64_t pad7 : 5;  // [31:27]
@@ -1213,7 +1265,13 @@ CSR_STRUCT_END(stval)
 
 CSR_STRUCT_START(senvcfg)
   uint64_t fiom   : 1; // [0]
-  uint64_t pad0   : 3; // [3:1]
+#ifdef CONFIG_RV_ZICFILP
+  uint64_t pad0_0 : 1; // [1]
+  uint64_t lpe    : 1; // [2]
+  uint64_t pad0_1 : 1; // [3]
+#else
+  uint64_t pad0_0 : 3; // [3:1]
+#endif
   uint64_t cbie   : 2; // [5:4]
   uint64_t cbcfe  : 1; // [6]
   uint64_t cbze   : 1; // [7]
@@ -1241,6 +1299,16 @@ CSR_STRUCT_START(mbmc)
   uint64_t RSV  :   3;
   uint64_t BMA  :  58;
 CSR_STRUCT_END(mbmc)
+#endif
+
+#ifdef CONFIG_RV_MPT_CHECK
+CSR_STRUCT_START(mmpt)
+  uint64_t PPN: 44; // [43:0]
+  uint64_t WPRI0: 8;//[51:44]
+  uint64_t SDID: 6;//[57:52]
+  uint64_t WPRI1: 2;//[59:58]
+  uint64_t MODE: 4; // [63:60]
+CSR_STRUCT_END(mmpt)
 #endif
 
 #ifdef CONFIG_RV_SSCOFPMF
@@ -1460,7 +1528,13 @@ CSR_STRUCT_END(hgeie)
 
 CSR_STRUCT_START(henvcfg)
   uint64_t fiom   : 1;  // [0]
+#ifdef CONFIG_RV_ZICFILP
+  uint64_t pad0   : 1;  // [1]
+  uint64_t lpe    : 1;  // [2]
+  uint64_t pad0_1 : 1;  // [3]
+#else
   uint64_t pad0   : 3;  // [3:1]
+#endif
   uint64_t cbie   : 2;  // [5:4]
   uint64_t cbcfe  : 1;  // [6]
   uint64_t cbze   : 1;  // [7]
@@ -1512,7 +1586,12 @@ CSR_STRUCT_START(vsstatus)
   uint64_t pad4   : 1;  // [17]
   uint64_t sum    : 1;  // [18]
   uint64_t mxr    : 1;  // [19]
+#ifdef CONFIG_RV_ZICFILP
+  uint64_t pad5   : 3;  // [22:20]
+  uint64_t spelp  : 1;  // [23]
+#else
   uint64_t pad5   : 4;  // [23:20]
+#endif
   uint64_t sdt    : 1;  // [24]
   uint64_t ms     : 2;  // [26:25]
   uint64_t pad6   : 5;  // [31:27]
@@ -1828,8 +1907,12 @@ CSR_STRUCT_START(mnstatus)
   uint64_t nmie   : 1;  // [3]
   uint64_t pad1   : 3;  // [6:4]
   uint64_t mnpv   : 1;  // [7]
+#ifdef CONFIG_RV_ZICFILP
   uint64_t pad2   : 1;  // [8]
   uint64_t mnpelp : 1;  // [9]
+#else
+  uint64_t pad2   : 2;  // [9:8]
+#endif
   uint64_t pad3   : 1;  // [10]
   uint64_t mnpp   : 2;  // [12:11]
   uint64_t pad4   : 51; // [63:13]
@@ -1847,6 +1930,10 @@ CSR_STRUCT_END(mnscratch)
 
 #define CSRS_DECL(name, addr) extern concat(name, _t)* const name;
 MAP(CSRS, CSRS_DECL)
+
+#ifndef CONFIG_RV_CSR_MSECCFG
+extern mseccfg_t* const mseccfg;
+#endif
 
 
 /**
@@ -1968,7 +2055,7 @@ MAP(CSRS, CSRS_DECL)
 // SD, SDT, UXL, MXR, SUM, XS, FS, VS, MS, SPP, UBE, SPIE, SIE
 #define SSTATUS_BASE 0x80000003060de762UL
 
-#define SSTATUS_RMASK (SSTATUS_BASE | MUXDEF(CONFIG_RV_SMRNMI, SSTATUS_SDT, 0))
+#define SSTATUS_RMASK (SSTATUS_BASE | MUXDEF(CONFIG_RV_SMRNMI, SSTATUS_SDT, 0) | MUXDEF(CONFIG_RV_ZICFILP, SSTATUS_SPELP, 0))
 
 /** AIA **/
 #define ISELECT_2F_MASK 0x2F
@@ -1981,7 +2068,7 @@ MAP(CSRS, CSRS_DECL)
 
 /** Double Trap**/
 #ifdef CONFIG_RV_SMRNMI
-  #define MNSTATUS_MASK (MNSTATUS_NMIE | MNSTATUS_MNPV | MNSTATUS_MNPP)
+  #define MNSTATUS_MASK (MNSTATUS_NMIE | MNSTATUS_MNPV | MNSTATUS_MNPP | MUXDEF(CONFIG_RV_ZICFILP, MNSTATUS_MNPELP, 0))
 #endif
 
 /**
@@ -1990,6 +2077,7 @@ MAP(CSRS, CSRS_DECL)
 
 /** General **/
 void csr_prepare();
+void csr_difftest_mark_dirty(void);
 
 word_t gen_status_sd(word_t status);
 word_t get_mip();

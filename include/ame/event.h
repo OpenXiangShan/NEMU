@@ -26,6 +26,13 @@ typedef struct {
   uint64_t pc;
 } amu_ctrl_event_t;
 
+// mload/mzero hash ABI shared with DiffTest's MatrixHash128 (natural layout).
+typedef struct {
+  uint64_t lo;
+  uint64_t hi;
+  uint32_t bytes;
+} amu_hash_t;
+
 #endif // CONFIG_RV_AME
 
 #endif // __AME_EVENT_H__

@@ -26,6 +26,9 @@
 #include <setjmp.h>
 #include <unistd.h>
 #include <generated/autoconf.h>
+#ifdef CONFIG_RV_ZICFILP
+#include "../isa/riscv64/local-include/intr.h"
+#endif
 #include <profiling/profiling_control.h>
 #include <checkpoint/semantic_point.h>
 #include "../local-include/trigger.h"
@@ -151,6 +154,19 @@ static void update_instr_cnt() {
 #endif // CONFIG_ENABLE_INSTR_CNT
 }
 
+static inline void update_instr_cnt_after_execute() {
+#if defined(CONFIG_SHARE) && !defined(CONFIG_LIGHTQS) && \
+    defined(CONFIG_INSTR_CNT_BY_INSTR)
+  // Non-LightQS shared execution asserts that at most one instruction is
+  // requested, so the completed batch has no generic delta left to compute.
+  n_batch = 0;
+  n_remain = 0;
+  n_remain_total = 0;
+#else
+  update_instr_cnt();
+#endif
+}
+
 void monitor_statistic() {
   setlocale(LC_NUMERIC, "");
   Log("host time spent = %'ld us", g_timer);
@@ -182,9 +198,24 @@ void set_sys_state_flag(int flag) { g_sys_state_flag |= flag; }
 
 void mmu_tlb_flush(vaddr_t vaddr) {
   hosttlb_flush(vaddr);
+  isa_mmu_tlb_flush();
   if (vaddr == 0)
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
+
+#ifdef CONFIG_RVH
+void mmu_tlb_flush_host(vaddr_t vaddr) {
+  hosttlb_flush(vaddr);
+  if (vaddr == 0)
+    set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+}
+
+void mmu_tlb_flush_guest(vaddr_t vaddr) {
+  isa_mmu_tlb_flush();
+  if (vaddr == 0)
+    set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+}
+#endif
 
 jmp_buf context_stack[CONTEXT_STACK_SIZE] = {};
 int context_idx = -1;
@@ -229,8 +260,6 @@ static bool manual_cpt_quit = false;
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
     s = s->tnext;                                                              \
-    is_ctrl = true;                                                            \
-    br_taken = true;                                                           \
     goto end_of_bb;                                                            \
   } while (0)
 
@@ -240,8 +269,6 @@ static bool manual_cpt_quit = false;
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
     s = jr_fetch(s, *(target));                                                \
-    is_ctrl = true;                                                            \
-    br_taken = true;                                                           \
     goto end_of_bb;                                                            \
   } while (0)
 
@@ -250,10 +277,8 @@ static bool manual_cpt_quit = false;
   do {                                                                         \
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
-    is_ctrl = true;                                                            \
     if (interpret_relop(relop, *src1, *src2)) {                                \
       s = s->tnext;                                                            \
-      br_taken = true;                                                         \
     } else                                                                     \
       s = s->ntnext;                                                           \
     goto end_of_bb;                                                            \
@@ -263,9 +288,11 @@ static bool manual_cpt_quit = false;
   do {                                                                         \
     if (g_sys_state_flag) {                                                    \
       if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {                         \
+        Decode *executed_s = s; /* save the executed instruction */            \
         /* Settle instruction counting for the unended bb. */                  \
         IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);               \
         s = tcache_handle_flush(s->snpc);                                      \
+        save_globals(executed_s);                                              \
       } else {                                                                 \
         /* BB has not end, but BATCH is about to end. */                       \
         /* Record unsettled instruction number for feature flush. */           \
@@ -279,13 +306,15 @@ static bool manual_cpt_quit = false;
 
 #define rtl_priv_jr(s, target)                                                 \
   do {                                                                         \
+    Decode *executed_s = s;                                                    \
     /* Settle instruction counting for the last bb. */                         \
     IFDEF(CONFIG_INSTR_CNT_BY_BB, n_remain -= s->idx_in_bb);                   \
-    is_ctrl = true;                                                            \
+    profile_control_exit = true;                                               \
     s = jr_fetch(s, *(target));                                                \
     if (g_sys_state_flag) {                                                    \
       if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {                         \
         s = tcache_handle_flush(s->pc);                                        \
+        save_globals(executed_s);                                              \
       }                                                                        \
       g_sys_state_flag = 0;                                                    \
     }                                                                          \
@@ -317,33 +346,32 @@ static inline void debug_difftest(Decode *_this, Decode *next) {
 }
 
 #ifndef CONFIG_SHARE
-uint64_t per_bb_profile(Decode *prev_s, Decode *s, bool control_taken) {
+uint64_t per_bb_profile(Decode *prev_s, Decode *s) {
 
 
   // checkpoint_icount_base is set from nemu_trap.
   // Profiling and checkpointing use this as the starting point for instruction counting.
   uint64_t abs_inst_count = get_abs_instr_count() - checkpoint_icount_base;
+  bool workload_ready = workload_loaded || donot_skip_boot;
   // workload_loaded set from nemu_trap
   //
-  if (enable_semantic_point_cpt() && (workload_loaded || donot_skip_boot)) {
+  if (workload_ready && enable_semantic_point_cpt()) {
     semantic_point_profile(prev_s->pc, true, abs_inst_count);
     semantic_point_profile(s->pc, false, abs_inst_count);
   }
 
-  if (profiling_state == SimpointProfiling && (workload_loaded||donot_skip_boot)) {
-    simpoint_profiling(prev_s->pc, true, abs_inst_count);
-    simpoint_profiling(s->pc, false, abs_inst_count);
+  if (workload_ready && profiling_state == SimpointProfiling) {
+    simpoint_profiling_bb(prev_s->pc, s->pc, abs_inst_count);
+  }
+
+  if (!workload_ready || checkpoint_state == NoCheckpoint) {
+    return abs_inst_count;
   }
 
   //umod or not set force m mod
   extern bool able_to_take_cpt();
   bool able_to_take = able_to_take_cpt() || force_cpt_mmode;
   if (!able_to_take) {
-    return abs_inst_count;
-  }
-
-  //
-  if (!(workload_loaded||donot_skip_boot)) {
     return abs_inst_count;
   }
 
@@ -411,8 +439,11 @@ static void execute(int n) {
   }
 
   __attribute__((unused)) Decode *this_s = NULL;
-  __attribute__((unused)) bool br_taken = false;
-  __attribute__((unused)) bool is_ctrl = false;
+  __attribute__((unused)) bool profile_control_exit = false;
+#ifndef CONFIG_SHARE
+  const bool per_bb_profile_active =
+    profiling_state != NoProfiling || checkpoint_state != NoCheckpoint;
+#endif
 
   // main loop
   while (true) {
@@ -420,7 +451,18 @@ static void execute(int n) {
     this_s = s;
 #endif
     __attribute__((unused)) rtlreg_t ls0, ls1, ls2;
-    br_taken = false;
+#ifdef CONFIG_RV_ZICFILP
+    // Let an undecoded tcache entry go through isa_fetch_decode() first so
+    // instruction-fetch faults retain priority over the software check.
+    if (unlikely(cpu.elp == 1) && s->EHelper != &&exec_nemu_decode) {
+      // isa_fetch_decode() has already fetched exactly the bytes belonging to
+      // this instruction. Re-fetching four bytes here would incorrectly touch
+      // the next page when the target is a 16-bit instruction at a page end.
+      if ((s->isa.instr.val & 0x00000FFF) != 0x00000017) {
+        riscv64_raise_software_check(LANDING_PAD_FAULT);
+      }
+    }
+#endif
 
     goto *(s->EHelper);
 
@@ -445,22 +487,26 @@ static void execute(int n) {
     // Exit the execute() loop after certain basic blocks, even if instr count is disabled.
     IFDEF(CONFIG_INSTR_CNT_DISABLED, n_remain -= 1);
 
-    if (is_ctrl) {
-      uint64_t abs_inst_count = per_bb_profile(prev_s, s, br_taken);
+    if (unlikely(per_bb_profile_active)) {
+      uint64_t abs_inst_count = per_bb_profile(prev_s, s);
       Logtb("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
       Logtb("Executed %ld instructions in total, pc: 0x%lx\n",
             (int64_t)abs_inst_count, prev_s->pc);
     }
-    if (manual_cpt_quit) {
+    if (unlikely(per_bb_profile_active && manual_cpt_quit)) {
       Log("unlikely(manual_cpt_quit)=%ld, manual_cpt_quit=%d",
           unlikely(manual_cpt_quit), manual_cpt_quit);
     }
 
     if (unlikely(n_remain <= 0)) {
+      /* The old is_ctrl flag remained set until end_of_loop, publishing this
+       * boundary twice when a control-flow BB exhausted the execute batch. */
+      profile_control_exit = per_bb_profile_active;
       // goto end_of_loop;
       break;
     }
-    if (unlikely(manual_cpt_quit)) {
+    if (unlikely(per_bb_profile_active && manual_cpt_quit)) {
+      profile_control_exit = true;
       // goto end_of_loop;
       break;
     }
@@ -470,8 +516,6 @@ static void execute(int n) {
     // Most of executed instruction (except some priv instructions) will goto here.
     // Don't put Log here to improve performance
 
-    // clear for recording next inst
-    is_ctrl = false;
     Logti("prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
 
     IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY, instr_stat_count(this_s->instr_stat_category));
@@ -498,11 +542,11 @@ end_of_loop:
   Logti("end_of_loop: prev pc = 0x%lx, pc = 0x%lx", prev_s->pc, s->pc);
   Loge("total insts: %'lu, execute remain: %'d", get_abs_instr_count(), n_remain);
 
-  if (is_ctrl) {
-    per_bb_profile(prev_s, s, br_taken);
+  if (profile_control_exit && unlikely(per_bb_profile_active)) {
+    per_bb_profile(prev_s, s);
   }
 
-  if (manual_cpt_quit) {
+  if (unlikely(per_bb_profile_active && manual_cpt_quit)) {
     Log("unlikely(manual_cpt_quit)=%ld, manual_cpt_quit=%d",
         unlikely(manual_cpt_quit), manual_cpt_quit);
   }
@@ -548,6 +592,9 @@ void lightqs_take_reg_snapshot() {
   #ifdef CONFIG_RV_MBMC
   reg_ss.mbmc = cpu.mbmc;
   #endif
+  #ifdef CONFIG_RV_MPT_CHECK
+  reg_ss.mmpt = cpu.mmpt;
+  #endif
   reg_ss.mip = cpu.mip;
   reg_ss.mie = cpu.mie;
   reg_ss.mscratch = cpu.mscratch;
@@ -590,6 +637,9 @@ void lightqs_take_spec_reg_snapshot() {
   spec_reg_ss.satp = cpu.satp;
   #ifdef CONFIG_RV_MBMC
   spec_reg_ss.mbmc = cpu.mbmc;
+  #endif
+  #ifdef CONFIG_RV_MPT_CHECK
+  spec_reg_ss.mmpt = cpu.mmpt;
   #endif
   spec_reg_ss.mip = cpu.mip;
   spec_reg_ss.mie = cpu.mie;
@@ -642,6 +692,9 @@ uint64_t lightqs_restore_reg_snapshot(uint64_t n) {
   cpu.satp = reg_ss.satp;
   #ifdef CONFIG_RV_MBMC
   cpu.mbmc = reg_ss.mbmc;
+  #endif
+  #ifdef CONFIG_RV_MPT_CHECK
+  cpu.mmpt = reg_ss.mmpt;
   #endif
   cpu.mip = reg_ss.mip;
   cpu.mie = reg_ss.mie;
@@ -712,6 +765,17 @@ static void execute(int n) {
     cpu.debug.current_pc = s.pc;
     cpu.pc = s.snpc;
     ref_log_cpu("pc = 0x%lx inst %x", s.pc, s.isa.instr.val);
+
+#ifdef CONFIG_RV_ZICFILP
+    if (unlikely(cpu.elp == 1)) {
+      // fetch_decode() has already preserved the normal variable-length
+      // instruction-fetch behavior and recorded all of the current instruction.
+      if ((s.isa.instr.val & 0x00000FFF) != 0x00000017) {
+        riscv64_raise_software_check(LANDING_PAD_FAULT);
+      }
+    }
+#endif
+
     s.EHelper(&s);
 
     IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY, instr_stat_count(s.instr_stat_category));
@@ -721,14 +785,16 @@ static void execute(int n) {
     IFDEF(CONFIG_DEBUG, debug_hook(s.pc, s.logbuf));
     IFDEF(CONFIG_DIFFTEST, difftest_step(s.pc, cpu.pc));
 
-    #ifdef CONFIG_ISA_riscv64
-      #ifdef CONFIG_DETERMINISTIC
-        void update_riscv_timer();
-        update_riscv_timer();
-      #endif // CONFIG_DETERMINISTIC
-    #endif // CONFIG_ISA_riscv64
+#if defined(CONFIG_ISA_riscv64) && defined(CONFIG_DETERMINISTIC) && \
+    defined(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT)
+    void update_riscv_timer();
+    update_riscv_timer();
+#endif
 
-    if (MUXDEF(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT, isa_query_intr(), INTR_EMPTY) != INTR_EMPTY) {
+    // A shared one-instruction batch reaches the outer interrupt poll before
+    // another instruction can execute, so polling here would be redundant.
+    if (MUXDEF(CONFIG_SHARE, n != 1, true) &&
+        MUXDEF(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT, isa_query_intr(), INTR_EMPTY) != INTR_EMPTY) {
       n_remain -= 1; // manually do this, as it will be skipped after break.
       break;
     }
@@ -830,10 +896,11 @@ void cpu_exec(uint64_t n) {
       device_update();
     #endif
 
-    #ifdef CONFIG_ISA_riscv64
+#if defined(CONFIG_ISA_riscv64) && defined(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT) && \
+    (!defined(CONFIG_SHARE) || !defined(CONFIG_DETERMINISTIC))
       void update_riscv_timer();
       update_riscv_timer();
-    #endif // CONFIG_ISA_riscv64
+#endif
 
     #ifndef CONFIG_SHARE
       #ifdef LIGHTQS
@@ -855,6 +922,15 @@ void cpu_exec(uint64_t n) {
       cpu.pbmt = 0;
       cpu.isVldst = false;
       cpu.isVecUnitStore = false;
+#ifdef CONFIG_RVH
+      // HLV/HLVX/HSV set these transient translation controls around the
+      // memory operation. A fault leaves through longjmp, bypassing the
+      // normal helper epilogue, so clear them before executing the handler.
+      extern bool hld_st;
+      extern bool hlvx;
+      hld_st = false;
+      hlvx = false;
+#endif
 
       // No need to settle instruction counting here, as it is done in longjmp handler.
       // It's necessary to flush tcache for exception: addr space may conflict in different priv/mmu mode.
@@ -906,7 +982,7 @@ void cpu_exec(uint64_t n) {
     execute(n_batch);
 
     // settle instruction counting, as BATCH has ended.
-    update_instr_cnt();
+    update_instr_cnt_after_execute();
 
     IFDEF(CONFIG_PERF_OPT, update_global());
 

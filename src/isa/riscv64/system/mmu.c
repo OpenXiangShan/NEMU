@@ -227,6 +227,22 @@ void mmu_refresh_pma_cache(void) {
 void mmu_refresh_pma_cache(void) {
 }
 #endif
+
+static bool data_effective_address_identity_fast = false;
+
+static inline void update_effective_address_state(void) {
+#ifdef CONFIG_RVH
+  data_effective_address_identity_fast =
+    !hld_st && !get_mprv() && !cpu.v &&
+    ((cpu.mode == MODE_U && senvcfg->pmm == 0) ||
+     (cpu.mode == MODE_S && (mstatus->mxr || menvcfg->pmm == 0)) ||
+     (cpu.mode == MODE_M && mseccfg->pmm == 0));
+#else
+  data_effective_address_identity_fast =
+    !get_mprv() && cpu.mode == MODE_U && senvcfg->pmm == 0;
+#endif
+}
+
 #ifdef CONFIG_RVH
 static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type, int virt, int mode) {
 bool ifetch = (type == MEM_TYPE_IFETCH);
@@ -353,20 +369,21 @@ inline vaddr_t get_effective_address(vaddr_t vaddr, int type) {
     return vaddr;
   }
 
+  if (likely(!hld_st && data_effective_address_identity_fast)) {
+    return vaddr;
+  }
+
   bool virt = cpu.v;
   int mode = cpu.mode;
   int pmm = 0;
   int masked_width = 0;
 
-  // Early out fastpath for non-H & non-pmm applications
-  if (likely(!hld_st && !get_mprv() && mode == MODE_U && senvcfg->pmm == 0)) {
-    return vaddr;
-  }
-
   if (hld_st) {
     mode = hstatus->spvp;
     virt = true;
-  } else if (get_mprv() && mode != MODE_M ) {
+  } else if (get_mprv()) {
+    // MPRV makes data accesses use MPP; checking the current mode here would
+    // suppress precisely the M-mode accesses for which MPRV is intended.
     mode = mstatus->mpp;
     virt = mstatus->mpv;
   }
@@ -423,6 +440,7 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
   pt_level = 0;
   #endif
   if (hgatp->mode == HGATP_MODE_BARE) {
+    cpu.pbmt = 0;
     return gpaddr;
   } else if (hgatp->mode == HGATP_MODE_Sv48x4){
     if((gpaddr & ~(((int64_t)1 << 50) - 1)) != 0){
@@ -444,10 +462,19 @@ paddr_t gpa_stage(paddr_t gpaddr, vaddr_t vaddr, int type, int trap_type, bool i
     p_pte = pg_base + GVPNi(gpaddr, level, max_level) * PTE_SIZE;
 #ifdef CONFIG_MULTICORE_DIFF
     // PMP check should always be enabled during ptw, so just MODE_S here
-    if (!isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
-        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ)) {
-      Log("pmp or pma check failed when PTW");
+    bool check_failed;
 
+    #ifdef CONFIG_RV_MPT_CHECK
+      check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
+        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ) ||
+        !isa_mpt_check_permission(p_pte, PTE_SIZE,MEM_TYPE_READ,1);
+    #else
+      check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
+        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ);
+    #endif // CONFIG_RV_MPT_CHECK
+
+    if (check_failed) {
+      Log("pmp or pma or mpt check failed when PTW");
       int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
                   type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
       cpu.trapInfo.tval = vaddr;
@@ -539,12 +566,24 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
   int paddr_read_type = type == MEM_TYPE_IFETCH ? MEM_TYPE_IFETCH_READ :
                         type == MEM_TYPE_WRITE  ? MEM_TYPE_WRITE_READ  :
                                                   MEM_TYPE_READ;
+#ifdef CONFIG_SHARE
+  if (unlikely(cpu.guided_exec)) {
+    return paddr_read(addr, PTE_SIZE, paddr_read_type, paddr_read_type,
+                      mode, vaddr);
+  }
+  // PTE addresses have already been classified as PMEM above. Keep the
+  // physical-access checks and PMEM backend behavior, but skip generic address
+  // routing that would classify the same address again.
+  return paddr_read_pmem_checked(addr, PTE_SIZE, paddr_read_type,
+                                 paddr_read_type, mode, vaddr);
+#else
   return paddr_read(addr, PTE_SIZE, paddr_read_type, paddr_read_type, mode, vaddr);
+#endif
 }
 #endif // CONFIG_MULTICORE_DIFF
 
 static paddr_t ptw(vaddr_t vaddr, int type) {
-  Logtr("Page walking for 0x%lx", vaddr);
+  Logtr("Page walking for 0x%lx, CPU mode: %lx", vaddr, cpu.mode);
   word_t pg_base = PGBASE(satp->ppn);
   int max_level;
   max_level = satp->mode == SATP_MODE_Sv39 ? 3 : 4;
@@ -596,10 +635,19 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
 #endif //CONFIG_RVH
     // PMP check should always be enabled during ptw, so just MODE_S here
-    if (!isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
-        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ)) {
-      printf("pmp or pma check failed when PTW");
+    bool check_failed;
 
+    #ifdef CONFIG_RV_MPT_CHECK
+      check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
+        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ) ||
+        !isa_mpt_check_permission(p_pte, PTE_SIZE,MEM_TYPE_READ,1);
+    #else
+      check_failed = !isa_pmp_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ, MODE_S) ||
+        !isa_pma_check_permission(p_pte, PTE_SIZE, MEM_TYPE_READ);
+    #endif // CONFIG_RV_MPT_CHECK
+
+    if (check_failed) {
+      Log("pmp or pma or mpt check failed when PTW");
       int cause = type == MEM_TYPE_IFETCH ? EX_IAF :
                   type == MEM_TYPE_WRITE  ? EX_SAF : EX_LAF;
       cpu.trapInfo.tval = vaddr;
@@ -664,8 +712,12 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
   }
   #ifdef CONFIG_RVH
   if(virt){
+    uint8_t vs_pbmt = pte.pbmt;
     pg_base = gpa_stage(pg_base | (vaddr & PAGE_MASK), vaddr, type, type, hlvx, false) & ~PAGE_MASK;
     if(pg_base == MEM_RET_FAIL) return MEM_RET_FAIL;
+    // G-stage first produces the intermediate attributes. A non-zero
+    // VS-stage PBMT then overrides them to produce the final attributes.
+    if (vs_pbmt != 0) cpu.pbmt = vs_pbmt;
   } else {
     cpu.pbmt = pte.pbmt;
   }
@@ -730,6 +782,116 @@ int get_hyperinst_mmu_state() {
 
 #endif
 
+#ifdef CONFIG_RVH
+// Cache the final VS-stage + G-stage translation instead of walking both page
+// tables on every guest access. MPRV accesses remain on the slow path;
+// hypervisor loads/stores use a distinct translation context.
+#define RVH_FINAL_TLB_SIZE 4096
+
+typedef struct {
+  vaddr_t vpn;
+  paddr_t ppn;
+  uint64_t generation;
+  uint8_t type;
+  uint8_t pbmt;
+#ifdef CONFIG_RV_MBMC
+  uint8_t pt_level;
+#endif
+} rvh_final_tlb_entry_t;
+
+static rvh_final_tlb_entry_t rvh_final_tlb[RVH_FINAL_TLB_SIZE];
+static uint64_t rvh_final_tlb_generation = 1;
+static uint64_t rvh_final_tlb_vsatp = UINT64_MAX;
+static uint64_t rvh_final_tlb_hgatp = UINT64_MAX;
+static uint16_t rvh_final_tlb_context = UINT16_MAX;
+
+void isa_mmu_tlb_flush(void) {
+  if (unlikely(++rvh_final_tlb_generation == 0)) {
+    memset(rvh_final_tlb, 0, sizeof(rvh_final_tlb));
+    rvh_final_tlb_generation = 1;
+  }
+}
+
+static inline bool rvh_final_tlb_cacheable(int type) {
+  return (cpu.v || hld_st) && !cpu.amo &&
+      (type == MEM_TYPE_IFETCH || !get_mprv());
+}
+
+static inline uint16_t rvh_final_tlb_current_context(void) {
+  return (uint16_t)(
+      (cpu.mode << 0) |
+      (mstatus->mxr << 2) |
+      (vsstatus->mxr << 3) |
+      (vsstatus->sum << 4) |
+      (menvcfg->pbmte << 5) |
+      (henvcfg->pbmte << 6) |
+      (menvcfg->adue << 7) |
+      (henvcfg->adue << 8) |
+      (hld_st << 9) |
+      (hlvx << 10) |
+      (hstatus->spvp << 11));
+}
+
+static inline void rvh_final_tlb_sync_context(void) {
+  uint16_t context = rvh_final_tlb_current_context();
+  uint64_t current_vsatp = (cpu.v || hld_st) ? vsatp->val : UINT64_MAX;
+  uint64_t current_hgatp = (cpu.v || hld_st) ? hgatp->val : UINT64_MAX;
+  if (unlikely(rvh_final_tlb_vsatp != current_vsatp ||
+      rvh_final_tlb_hgatp != current_hgatp ||
+      rvh_final_tlb_context != context)) {
+    isa_mmu_tlb_flush();
+    rvh_final_tlb_vsatp = current_vsatp;
+    rvh_final_tlb_hgatp = current_hgatp;
+    rvh_final_tlb_context = context;
+  }
+}
+
+static inline rvh_final_tlb_entry_t *rvh_final_tlb_entry(vaddr_t vaddr, int type) {
+  uint64_t vpn = vaddr >> PAGE_SHIFT;
+  uint64_t hash = vpn ^ (uint64_t)type;
+  return &rvh_final_tlb[hash & (RVH_FINAL_TLB_SIZE - 1)];
+}
+
+static inline bool rvh_final_tlb_lookup(vaddr_t vaddr, int len, int type, paddr_t *result) {
+  if (!rvh_final_tlb_cacheable(type) ||
+      unlikely((vaddr & PAGE_MASK) + (word_t)len > PAGE_SIZE)) {
+    return false;
+  }
+
+  rvh_final_tlb_sync_context();
+  rvh_final_tlb_entry_t *entry = rvh_final_tlb_entry(vaddr, type);
+  if (likely(entry->generation == rvh_final_tlb_generation &&
+      entry->vpn == (vaddr >> PAGE_SHIFT) &&
+      entry->type == type)) {
+    cpu.pbmt = entry->pbmt;
+#ifdef CONFIG_RV_MBMC
+    pt_level = entry->pt_level;
+#endif
+    *result = entry->ppn;
+    return true;
+  }
+  return false;
+}
+
+static inline void rvh_final_tlb_insert(vaddr_t vaddr, int len, int type, paddr_t result) {
+  if (!rvh_final_tlb_cacheable(type) ||
+      unlikely((vaddr & PAGE_MASK) + (word_t)len > PAGE_SIZE) ||
+      unlikely((result & PAGE_MASK) != MEM_RET_OK)) {
+    return;
+  }
+
+  rvh_final_tlb_entry_t *entry = rvh_final_tlb_entry(vaddr, type);
+  entry->vpn = vaddr >> PAGE_SHIFT;
+  entry->ppn = result & ~PAGE_MASK;
+  entry->type = type;
+  entry->pbmt = cpu.pbmt;
+#ifdef CONFIG_RV_MBMC
+  entry->pt_level = pt_level;
+#endif
+  entry->generation = rvh_final_tlb_generation;
+}
+#endif
+
 int get_data_mmu_state() {
   return (data_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);
 }
@@ -765,6 +927,7 @@ int update_mmu_state() {
   ifetch_mmu_state = update_mmu_state_internal(true);
   int data_mmu_state_old = data_mmu_state;
   data_mmu_state = update_mmu_state_internal(false);
+  update_effective_address_state();
 #ifdef CONFIG_RVH
   hyperinst_mmu_state = update_hyperinst_mmu_state_internal();
 #endif
@@ -915,16 +1078,31 @@ void isa_amo_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
 }
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
-  paddr_t ptw_result = ptw(vaddr, type);
-#ifdef FORCE_RAISE_PF
+  paddr_t ptw_result;
 #ifdef CONFIG_RVH
-  if(ptw_result != MEM_RET_FAIL && (force_raise_pf(vaddr, type) != MEM_RET_OK || force_raise_gpf(vaddr, type) != MEM_RET_OK))
-    return MEM_RET_FAIL;
+  bool tlb_hit = rvh_final_tlb_lookup(vaddr, len, type, &ptw_result);
+  if (!tlb_hit) {
+    ptw_result = ptw(vaddr, type);
+  }
 #else
-  if(ptw_result != MEM_RET_FAIL && force_raise_pf(vaddr, type) != MEM_RET_OK)
-    return MEM_RET_FAIL;
+  ptw_result = ptw(vaddr, type);
+#endif
+#ifdef FORCE_RAISE_PF
+  if (unlikely(cpu.guided_exec && cpu.execution_guide.force_raise_exception)) {
+#ifdef CONFIG_RVH
+    if(ptw_result != MEM_RET_FAIL && (force_raise_pf(vaddr, type) != MEM_RET_OK || force_raise_gpf(vaddr, type) != MEM_RET_OK))
+      return MEM_RET_FAIL;
+#else
+    if(ptw_result != MEM_RET_FAIL && force_raise_pf(vaddr, type) != MEM_RET_OK)
+      return MEM_RET_FAIL;
 #endif // CONFIG_RVH
+  }
 #endif // FORCE_RAISE_PF
+#ifdef CONFIG_RVH
+  if (!tlb_hit) {
+    rvh_final_tlb_insert(vaddr, len, type, ptw_result);
+  }
+#endif
   return ptw_result;
 }
 
@@ -1254,21 +1432,114 @@ bool isa_bmc_check_permission(paddr_t addr, int len, int type, int out_mode) {
 }
 #endif
 
-bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
+#ifdef CONFIG_RV_MPT_CHECK
+bool isa_mpt_check_permission(paddr_t addr, int len, int type, int out_mode) {
+  uint8_t mpt_perm = 0;
   bool ifetch = (type == MEM_TYPE_IFETCH);
-  __attribute__((unused)) uint32_t mode;
-  mode = (out_mode == MODE_M) ? (get_mprv() && !ifetch ? mstatus->mpp : cpu.mode) : out_mode;
-  // paddr_read/write method may not be able pass down the 'effective' mode for isa difference. do it here
-  // TODO: It's not good to determine effective mode here.
-#ifdef CONFIG_SHARE
-  // if(dynamic_config.debug_difftest) {
-  //   if (mode != out_mode) {
-  //     ref_log_cpu("PMP out_mode:%d cpu.mode:%ld ifetch:%d nmie:%d mprv:%d mpp:%d actual mode:%d", out_mode, cpu.mode, ifetch, mnstatus->nmie, mstatus->mprv, mstatus->mpp, mode);
-  //       // Log("addr:%lx len:%d type:%d out_mode:%d mode:%d", addr, len, type, out_mode, mode);
-  //   }
-  // }
+  int effective_mode = (out_mode == MODE_M)
+    ? (get_mprv() && !ifetch ? mstatus->mpp : cpu.mode)
+    : out_mode;
+
+  if (mmpt-> MODE == 0 || effective_mode == MODE_M) {
+      Logtr("MPT disabled addr:%lx mptmode %d,outmode %d\n", addr, mmpt-> MODE,out_mode);
+    return true;
+  }
+
+  paddr_t end_addr = addr + len - 1;
+  bool address_out_of_range = len <= 0 || end_addr < addr;
+  if (!address_out_of_range) {
+    address_out_of_range = mmpt->MODE == 2
+      ? ((addr >> 52) != 0 || (end_addr >> 52) != 0)
+      : ((addr >> 43) != 0 || (end_addr >> 43) != 0);
+  }
+  if (address_out_of_range) {
+    Log("MPT address out of range: addr:%lx mode:%d", addr, mmpt->MODE);
+    return false;
+  }
+
+  Logtr("Mpt function called with addr:%lx mptmode %d,outmode %d\n", addr, mmpt-> MODE,out_mode);
+
+  word_t mpt_base = (mmpt->PPN) << 12;
+  uint64_t pn[4] = {
+    (addr >> 16) & 0x1ff,   /* pn0 */
+    (addr >> 25) & 0x1ff,   /* pn1 */
+    (addr >> 34) & 0x1ff,   /* pn2 */
+    (addr >> 43) & 0x1ff    /* pn3 */
+  };
+  uint64_t range_off[4] = {
+    (addr >> 12) & 0xf,     /* range_off0 */
+    (addr >> 21) & 0xf,     /* range_off1 */
+    (addr >> 30) & 0xf,     /* range_off2 */
+    (addr >> 39) & 0xf      /* range_off3 */
+  };
+  int level;
+  if (mmpt->MODE == 2)
+    level = 3;
+  else
+    level = 2;
+  uint64_t mpte;
+  while(1){
+    uint64_t mpte_addr = mpt_base + (pn[level] << 3);
+    if (!mpt_paddr_read(mpte_addr, PTE_SIZE, &mpte)) {
+      Log("MPT walk read failed with addr: %lx", mpte_addr);
+      return false;
+    }
+    bool v = (mpte & 0x1) != 0;
+    bool l = (mpte & 0x2) != 0;
+    bool res = ((mpte >> 2) & 0xff)==0 && ((mpte >> 62) & 0x1)==0;
+    bool res_l= ((mpte >> 58) & 0x1f)==0;
+    uint64_t data = ((mpte << 1) >> 1) >>10;
+
+    if (!v || !res || (l && !res_l)) {
+       Log("Mpt pagefault!");
+       Logtr("mpte: %04lx, level: %d", (unsigned long)mpte,level);
+       Logtr("mpt_base: %04lx, addr: %04lx, mpte_addr: %04lx", (unsigned long)mpt_base, (unsigned long)addr, (unsigned long)mpte_addr);
+      return false;
+    }
+    if (!l && v) {
+      mpt_base = data << 12;
+      level--;
+      if(level < 0) {
+        Log("mpt l0 non leaf!");
+        return false;
+      }
+      continue;
+    }
+    if (l && v) {
+      mpt_perm = (data>>(range_off[level]*3)) & 0x7;
+      Logtr("mpt walk result: mpt_data: %04lx, level: %04lx, mpt_perm: %d", (unsigned long)data, range_off[level], mpt_perm);
+      break;
+    }
+  }
+
+
+  #define R_BIT 0x1
+  #define W_BIT 0x2
+  #define X_BIT 0x4
+    /* Check permission */
+  bool return_val;
+  if (type == MEM_TYPE_READ || type == MEM_TYPE_IFETCH_READ || type == MEM_TYPE_WRITE_READ) {
+    return_val= mpt_perm & R_BIT;
+  }
+  else if (type == MEM_TYPE_WRITE) {
+    return_val= mpt_perm & W_BIT;
+  }
+  else if (type == MEM_TYPE_IFETCH) {
+    return_val= mpt_perm & X_BIT;
+  }
+  else {
+    Log("Mpttable get wrong type of memory access!");
+    return false;
+  }
+  if(!return_val){
+    Log("Permission check fail!");
+    Logtr("mpt_base:%04lx, addr:%04lx, mpte:%04lx, perm:%04x", (unsigned long)mpt_base, (unsigned long)addr, (unsigned long)mpte,mpt_perm);
+  }
+  return return_val;
+}
 #endif
 
+static bool pmp_check_permission_with_mode(paddr_t addr, int len, int type, uint32_t mode) {
 #ifdef CONFIG_RV_PMP_CHECK
   if (CONFIG_RV_PMP_ACTIVE_NUM == 0) {
     return true;
@@ -1399,11 +1670,11 @@ out:
             offset = addr - (pmpaddr << PMP_SHIFT);
           }
           word_t root_table_base = pmpaddr_from_index(i + 1) << 12;
-          return pmptable_check_permission(offset, root_table_base, type, out_mode);
+          return pmptable_check_permission(offset, root_table_base, type, mode);
         }
         /* Table-bit is disable, get permission directly from pmpcfg reg */
         else {
-          return pmpcfg_check_permission(pmpcfg, type, out_mode);
+          return pmpcfg_check_permission(pmpcfg, type, mode);
         }
       }
     }
@@ -1418,6 +1689,20 @@ out:
 #endif
 #endif
 }
+
+bool isa_pmp_check_permission(paddr_t addr, int len, int type, int out_mode) {
+  bool ifetch = (type == MEM_TYPE_IFETCH);
+  uint32_t mode = (out_mode == MODE_M)
+    ? (get_mprv() && !ifetch ? mstatus->mpp : cpu.mode)
+    : out_mode;
+  return pmp_check_permission_with_mode(addr, len, type, mode);
+}
+
+#ifdef CONFIG_RV_MPT_CHECK
+bool isa_pmp_check_permission_mmode(paddr_t addr, int len, int type) {
+  return pmp_check_permission_with_mode(addr, len, type, MODE_M);
+}
+#endif
 
 bool isa_pma_check_permission(paddr_t addr, int len, int type) {
 #ifdef CONFIG_RV_PMA_CHECK

@@ -58,21 +58,32 @@ static inline bool in_pmem(paddr_t addr) {
   if (mbase_align && msize_align && msize_inside_mbase) {
     return (addr & ~msize_mask) == CONFIG_MBASE;
   } else {
-    #ifdef CONFIG_USE_SPARSEMM
-    return addr >= CONFIG_MBASE;
-    #else
     return (addr >= CONFIG_MBASE) && (addr < (paddr_t)CONFIG_MBASE + MEMORY_SIZE);
-    #endif
   }
 }
 
 word_t paddr_read(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr);
+/* Read an address that the caller has already classified as PMEM. */
+__attribute__((visibility("hidden")))
+word_t paddr_read_pmem_checked(paddr_t addr, int len, int type, int trap_type,
+                               int mode, vaddr_t vaddr);
 void paddr_read_matrix(paddr_t base, paddr_t stride, int row, int column, int msew, bool transpose,
                         int mode, vaddr_t vbase, char m_name, int mreg_id);
 void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr);
 void paddr_write_matrix(paddr_t base, paddr_t stride, int row, int column, int msew, bool transpose,
                         int mode, vaddr_t vbase, char m_name, int mreg_id);
+#ifdef CONFIG_RV_AME
+void pmem_read_matrix(paddr_t base, paddr_t stride,
+                      int row, int column, int msew, bool transpose,
+                      char m_name, int mreg_id);
+void pmem_write_matrix(paddr_t base, paddr_t stride,
+                       int row, int column, int msew, bool transpose,
+                       char m_name, int mreg_id);
+#endif
 bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr);
+#ifdef CONFIG_RV_MPT_CHECK
+bool mpt_paddr_read(paddr_t addr, int len, word_t *data);
+#endif
 #ifdef CONFIG_RV_MBMC
 word_t bitmap_read(paddr_t addr, int type, int mode);
 #endif
@@ -87,19 +98,33 @@ void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem);
 #endif
 
 
-#ifdef CONFIG_USE_SPARSEMM
-void * get_sparsemm();
-#endif
-
 #ifdef CONFIG_STORE_LOG
 typedef struct {
 #ifdef CONFIG_LIGHTQS
   uint64_t inst_cnt;
 #endif // CONFIG_LIGHTQS
   paddr_t addr;
+#ifndef CONFIG_RV_AME
   word_t orig_data;
+#else
+  bool is_matrix;
+  union {
+    word_t orig_data;
+    struct matrix_store_log *matrix;
+  };
+#endif // CONFIG_RV_AME
   // new value and write length makes no sense for restore
 } store_log_t;
+
+#ifdef CONFIG_RV_AME
+typedef struct matrix_store_log {
+  size_t ref_count; // Number of owning entries across the store-log stacks.
+  paddr_t stride;
+  size_t rows;
+  size_t row_bytes;
+  uint8_t data[]; // Packed old memory bytes, without stride padding.
+} matrix_store_log_t;
+#endif // CONFIG_RV_AME
 #endif // CONFIG_STORE_LOG
 
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
@@ -177,10 +202,7 @@ extern uint8_t* golden_pmem;
 
 static inline word_t golden_pmem_read(paddr_t addr, int len) {
   assert(golden_pmem != NULL);
-#ifdef CONFIG_USE_SPARSEMM
-  return sparse_mem_wread((void *)golden_pmem, addr, len)
-#else
-  void *p = &golden_pmem[addr - 0x80000000];
+  void *p = &golden_pmem[addr - CONFIG_MBASE];
   switch (len) {
     case 1: return *(uint8_t  *)p;
     case 2: return *(uint16_t *)p;
@@ -188,7 +210,6 @@ static inline word_t golden_pmem_read(paddr_t addr, int len) {
     case 8: return *(uint64_t *)p;
     default: assert(0);
   }
-#endif
 }
 #endif
 

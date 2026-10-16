@@ -90,6 +90,24 @@ def_EHelper(andi) {
 }
 
 def_EHelper(auipc) {
+#ifdef CONFIG_RV_ZICFILP
+  if (unlikely(cpu.elp == 1)) {
+    uint32_t rd = (s->isa.instr.val >> 7) & 0x1f;
+    if (rd != 0) {
+      riscv64_raise_software_check(LANDING_PAD_FAULT);
+    }
+    if ((s->pc & 0x3) != 0) {
+      riscv64_raise_software_check(LANDING_PAD_FAULT);
+    }
+    uint32_t lpl = (s->isa.instr.val >> 12) & 0xFFFFF;
+    uint32_t x7_lpl = (reg_l(7) >> 12) & 0xFFFFF;
+
+    if (lpl != x7_lpl && lpl != 0) {
+      riscv64_raise_software_check(LANDING_PAD_FAULT);
+    }
+    cpu.elp = 0;
+  }
+#endif
   rtl_li(s, ddest, id_src1->imm);
 }
 

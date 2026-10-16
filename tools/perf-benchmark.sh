@@ -26,6 +26,7 @@ dynamorio_dir="DynamoRIO-Linux-11.3.0-1"
 output="performance_results.md"
 metrics_output=""
 include_linux=true
+suite="default"
 binary=""
 defconfig_patch=""
 defconfig_gen_script=""
@@ -50,6 +51,7 @@ Options:
   --metrics-output FILE Optional TSV metrics output for CI comparison.
   --repo-dir DIR        NEMU repository directory. Defaults to the current dir.
   --binary FILE         Executable to benchmark. Defaults to build/riscv64-nemu-interpreter.
+  --suite NAME          Workload suite to run: default or xsai-blas.
   --defconfig-patch FILE
                         Apply a patch to configs/DEFCONFIG before building.
   --defconfig-gen-script FILE
@@ -117,6 +119,11 @@ while [ "$#" -gt 0 ]; do
     --binary)
       require_value "$@"
       binary="$2"
+      shift 2
+      ;;
+    --suite)
+      require_value "$@"
+      suite="$2"
       shift 2
       ;;
     --defconfig-patch)
@@ -197,6 +204,15 @@ if [ -n "$defconfig_gen_script" ] && [ ! -x "$defconfig_gen_script" ]; then
   exit 1
 fi
 
+case "$suite" in
+  default|xsai-blas)
+    ;;
+  *)
+    echo "Unknown workload suite: $suite" >&2
+    exit 1
+    ;;
+esac
+
 if [ -n "$defconfig_patch" ] && [ -n "$defconfig_gen_script" ]; then
   echo "Use either --defconfig-patch or --defconfig-gen-script, not both" >&2
   exit 1
@@ -224,6 +240,16 @@ rvv_tests=(
   am/riscv-vector-tests/bin/vluxei32.v-0.bin
   am/riscv-vector-tests/bin/vsuxei32.v-0.bin
   am/riscv-vector-tests/bin/vlsseg4e32.v-0.bin
+)
+
+rvh_tests=(
+  linux/kvmtool/fw_payload.bin
+)
+
+xsai_blas_tests=(
+  bin/gemm_i8_f32_case8.bin
+  # bin/gemm_i8_f32_case10.bin
+  bin/gemm_tile_stream.bin
 )
 
 configure_perf_flags() {
@@ -387,8 +413,9 @@ append_result_row() {
   echo "::endgroup::"
 }
 
-append_rvv_suite_result_row() {
-  local test_name="rvv-workload-suite"
+append_suite_result_row() {
+  local test_name="$1"
+  shift
   local test_bin image result native_output
   local guest_instr_count host_instr_count native_guest_instr_count host_time_us
   local total_guest_instr_count=0
@@ -398,8 +425,12 @@ append_rvv_suite_result_row() {
   local actual_throughput estimated_throughput
 
   echo "::group::${title} - ${test_name}"
-  for test_bin in "${rvv_tests[@]}"; do
+  for test_bin in "$@"; do
     image="${workloads}/${test_bin}"
+    if [ ! -f "$image" ]; then
+      echo "Workload not found for ${test_name}: ${image}" >&2
+      exit 1
+    fi
     result=$(run_target "$image" "$drrun" -c "$inscount" -- | strings)
     guest_instr_count=$(echo "$result" | grep "total guest instructions" | tail -n 1 | cut -d '=' -f2 | tr -cd '0-9')
     host_instr_count=$(get_host_instr_count "$result")
@@ -463,20 +494,38 @@ if [ -n "$metrics_output" ]; then
   printf 'test\tguest_instructions\thost_instructions\testimated_host_throughput\tactual_nemu_throughput\n' > "$metrics_output"
 fi
 
-for test_bin in "${tests[@]}"; do
-  append_result_row "$(basename "$test_bin")" "${workloads}/${test_bin}"
-done
+if [ "$suite" = default ]; then
+  for test_bin in "${tests[@]}"; do
+    append_result_row "$(basename "$test_bin")" "${workloads}/${test_bin}"
+  done
 
-append_rvv_suite_result_row
+  append_suite_result_row "rvv-workload-suite" "${rvv_tests[@]}"
+  append_suite_result_row "rvh-workload-suite" "${rvh_tests[@]}"
 
-if [ "$include_linux" = true ]; then
-  append_result_row "linux-hello" "${workloads}/linux/hello/fw_payload.bin"
+  if [ "$include_linux" = true ]; then
+    append_result_row "linux-hello" "${workloads}/linux/hello/fw_payload.bin"
+  fi
+fi
+
+if [ "$suite" = xsai-blas ]; then
+  for test_bin in "${xsai_blas_tests[@]}"; do
+    append_result_row "$(basename "$test_bin" .bin)" "${workloads}/${test_bin}"
+  done
 fi
 
 cat >> "$output" <<'EOF'
 
 * Host Instructions is measured by DynamoRIO's inscount client.
+EOF
+
+if [ "$suite" = default ]; then
+  cat >> "$output" <<'EOF'
 * rvv-workload-suite aggregates selected AM riscv-vector-tests binaries.
+* rvh-workload-suite runs the nested Linux/kvmtool guest to exercise the H extension and two-stage translation.
+EOF
+fi
+
+cat >> "$output" <<'EOF'
 * Estimated Host Throughput assumes a fixed 4GHz CPU and IPC=2.5.
 * Actual NEMU Throughput is a single native NEMU run and may vary with host CPU performance.
 EOF

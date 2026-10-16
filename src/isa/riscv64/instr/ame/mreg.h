@@ -19,6 +19,9 @@
 #define __RISCV64_MREG_H__
 
 #include "common.h"
+#ifdef CONFIG_RV_AME_FP4
+#include "ame/raw-fp4.h"
+#endif
 
 #define TLEN   CONFIG_RV_AME_TLEN
 #define TRLEN  CONFIG_RV_AME_TRLEN
@@ -30,6 +33,9 @@
 #define TRENUM32 (TRLEN / 32)
 #define TRENUM16 (TRLEN / 16)
 #define TRENUM8  (TRLEN / 8)
+#ifdef CONFIG_RV_AME_FP4
+#define RAW_FP4_TILE_BYTES (ROWNUM * TRENUM8)
+#endif
 
 #define ALEN     (ROWNUM * ROWNUM * MELEN)
 #define ARLEN    (ROWNUM * MELEN)
@@ -72,6 +78,16 @@ typedef union {
   uint64_t val;
 } mcfg_t;
 
+#ifdef CONFIG_RV_AME_FP4
+static inline bool is_raw_fp4_type_code(mcfg_t cfg) {
+  return cfg.type_code == MTYPECODE_NVFP4 || cfg.type_code == MTYPECODE_MXFP4;
+}
+
+static inline bool is_raw_fp4(mcfg_t cfg) {
+  return cfg.table_set == 0 && is_raw_fp4_type_code(cfg);
+}
+#endif
+
 static inline int check_mtreg_num(int num) {
 #ifdef CONFIG_AME_REG_ACCESS_CHECK
   assert(num >= 0 && num < 4);
@@ -86,30 +102,30 @@ static inline int check_mareg_num(int num) {
   return num - 4;
 }
 
-static inline int check_mtreg_row(int row) {
+static inline uint64_t check_mtreg_row(uint64_t row) {
 #ifdef CONFIG_AME_REG_ACCESS_CHECK
-  assert(row >= 0 && row < ROWNUM);
+  assert(row < ROWNUM);
 #endif
   return row;
 }
 
-static inline int check_macc_row(int row) {
+static inline uint64_t check_macc_row(uint64_t row) {
 #ifdef CONFIG_AME_REG_ACCESS_CHECK
-  assert(row >= 0 && row < ROWNUM);
+  assert(row < ROWNUM);
 #endif
   return row;
 }
 
-static inline int check_mtreg_idx(int idx, int elen) {
+static inline uint64_t check_mtreg_idx(uint64_t idx, uint64_t elen) {
 #ifdef CONFIG_AME_REG_ACCESS_CHECK
-  assert(idx >= 0 && idx < TRLEN/elen);
+  assert(idx < TRLEN/elen);
 #endif
   return idx;
 }
 
-static inline int check_macc_idx(int idx, int elen) {
+static inline uint64_t check_macc_idx(uint64_t idx, uint64_t elen) {
 #ifdef CONFIG_AME_REG_ACCESS_CHECK
-  assert(idx >= 0 && idx < ARLEN/elen);
+  assert(idx < ARLEN/elen);
 #endif
   return idx;
 }
@@ -128,8 +144,29 @@ static inline int check_mtok_idx(int idx) {
 #define macc_l16(num, row, idx)  (cpu.macc[check_mareg_num(num)][check_macc_row(row)]._16[check_macc_idx(idx, 16)])
 #define macc_l8(num, row, idx)   (cpu.macc[check_mareg_num(num)][check_macc_row(row)]._8[check_macc_idx(idx, 8)])
 
-void set_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_t msew);
-void get_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t msew, bool is_signed);
+void set_mreg(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
+              rtlreg_t src_data, uint64_t msew);
+void get_mreg(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
+              rtlreg_t *dst, uint64_t msew, bool is_signed);
+uint8_t *get_mreg_row_addr(int mtr_num, uint64_t mtr_row);
+
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+// Diagnostic-only latest write rectangles, starting at row 0, byte column 0.
+// Update and check in instruction order, including REF; deferred AMU execution
+// must not change these records or check reads against them.
+// Empty operations preserve the previous range. Widths are bytes so changing
+// mcfg cannot reinterpret an old element count as a larger defined region.
+void ame_matrix_region_mark_write(int mreg_num, uint64_t rows, uint64_t columns,
+                                 uint64_t pc);
+void ame_matrix_region_check_read(int mreg_num, uint64_t rows, uint64_t columns,
+                                 uint64_t pc);
+#endif // CONFIG_AME_TILEREG_UB_CHECK
+
+#ifdef CONFIG_RV_AME_FP4
+uint8_t get_mreg_nibble(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx);
+void set_mreg_nibble(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
+                     uint8_t src_data);
+#endif
 
 #endif //__RISCV64_MREG_H__
 

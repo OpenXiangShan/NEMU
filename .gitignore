@@ -12,6 +12,8 @@
 !README.md
 !Kconfig
 !.github/workflows/*.yml
+!.github/scripts/*.sh
+!.github/pr-agent/*.toml
 !scripts/*.sh
 !scripts/ci/*.sh
 !scripts/*.py

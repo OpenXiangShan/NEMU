@@ -2,8 +2,9 @@
 #include <ame/mstore.h>
 #include <ame/mstore_queue_wrapper.h>
 #include <cpu/decode.h>
+#include <debug.h>
 
-#ifdef CONFIG_RV_AME
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
 #include <deque>
 #include <cstring>
 
@@ -40,8 +41,19 @@ bool mstore_queue_empty() {
   return cpp_mstore_queue.empty();
 }
 
+#ifdef CONFIG_RV_AME_FP4
+static bool ranges_overlap(uint64_t lhs_start, uint64_t lhs_len,
+                           uint64_t rhs_start, uint64_t rhs_len) {
+  if (lhs_start <= rhs_start) {
+    return rhs_start - lhs_start < lhs_len;
+  }
+  return lhs_start - rhs_start < rhs_len;
+}
+#endif
+
 void mstore_queue_emplace(uint64_t base_vaddr, uint64_t stride,
-                          uint32_t row, uint32_t column, uint32_t msew, bool transpose) {
+                          uint32_t row, uint32_t column, uint32_t msew,
+                          bool transpose) {
   mstore_info_t mstore_info;
   mstore_info.base_vaddr = base_vaddr;
   mstore_info.stride = stride;
@@ -95,6 +107,30 @@ bool mstore_queue_check_addr_conflict(uint64_t addr, int len) {
     // Calculate memory access range for this matrix store
     uint32_t row_mem = mstore.transpose ? mstore.column : mstore.row;
     uint32_t column_mem = mstore.transpose ? mstore.row : mstore.column;
+
+#ifdef CONFIG_RV_AME_FP4
+    if (mstore.msew == MSEW_FP4) {
+      if (row_mem == 0 || column_mem == 0) {
+        continue;
+      }
+      uint64_t row_len = ((uint64_t)column_mem + 1) / 2;
+      for (uint32_t row = 0; row < row_mem; row++) {
+        if (row != 0 && mstore.stride > UINT64_MAX / row) {
+          return true;
+        }
+        uint64_t offset = (uint64_t)row * mstore.stride;
+        if (offset > UINT64_MAX - mstore.base_vaddr) {
+          return true;
+        }
+        if (ranges_overlap(addr, (uint64_t)len,
+                           mstore.base_vaddr + offset, row_len)) {
+          return true;
+        }
+      }
+      continue;
+    }
+#endif
+
     uint32_t width = 1 << mstore.msew;
 
     if (load_end < mstore.base_vaddr || load_start >= mstore.base_vaddr + row_mem * mstore.stride) {
@@ -112,7 +148,7 @@ bool mstore_queue_check_addr_conflict(uint64_t addr, int len) {
       return true;
     } else {
       // The same row, check the range
-      
+
       // 每一行实际有效的数据范围是:
       //   row_base = base_vaddr + r * stride
       //   [row_base, row_base + column_mem * width - 1]
@@ -132,5 +168,24 @@ bool mstore_queue_check_addr_conflict(uint64_t addr, int len) {
   return false;  // No conflict
 }
 
-#endif // CONFIG_RV_AME
+void mstore_queue_check_vec_addr_conflict(
+    uint64_t start_addr, const uint8_t *masks,
+    uint64_t element_count, int element_width) {
+  if (mstore_queue_empty()) {
+    return;
+  }
 
+  for (uint64_t element = 0; element < element_count; element++) {
+    uint64_t offset = element * element_width;
+    if (masks[offset] == 0) {
+      continue;
+    }
+    uint64_t load_addr = start_addr + offset;
+    if (mstore_queue_check_addr_conflict(load_addr, element_width)) {
+      Log("UB: Load address 0x%lx (len=%d) conflicts with pending matrix store",
+          load_addr, element_width);
+    }
+  }
+}
+
+#endif // CONFIG_AME_MEM_ACCESS_CHECK

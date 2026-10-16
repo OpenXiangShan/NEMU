@@ -23,7 +23,10 @@
 #ifdef CONFIG_SHARE_REF
 #include "cpu/difftest/ame/msync_queue_wrapper.h"
 #endif // CONFIG_SHARE_REF
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
 #include "ame/mstore_queue_wrapper.h"
+#include "ame/svstore_queue_wrapper.h"
+#endif // CONFIG_AME_MEM_ACCESS_CHECK
 #include "mcommon.h"
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
@@ -34,6 +37,7 @@
 
 def_EHelper(minit) {
   mstatus->ms = 1;
+  IFDEF(CONFIG_SHARE, csr_difftest_mark_dirty());
 }
 
 def_EHelper(msettilem) {
@@ -119,9 +123,9 @@ def_EHelper(mrelease) {
 #ifdef CONFIG_SHARE_CTRL
   cutest_mrelease_emplace(tok_i);
 #endif // CONFIG_SHARE_CTRL
-#ifndef CONFIG_SHARE
+#if !defined(CONFIG_SHARE) && defined(CONFIG_AME_MEM_ACCESS_CHECK)
   mstore_queue_update_mrelease(tok_i, cpu.mtokr[tok_i]);
-#endif // CONFIG_SHARE
+#endif // !CONFIG_SHARE && CONFIG_AME_MEM_ACCESS_CHECK
   mp_set_dirty();
 }
 
@@ -147,16 +151,18 @@ def_EHelper(macquire) {
 #ifdef CONFIG_SHARE_REF
   msync_queue_emplace(1, tok_i);
 #endif // CONFIG_SHARE_REF
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
   mstore_queue_update_acquire(tok_i, reg_l(s->src1.reg));
+#endif // CONFIG_AME_MEM_ACCESS_CHECK
   mp_set_dirty();
 }
 
 def_EHelper(mfence)  {
   require_matrix();
+  IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, svstore_queue_update_fence(SVSTORE_FENCE_W | SVSTORE_FENCE_O));
 #ifdef CONFIG_SHARE_REF
   msync_queue_emplace(2, 0);
 #endif // CONFIG_SHARE_REF
-  // Do nothing in NEMU.
 }
 
 #endif // CONFIG_RV_AME

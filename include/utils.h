@@ -52,6 +52,18 @@ enum {
 void init_time();
 uint64_t get_time();
 
+// ----------- store hash -----------
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+uint64_t difftest_store_hash_update(uint64_t crc, uint64_t addr, uint64_t data, uint8_t mask);
+
+#ifdef __cplusplus
+}
+#endif
+
 // ----------- log -----------
 
 // control when the log is printed, unit: number of instructions
