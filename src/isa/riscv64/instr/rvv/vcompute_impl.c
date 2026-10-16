@@ -1870,11 +1870,10 @@ void float_reduction_computing(Decode *s) {
 }
 
 /*
- * Kunminghu V3 unordered FP reduction.  VFRedUSum first reduces the active
- * elements inside each 128-bit register with a balanced tree, then folds the
- * per-register results into the running seed in register order.  This is
- * intentionally separate from the legacy implementation above: V2 keeps its
- * historical reduction tree and ordered difftest behavior.
+ * Kunminghu V3 unordered FP reduction.  The non-widening XiangShan decode
+ * first folds corresponding lanes across the source registers, then reduces
+ * the resulting temporary register.  Widening reductions retain the
+ * sequential per-register split and use the same lane tree for each uop.
  */
 #ifdef CONFIG_RVV_KMHV3_REDUCTION
 static void float_reduction_tree_kmhv3(rtlreg_t *values, uint8_t *active,
@@ -1959,21 +1958,75 @@ void float_reduction_computing_kmhv3(int widening, Decode *s) {
   int element_num = VLEN >> (3 + source_vsew);
   int register_num = vtype->vlmul < 4 ? (1 << vtype->vlmul) : 1;
 
-  for (int reg = 0; reg < register_num; reg++) {
-    rtlreg_t values[8] = {0};
-    uint8_t active[8] = {0};
+  if (!is_widening) {
+    // vffold/vfadd combine corresponding lanes across registers.  Keep the
+    // active state alongside every lane so masked elements do not introduce
+    // an extra floating-point operation or exception flag.
+    rtlreg_t values[8][8] = {0};
+    uint8_t active[8][8] = {0};
 
-    for (int i = 0; i < element_num; i++) {
-      word_t idx = reg * element_num + i;
-      active[i] = idx >= vstart->val && idx < vl->val &&
-          (s->vm || get_mask(0, idx));
-      if (active[i]) {
-        get_vreg(id_src2->reg, idx, s0, source_vsew, vtype->vlmul, 0, 1);
-        values[i] = *s0;
+    for (int reg = 0; reg < register_num; reg++) {
+      for (int i = 0; i < element_num; i++) {
+        word_t idx = reg * element_num + i;
+        active[reg][i] = idx >= vstart->val && idx < vl->val &&
+            (s->vm || get_mask(0, idx));
+        if (active[reg][i]) {
+          get_vreg(id_src2->reg, idx, s0, source_vsew,
+              vtype->vlmul, 0, 1);
+          values[reg][i] = *s0;
+        }
+      }
+    }
 
-        // VFRedUSum widens each source before entering the same-SEW tree;
-        // widening itself does not generate fflags.
-        if (is_widening) {
+    // Match the vffold/vfadd register-level reduction tree: (0,1), (2,3),
+    // then the partial results, with the lower register as the first operand.
+    for (int width = register_num; width > 1; width >>= 1) {
+      for (int i = 0; i < width / 2; i++) {
+        int left = i * 2;
+        int right = left + 1;
+        for (int lane = 0; lane < element_num; lane++) {
+          if (active[left][lane] && active[right][lane]) {
+            rtl_hostcall(s, HOSTCALL_VFP, s1, &values[left][lane],
+                &values[right][lane], FPCALL_CMD(FPCALL_ADD, fpcall_type));
+            values[i][lane] = *s1;
+            active[i][lane] = 1;
+          } else if (active[left][lane]) {
+            values[i][lane] = values[left][lane];
+            active[i][lane] = 1;
+          } else if (active[right][lane]) {
+            values[i][lane] = values[right][lane];
+            active[i][lane] = 1;
+          } else {
+            active[i][lane] = 0;
+          }
+        }
+      }
+    }
+
+    // The final vfredusum operates on the folded temporary register.
+    float_reduction_tree_kmhv3(values[0], active[0], element_num,
+        fpcall_type, s);
+    if (active[0][0]) {
+      rtl_hostcall(s, HOSTCALL_VFP, s1, &values[0][0], &result,
+          FPCALL_CMD(FPCALL_ADD, fpcall_type));
+      result = *s1;
+    }
+  } else {
+    // vfwredusum remains a sequential per-register reduction in XiangShan.
+    for (int reg = 0; reg < register_num; reg++) {
+      rtlreg_t values[8] = {0};
+      uint8_t active[8] = {0};
+
+      for (int i = 0; i < element_num; i++) {
+        word_t idx = reg * element_num + i;
+        active[i] = idx >= vstart->val && idx < vl->val &&
+            (s->vm || get_mask(0, idx));
+        if (active[i]) {
+          get_vreg(id_src2->reg, idx, s0, source_vsew,
+              vtype->vlmul, 0, 1);
+          values[i] = *s0;
+
+          // Widening itself does not generate fflags.
           if (source_vsew == 1) {
             rtl_hostcall(s, HOSTCALL_VFP, s0, &values[i], rz,
                 FPCALL_CMD(FPCALL_F16ToF32, FPCALL_W16));
@@ -1984,14 +2037,14 @@ void float_reduction_computing_kmhv3(int widening, Decode *s) {
           values[i] = *s0;
         }
       }
-    }
 
-    float_reduction_tree_kmhv3(values, active, element_num, fpcall_type, s);
-    if (active[0]) {
-      // VFRedUSum feeds the tree result as src1 and the running seed as src2.
-      rtl_hostcall(s, HOSTCALL_VFP, s1, &values[0], &result,
-          FPCALL_CMD(FPCALL_ADD, fpcall_type));
-      result = *s1;
+      float_reduction_tree_kmhv3(values, active, element_num,
+          fpcall_type, s);
+      if (active[0]) {
+        rtl_hostcall(s, HOSTCALL_VFP, s1, &values[0], &result,
+            FPCALL_CMD(FPCALL_ADD, fpcall_type));
+        result = *s1;
+      }
     }
   }
 
