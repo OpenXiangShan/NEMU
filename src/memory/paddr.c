@@ -614,7 +614,6 @@ void pmem_record_restore() {
 
 void pmem_record_reset() {
   store_log_stack_reset();
-  IFDEF(CONFIG_STORE_LOG_HASH, store_log_hash_reset());
 }
 
 #endif // CONFIG_STORE_LOG
