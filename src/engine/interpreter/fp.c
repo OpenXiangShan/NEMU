@@ -517,7 +517,7 @@ def_rtl(mfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       case FPCALL_FToI64: *dest = my_f16_to_i64 (fsrc1); break;
       case FPCALL_FToU64: *dest = my_f16_to_ui64(fsrc1); break;
 
-      case FPCALL_F16ToF32: *dest = my_f16_to_f32(rtlToF16(*src1)).v; break;
+      case FPCALL_F16ToF32: *dest = my_f16_to_f32(fsrc1).v; break;
       case FPCALL_F16ToF64: *dest = my_f16_to_f64(rtlToF16(*src1)).v; break;
       default: panic("op = %d not supported", op);
     }
@@ -525,6 +525,7 @@ def_rtl(mfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
     bfloat16_t fsrc1 = rtlToVBF16(*src1);
     bfloat16_t fsrc2 = rtlToVBF16(*src2);
     switch (op) {
+      case FPCALL_BF16ToF32: *dest = my_bf16_to_f32(fsrc1).v; break;
       /* Matrix registers hold raw BF16 lanes, unlike boxed scalar operands. */
       case FPCALL_MADD:
         *dest = f32_mulAdd(my_bf16_to_f32(fsrc1), my_bf16_to_f32(fsrc2),
@@ -577,7 +578,9 @@ def_rtl(mfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       case FPCALL_FToI64: *dest = my_f32_to_i64 (fsrc1); break;
       case FPCALL_FToU64: *dest = my_f32_to_ui64(fsrc1); break;
 
-      case FPCALL_F32ToF16: *dest = my_f32_to_f16(rtlToF32(*src1)).v; break;
+      case FPCALL_F32ToF16: *dest = my_f32_to_f16(fsrc1).v; break;
+      case FPCALL_F32ToBF16: *dest = my_f32_to_bf16(fsrc1).v; break;
+      case FPCALL_REC7: *dest = f32_recip7(fsrc1).v; break;
       default: panic("op = %d not supported", op);
     }
   } else if (w == FPCALL_W64 || w == FPCALL_W32_to_64) {

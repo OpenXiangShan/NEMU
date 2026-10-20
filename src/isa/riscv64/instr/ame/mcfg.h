@@ -34,6 +34,7 @@
 #include "../local-include/reg.h"
 #include <stdio.h>
 #include "mcompute_impl.h"
+#include "mvalue.h"
 
 def_EHelper(minit) {
   mstatus->ms = 1;
@@ -82,7 +83,12 @@ def_EHelper(msetcfg) {
   if (idx >= 8) {
     longjmp_exception(EX_II);
   }
-  cpu.mcfg[idx].val = reg_l(s->src1.reg);
+  if (BITS(s->isa.instr.val, 25, 25)) {
+    mcfg_t target = { .val = reg_l(s->src1.reg) };
+    ame_acc_convert(s, idx, target);
+  } else {
+    cpu.mcfg[idx].val = reg_l(s->src1.reg);
+  }
   mp_set_dirty();
 }
 

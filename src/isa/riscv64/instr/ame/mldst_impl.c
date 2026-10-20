@@ -33,6 +33,9 @@
 #include "ame/mstore_queue_wrapper.h"
 #endif // CONFIG_AME_MEM_ACCESS_CHECK
 #include "mcommon.h"
+#include "mvalue.h"
+#include "mcompute_impl.h"
+#include <memory/vaddr.h>
 #ifdef CONFIG_RV_AME_FP4
 #include "ame/raw-fp4.h"
 #endif
@@ -84,7 +87,7 @@ void check_size(Decode *s, uint64_t rmax_mreg, uint64_t cmax_mreg,
       }
       break;
     case 'c':
-      if (raw_fp4 || cmax_mreg > ARENUM8 / (1 << dsize)) {
+      if (raw_fp4 || cmax_mreg > ARENUM32) {
         valid = false;
       }
       break;
@@ -200,7 +203,52 @@ void exec_mst(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
 #endif // CONFIG_AME_MEM_ACCESS_CHECK
 }
 
+// Ordinary C memory has nominal elements in memory and fixed 32-bit slots
+// in the accumulator. Whole-register memory remains a raw context image.
+static void acc_memory(Decode *s, bool store, bool transpose) {
+  int reg = s->dest.reg;
+  ame_acc_require(reg);
+  mcfg_t cfg = cpu.mcfg[reg];
+  uint8_t size = get_size(cfg);
+  uint64_t rows = mtilem->val, cols = mtilen->val;
+  check_size(s, rows, cols, 'c', size, false);
+  if (!rows || !cols) return;
+  bool convert_fp = cfg.type_code == MTYPECODE_FP16 || cfg.type_code == MTYPECODE_BF16;
+#ifdef CONFIG_FPU_NONE
+  if (convert_fp) longjmp_exception(EX_II);
+#else
+  if (convert_fp) ame_fp_matrix_begin(mfrm->val);
+#endif
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+  if (store) ame_matrix_region_check_read(reg, rows, cols * 4, s->pc);
+#endif
+  uint64_t base = reg_l(s->src1.reg), stride = reg_l(s->src2.reg);
+  // Loads change state; stores may change matrix conversion/saturation flags.
+  mp_set_dirty();
+  for (uint64_t i = 0; i < rows; i++) {
+    for (uint64_t j = 0; j < cols; j++) {
+      uint64_t address = base + (transpose ? j : i) * stride +
+                         ((transpose ? i : j) << size);
+      if (store) {
+        uint32_t value = ame_store_narrow(s, cfg, macc_l32(reg, i, j));
+        vaddr_write(s, address, 1 << size, value, MMU_TRANSLATE);
+      } else {
+        uint32_t value = vaddr_read(s, address, 1 << size, MMU_TRANSLATE);
+        macc_l32(reg, i, j) = ame_load_expand(s, cfg, value);
+      }
+    }
+  }
+  if (convert_fp) ame_fp_commit();
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+  if (!store) ame_matrix_region_mark_write(reg, rows, cols * 4, s->pc);
+#endif
+#ifdef CONFIG_AME_MEM_ACCESS_CHECK
+  if (store) mstore_queue_emplace(base, stride, rows, cols, size, transpose);
+#endif
+}
+
 void mld(Decode *s, bool is_trans, char m_name) {
+  if (m_name == 'c') { acc_memory(s, false, is_trans); return; }
   uint64_t td = s->dest.reg;
   uint8_t dsize = get_size(cpu.mcfg[td]);
   bool raw_fp4 = validate_raw_fp4_access(cpu.mcfg[td], td, m_name);
@@ -230,6 +278,7 @@ void mld(Decode *s, bool is_trans, char m_name) {
 }
 
 void mst(Decode *s, bool is_trans, char m_name) {
+  if (m_name == 'c') { acc_memory(s, true, is_trans); return; }
   uint64_t ts3 = s->dest.reg;
   uint8_t dsize = get_size(cpu.mcfg[ts3]);
   bool raw_fp4 = validate_raw_fp4_access(cpu.mcfg[ts3], ts3, m_name);

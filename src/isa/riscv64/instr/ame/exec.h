@@ -16,3 +16,5 @@
 #include "mcfg.h"
 #include "mldst.h"
 #include "mcompute.h"
+
+#include "mew.h"

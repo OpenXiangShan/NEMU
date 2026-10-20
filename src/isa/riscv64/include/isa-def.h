@@ -230,6 +230,7 @@ typedef struct {
     uint8_t  _8[ARENUM8];
   } macc[4][ROWNUM];
 
+  uint32_t mlv[LVREGS][LVLEN];
   uint64_t mtokr[MSYNC];
 #endif // CONFIG_RV_AME
 

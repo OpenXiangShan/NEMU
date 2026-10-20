@@ -50,6 +50,8 @@
 #define TKMAX(sew) (TRLEN/sew)
 
 #define MSYNC       CONFIG_RV_AME_MSYNC
+#define LVREGS      32
+#define LVLEN       128
 
 enum MTYPECODE_TAB0 {
   MTYPECODE_INT4 = 0,

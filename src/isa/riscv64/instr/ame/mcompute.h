@@ -77,7 +77,7 @@ def_EHelper(mmacc) {
   if (tile_m != 0 && tile_n != 0 && tile_k != 0) {
     ame_matrix_region_check_read(ts1, tile_m, tile_k << s1size, s->pc);
     ame_matrix_region_check_read(ts2, tile_n, tile_k << s2size, s->pc);
-    ame_matrix_region_check_read(td, tile_m, tile_n << dsize, s->pc);
+    ame_matrix_region_check_read(td, tile_m, tile_n << 2, s->pc);
   }
 #endif // CONFIG_AME_TILEREG_UB_CHECK
 #ifndef CONFIG_SHARE_REF
@@ -133,7 +133,7 @@ def_EHelper(mmacc) {
     word_t FPCALL_TYPE;
     switch (float_mmacc_type) {
       case FLOAT_MMACC_FP16_FP16_FP16:
-        FPCALL_TYPE = FPCALL_W16;
+        FPCALL_TYPE = FPCALL_W16_to_32;
         break;
       case FLOAT_MMACC_FP16_FP16_FP32:
         FPCALL_TYPE = FPCALL_W16_to_32;
@@ -155,10 +155,10 @@ def_EHelper(mmacc) {
           get_mreg(ts1, i, k, &tmp_reg[1], s1size, false);
           get_mreg(ts2, j, k, &tmp_reg[2], s2size, false);
 
-          get_mreg(td, i, j, &tmp_reg[0], dsize, false);
+          get_mreg(td, i, j, &tmp_reg[0], 2, false);
           rtl_hostcall(s, HOSTCALL_MFP, &tmp_reg[0], &tmp_reg[1], &tmp_reg[2],
                        FPCALL_CMD(FPCALL_MADD, FPCALL_TYPE));
-          set_mreg(td, i, j, tmp_reg[0], dsize);
+          set_mreg(td, i, j, tmp_reg[0], 2);
         }
       }
     }
@@ -166,7 +166,7 @@ def_EHelper(mmacc) {
     }
 #endif // CONFIG_AME_MMACC_VECTORIZE
     const uint32_t matrix_fp_mask = FPCALL_EX_NX | FPCALL_EX_UF |
-                                    FPCALL_EX_OF | FPCALL_EX_NV;
+                                    FPCALL_EX_OF | FPCALL_EX_DZ | FPCALL_EX_NV;
     mfflags->val |= ame_fp_matrix_end() & matrix_fp_mask;
     mcsr->mfflags = mfflags->val;
 #else // CONFIG_FPU_NONE
@@ -176,7 +176,7 @@ def_EHelper(mmacc) {
 #endif // CONFIG_SHARE_REF
 #ifdef CONFIG_AME_TILEREG_UB_CHECK
   if (tile_m != 0 && tile_n != 0 && tile_k != 0) {
-    ame_matrix_region_mark_write(td, tile_m, tile_n << dsize, s->pc);
+    ame_matrix_region_mark_write(td, tile_m, tile_n << 2, s->pc);
   }
 #endif // CONFIG_AME_TILEREG_UB_CHECK
 #if defined(CONFIG_DIFFTEST_AMU_CTRL) || defined(CONFIG_SHARE_CTRL) || defined(PRINT_AMUCTRLIO)
