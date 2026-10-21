@@ -4,13 +4,11 @@
 `$NEMU_HOME/build/riscv64-nemu-interpreter-so`.
 
 It is intended for host-side benchmarking of the ref-mode shared object without
-changing the normal NEMU build flow. Generate a dedicated performance defconfig
-before building so the shared reference can drive Linux standalone without
-modifying `riscv64-xs-ref_defconfig`:
+changing the normal NEMU build flow.  Build the `riscv64-xs-ref-perf` target so
+the shared reference can drive Linux standalone without modifying the
+`riscv64-xs-ref` board:
 
 ```sh
-tools/ref-so-runner/gen-xs-ref-perf-defconfig.sh \
-  configs/riscv64-xs-ref-perf_defconfig
 make riscv64-xs-ref-perf_defconfig
 make -j"$(nproc)"
 make -C tools/ref-so-runner

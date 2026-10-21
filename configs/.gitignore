@@ -1,1 +1,7 @@
 !*_defconfig
+!riscv32/*.config
+!riscv64/*.config
+!riscv32/**/*.config
+!riscv64/**/*.config
+!fragments/**/*.config
+!README.md

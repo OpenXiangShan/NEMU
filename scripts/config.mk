@@ -25,7 +25,10 @@ Q            := @
 KCONFIG_PATH := $(NEMU_HOME)/tools/kconfig
 FIXDEP_PATH  := $(NEMU_HOME)/tools/fixdep
 Kconfig      := $(NEMU_HOME)/Kconfig
-rm-distclean += include/generated include/config .config .config.old
+CONFIG_MK     := $(NEMU_HOME)/scripts/merge_config.sh
+CONFIG_MERGED := $(NEMU_HOME)/.config.fragments
+rm-distclean += include/generated include/config .config .config.old \
+                $(CONFIG_MERGED)
 silent := -s
 
 CONF   := $(KCONFIG_PATH)/build/conf
@@ -48,16 +51,27 @@ menuconfig: $(MCONF) $(CONF) $(FIXDEP)
 savedefconfig: $(CONF)
 	$(Q)$< $(silent) --$@=configs/defconfig $(Kconfig)
 
-%defconfig: $(CONF) $(FIXDEP)
-	$(Q)$< $(silent) --defconfig=configs/$@ $(Kconfig)
+# A target (configs/xxx_defconfig) is a stack of configuration layers: a board
+# base under configs/<isa>/<board>/, board variants next to it and shared
+# feature fragments under configs/fragments/.  Merge the stack first, then let
+# Kconfig install it exactly like a full .config.
+%defconfig: $(CONF) $(FIXDEP) $(CONFIG_MK)
+	$(Q)$(CONFIG_MK) -o $(CONFIG_MERGED) configs/$@
+	$(Q)$< $(silent) --defconfig=$(CONFIG_MERGED) $(Kconfig)
 	$(Q)$< $(silent) --syncconfig $(Kconfig)
+	$(Q)rm -f $(CONFIG_MERGED)
 
-.PHONY: menuconfig savedefconfig defconfig
+# Check that every configuration target composes (used by CI).
+config-check: $(CONF)
+	$(Q)$(NEMU_HOME)/scripts/check_configs.sh
+
+.PHONY: menuconfig savedefconfig defconfig config-check
 
 # Help text used by make help
 help:
 	@echo  '  menuconfig	  - Update current config utilising a menu based program'
 	@echo  '  savedefconfig   - Save current config as configs/defconfig (minimal config)'
+	@echo  '  config-check    - Verify that every configs/*_defconfig target composes'
 
 distclean: clean
 	-@rm -rf $(rm-distclean)

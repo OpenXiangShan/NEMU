@@ -1,0 +1,27 @@
+# NEMU configuration target: riscv64-xs-ref-perf
+#
+# A target is a stack of configuration layers merged in order; the last
+# definition of a symbol wins.  See configs/README.md.  Compose with:
+#   make riscv64-xs-ref-perf_defconfig
+#
+# fragment: riscv64/xs/base.config
+# fragment: riscv64/xs/ref.config
+#
+# Target-specific overrides.
+CONFIG_CLINT_LOCAL_TIMER_INTERRUPT=y
+CONFIG_CYCLES_PER_MTIME_TICK=128
+CONFIG_WFI_TIMEOUT_TICKS=8192
+# CONFIG_RV_AIA is not set
+CONFIG_HAS_UART16550=y
+CONFIG_UART16550_PORT=0x3f8
+CONFIG_UART16550_MMIO=0x310b0000
+# CONFIG_UART16550_REG_SHIFT_0 is not set
+CONFIG_UART16550_REG_SHIFT_2=y
+# CONFIG_UART16550_INPUT_FIFO is not set
+CONFIG_HAS_UARTLITE=y
+CONFIG_UARTLITE_PORT=0x3f8
+CONFIG_UARTLITE_MMIO=0x40600000
+# CONFIG_UARTLITE_INPUT_FIFO is not set
+CONFIG_UARTLITE_ASSERT_FOUR=y
+CONFIG_HAS_PLIC=y
+CONFIG_PLIC_ADDRESS=0x3c000000
