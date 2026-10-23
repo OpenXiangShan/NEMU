@@ -309,6 +309,12 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
         mode == MODE_U ? "U" : MODE_S ? "S" : MODE_M ? "M" : "NOTYPE",
         pte->u, pte->a, pte->d, (uint64_t)pte->ppn << 12);
 #endif
+#ifdef CONFIG_RV_CFI
+  if (ok && ss_page && cpu.cbo_access) {
+    zicfiss_raise_access_fault(vaddr);
+    return false;
+  }
+#endif
   if (ifetch) {
     Logtr("Translate for instr reading");
 #ifdef CONFIG_RV_CFI
@@ -921,9 +927,9 @@ void isa_mmu_tlb_flush(void) {
 
 static inline bool rvh_final_tlb_cacheable(int type) {
 #ifdef CONFIG_RV_CFI
-  // Shadow-stack accesses require different PTE permissions from ordinary
-  // accesses and must not reuse or populate their cached translations.
-  if (cpu.shadow_stack_access) return false;
+  // Shadow-stack accesses and CBOs have distinct PTE permission rules and
+  // must not reuse or populate ordinary accesses' cached translations.
+  if (cpu.shadow_stack_access || cpu.cbo_access) return false;
 #endif
   return (cpu.v || hld_st) && !cpu.amo &&
       (type == MEM_TYPE_IFETCH || !get_mprv());

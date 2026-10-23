@@ -279,7 +279,15 @@ void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem)
 /* Memory accessing interfaces */
 
 bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
-  if (!isa_pmp_check_permission(addr, len, type, mode)) {
+  int pmp_type = type;
+#ifdef CONFIG_RV_CFI
+  if (cpu.shadow_stack_access) {
+    // PMP W implies R; PMA still checks the actual access, even for SSPOPCHK.
+    pmp_type = MEM_TYPE_WRITE;
+    trap_type = MEM_TYPE_WRITE;
+  }
+#endif
+  if (!isa_pmp_check_permission(addr, len, pmp_type, mode)) {
     if (trap_type == MEM_TYPE_WRITE || trap_type == MEM_TYPE_MATRIX_WRITE) {
       raise_access_fault(EX_SAF, vaddr);
     }else {
@@ -387,19 +395,12 @@ static inline bool paddr_read_check(paddr_t addr, int len, int type,
 
   assert(type == MEM_TYPE_READ || type == MEM_TYPE_READ_EXEC || type == MEM_TYPE_IFETCH_READ ||
     type == MEM_TYPE_IFETCH || type == MEM_TYPE_WRITE_READ || type == MEM_TYPE_MATRIX_READ || type == MEM_TYPE_MATRIX_WRITE);
-#ifdef CONFIG_RV_CFI
-  int permission_type = cpu.shadow_stack_access ? MEM_TYPE_WRITE : type;
-  int permission_trap_type = cpu.shadow_stack_access ? MEM_TYPE_WRITE : trap_type;
-#else
-  int permission_type = type;
-  int permission_trap_type = trap_type;
-#endif
   if (cpu.pbmt != 0) {
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
   }
 
   IFDEF(CONFIG_RV_CFI, zicfiss_check_shadow_stack_paddr(addr, vaddr));
-  return check_paddr(addr, len, permission_type, permission_trap_type, mode, vaddr);
+  return check_paddr(addr, len, type, trap_type, mode, vaddr);
 }
 
 static inline word_t paddr_read_pmem_after_check(paddr_t addr, int len,

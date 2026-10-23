@@ -752,6 +752,7 @@ static void execute(int n) {
     cpu.amo = false;
 #ifdef CONFIG_RV_CFI
     cpu.shadow_stack_access = false;
+    cpu.cbo_access = false;
 #endif
     cpu.pbmt = 0;
 
@@ -933,6 +934,7 @@ void cpu_exec(uint64_t n) {
       cpu.amo = false; // clean up
 #ifdef CONFIG_RV_CFI
       cpu.shadow_stack_access = false;
+      cpu.cbo_access = false;
 #endif
       cpu.pbmt = 0;
       cpu.isVldst = false;
