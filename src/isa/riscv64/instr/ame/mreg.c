@@ -47,6 +47,20 @@ typedef struct {
 
 static matrix_write_region_t matrix_write_regions[8];
 
+#ifdef CONFIG_SHARE_REF
+size_t ame_matrix_region_state_size(void) {
+  return sizeof(matrix_write_regions);
+}
+
+void ame_matrix_region_state_save(void *state) {
+  memcpy(state, matrix_write_regions, sizeof(matrix_write_regions));
+}
+
+void ame_matrix_region_state_restore(const void *state) {
+  memcpy(matrix_write_regions, state, sizeof(matrix_write_regions));
+}
+#endif // CONFIG_SHARE_REF
+
 void ame_matrix_region_mark_write(int mreg_num, uint64_t rows, uint64_t columns,
                                  uint64_t pc) {
   if (rows == 0 || columns == 0) return;
