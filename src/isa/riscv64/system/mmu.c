@@ -310,6 +310,12 @@ static inline bool check_permission(PTE *pte, bool ok, vaddr_t vaddr, int type) 
         mode == MODE_U ? "U" : MODE_S ? "S" : MODE_M ? "M" : "NOTYPE",
         pte->u, pte->a, pte->d, (uint64_t)pte->ppn << 12);
 #endif
+#ifdef CONFIG_RV_CFI
+  if (ok && ss_page && cpu.cbo_access) {
+    zicfiss_raise_access_fault(vaddr);
+    return false;
+  }
+#endif
   if (ifetch) {
     Logtr("Translate for instr reading");
 #ifdef CONFIG_RV_CFI
@@ -893,7 +899,7 @@ int get_hyperinst_mmu_state() {
 #ifdef CONFIG_PERF_OPT_SHARE
 bool isa_hosttlb_check(int type) {
 #ifdef CONFIG_RV_CFI
-  if (cpu.shadow_stack_access) return false;
+  if (cpu.shadow_stack_access || cpu.cbo_access) return false;
 #endif
   if (ISDEF(CONFIG_RV_MBMC) || !ref_is_fast() || cpu.amo || cpu.guided_exec ||
       (type != MEM_TYPE_IFETCH && get_mprv()) ||
@@ -951,9 +957,9 @@ void isa_mmu_tlb_flush(void) {
 
 static inline bool rvh_final_tlb_cacheable(int type) {
 #ifdef CONFIG_RV_CFI
-  // Shadow-stack accesses require different PTE permissions from ordinary
-  // accesses and must not reuse or populate their cached translations.
-  if (cpu.shadow_stack_access) return false;
+  // Shadow-stack accesses and CBOs have distinct PTE permission rules and
+  // must not reuse or populate ordinary accesses' cached translations.
+  if (cpu.shadow_stack_access || cpu.cbo_access) return false;
 #endif
   // Reuse the final translation cache for nonvirtual FAST S/U accesses.
   bool host_fast = ref_is_fast() && !cpu.v && !hld_st;
