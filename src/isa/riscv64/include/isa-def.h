@@ -169,6 +169,7 @@ typedef struct {
   bool amo;
 #ifdef CONFIG_RV_CFI
   bool shadow_stack_access;
+  bool cbo_access;
 #endif
   uint32_t pbmt;
   bool isVldst;
