@@ -844,7 +844,7 @@ int isa_fetch_decode(Decode *s) {
       s->type = INSTR_TYPE_I; break;
   }
 
-#ifdef CONFIG_PERF_OPT
+#if defined(CONFIG_PERF_OPT) || defined(CONFIG_PERF_OPT_SHARE)
   s->isa.flag_def = flag_table[idx].def;
   s->isa.flag_use = flag_table[idx].use;
   if (idx == EXEC_ID_jcc || idx == EXEC_ID_setcc || idx == EXEC_ID_cmovcc) {

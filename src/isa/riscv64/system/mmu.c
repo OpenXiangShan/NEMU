@@ -805,6 +805,7 @@ typedef struct {
 
 static rvh_final_tlb_entry_t rvh_final_tlb[RVH_FINAL_TLB_SIZE];
 static uint64_t rvh_final_tlb_generation = 1;
+static uint64_t rvh_final_tlb_satp = UINT64_MAX;
 static uint64_t rvh_final_tlb_vsatp = UINT64_MAX;
 static uint64_t rvh_final_tlb_hgatp = UINT64_MAX;
 static uint16_t rvh_final_tlb_context = UINT16_MAX;
@@ -817,7 +818,9 @@ void isa_mmu_tlb_flush(void) {
 }
 
 static inline bool rvh_final_tlb_cacheable(int type) {
-  return (cpu.v || hld_st) && !cpu.amo &&
+  // Reuse the final translation cache for nonvirtual FAST S/U accesses.
+  bool host_fast = ref_is_fast() && !cpu.v && !hld_st;
+  return (cpu.v || hld_st || host_fast) && !cpu.amo &&
       (type == MEM_TYPE_IFETCH || !get_mprv());
 }
 
@@ -833,17 +836,21 @@ static inline uint16_t rvh_final_tlb_current_context(void) {
       (henvcfg->adue << 8) |
       (hld_st << 9) |
       (hlvx << 10) |
-      (hstatus->spvp << 11));
+      (hstatus->spvp << 11) |
+      (mstatus->sum << 12));
 }
 
 static inline void rvh_final_tlb_sync_context(void) {
   uint16_t context = rvh_final_tlb_current_context();
+  uint64_t current_satp = (!cpu.v && !hld_st) ? satp->val : UINT64_MAX;
   uint64_t current_vsatp = (cpu.v || hld_st) ? vsatp->val : UINT64_MAX;
   uint64_t current_hgatp = (cpu.v || hld_st) ? hgatp->val : UINT64_MAX;
-  if (unlikely(rvh_final_tlb_vsatp != current_vsatp ||
+  if (unlikely(rvh_final_tlb_satp != current_satp ||
+      rvh_final_tlb_vsatp != current_vsatp ||
       rvh_final_tlb_hgatp != current_hgatp ||
       rvh_final_tlb_context != context)) {
     isa_mmu_tlb_flush();
+    rvh_final_tlb_satp = current_satp;
     rvh_final_tlb_vsatp = current_vsatp;
     rvh_final_tlb_hgatp = current_hgatp;
     rvh_final_tlb_context = context;
@@ -1554,6 +1561,7 @@ bool isa_mpt_check_permission(paddr_t addr, int len, int type, int out_mode) {
 #endif
 
 static bool pmp_check_permission_with_mode(paddr_t addr, int len, int type, uint32_t mode) {
+  if (ref_is_fast()) return true;
 #ifdef CONFIG_RV_PMP_CHECK
   if (CONFIG_RV_PMP_ACTIVE_NUM == 0) {
     return true;
@@ -1720,6 +1728,7 @@ bool isa_pmp_check_permission_mmode(paddr_t addr, int len, int type) {
 #endif
 
 bool isa_pma_check_permission(paddr_t addr, int len, int type) {
+  if (ref_is_fast()) return true;
 #ifdef CONFIG_RV_PMA_CHECK
   if (CONFIG_RV_PMA_ACTIVE_NUM == 0) {
     return true;

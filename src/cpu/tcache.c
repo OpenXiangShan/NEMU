@@ -16,7 +16,7 @@
 #include <cpu/decode.h>
 #include <cpu/cpu.h>
 
-#ifdef CONFIG_PERF_OPT
+#if defined(CONFIG_PERF_OPT) || defined(CONFIG_PERF_OPT_SHARE)
 
 #define TCACHE_BB_SIZE (CONFIG_TCACHE_SIZE / 4 + 2)
 
@@ -41,6 +41,7 @@ static inline Decode* tcache_entry_init(Decode *s, vaddr_t pc) {
   s->tnext = s->ntnext = NULL;
   s->type = 0;
   s->pc = pc;
+  IFDEF(CONFIG_PERF_OPT_SHARE, s->snpc = pc);
   s->EHelper = g_exec_nemu_decode;
   return s;
 }
@@ -259,7 +260,7 @@ Decode* tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector) {
   return tcache_bb_new(reset_vector);
 }
 
-#else // CONFIG_PERF_OPT
+#else // CONFIG_PERF_OPT || CONFIG_PERF_OPT_SHARE
 #define SIMPLE_TCACHE_SIZE 8192
 #define SIMPLE_TCACHE_WAYS 4
 #define SIMPLE_TCACHE_SETS (SIMPLE_TCACHE_SIZE / SIMPLE_TCACHE_WAYS)
