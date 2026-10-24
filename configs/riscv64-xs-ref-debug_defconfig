@@ -5,9 +5,8 @@
 # See configs/README.md.  Compose and install with:
 #   make riscv64-xs-ref-debug_defconfig
 #
-# fragment: riscv64/xs/base.config
-# fragment: riscv64/xs/ref.config
-# fragment: fragments/debug/debug.config
+# layer: riscv64/xs/ref.config
+# layer: fragments/debug/debug.config
 #
 # Target-specific overrides.
 # CONFIG_CC_LTO is not set

@@ -5,8 +5,8 @@
 # See configs/README.md.  Compose and install with:
 #   make riscv64-nanhu-ref_defconfig
 #
-# fragment: riscv64/nanhu/base.config
-# fragment: fragments/difftest/ref-share.config
+# layer: riscv64/nanhu.config
+# layer: fragments/difftest/ref-share.config
 #
 # Target-specific overrides.
 CONFIG_GUIDED_TVAL=y

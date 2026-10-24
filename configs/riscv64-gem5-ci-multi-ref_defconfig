@@ -5,9 +5,9 @@
 # See configs/README.md.  Compose and install with:
 #   make riscv64-gem5-ci-multi-ref_defconfig
 #
-# fragment: riscv64/gem5/base.config
-# fragment: fragments/difftest/multicore.config
-# fragment: fragments/mem/dedup.config
+# layer: riscv64/gem5/ref.config
+# layer: fragments/difftest/multicore.config
+# layer: fragments/mem/dedup.config
 #
 # Target-specific overrides.
 CONFIG_GUIDED_TVAL=y

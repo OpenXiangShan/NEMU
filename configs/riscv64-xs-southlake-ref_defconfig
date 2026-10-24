@@ -5,5 +5,4 @@
 # See configs/README.md.  Compose and install with:
 #   make riscv64-xs-southlake-ref_defconfig
 #
-# fragment: riscv64/southlake/base.config
-# fragment: riscv64/southlake/ref.config
+# layer: riscv64/southlake/ref.config

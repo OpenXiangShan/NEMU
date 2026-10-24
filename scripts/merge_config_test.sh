@@ -61,47 +61,48 @@ printf 'CONFIG_CC_O3=y\nCONFIG_CC_O0=y\nCONFIG_CC_O3=y\n' >"$tmp/choice.config"
 expect_out "last definition keeps its position" \
   $'CONFIG_CC_O0=y\nCONFIG_CC_O3=y' "$tmp/choice.config"
 
-# 2. CRLF and trailing blanks on "# CONFIG_X is not set" stay effective.
+# 2. Layers are applied in the order given; the same file may be applied twice.
+printf 'CONFIG_MSIZE=1\n' >"$tmp/base.config"
+printf 'CONFIG_MSIZE=2\n' >"$tmp/overlay.config"
+expect_out "later layer wins" 'CONFIG_MSIZE=2' "$tmp/base.config" "$tmp/overlay.config"
+expect_out "a layer listed twice is re-applied" 'CONFIG_MSIZE=1' \
+  "$tmp/base.config" "$tmp/overlay.config" "$tmp/base.config"
+
+# 3. CRLF and trailing blanks on "# CONFIG_X is not set" stay effective.
 printf 'CONFIG_X=y\r\n# CONFIG_X is not set\r\n' >"$tmp/crlf.config"
 expect_out "CRLF unset line" '# CONFIG_X is not set' "$tmp/crlf.config"
 printf 'CONFIG_X=y\n# CONFIG_X is not set   \n' >"$tmp/trailing.config"
 expect_out "unset line with trailing blanks" '# CONFIG_X is not set' "$tmp/trailing.config"
 
-# 3. A layer that is included twice is applied twice (ordered list semantics).
-printf 'CONFIG_MSIZE=1\n' >"$tmp/base.config"
-printf '# fragment: base.config\nCONFIG_MSIZE=2\n' >"$tmp/overlay.config"
-printf '# fragment: overlay.config\n# fragment: base.config\n' >"$tmp/again.config"
-expect_out "re-included layer is re-applied" 'CONFIG_MSIZE=1' "$tmp/again.config"
+# 4. -r reports redefinitions and redundant definitions.
+printf 'CONFIG_A=y\nCONFIG_B=y\n' >"$tmp/one.config"
+printf '# CONFIG_A is not set\nCONFIG_B=y\n' >"$tmp/two.config"
+report="$("$merge" -r -o /dev/null "$tmp/one.config" "$tmp/two.config" 2>&1)"
+case "$report" in
+  *"override: CONFIG_A y -> n"*) ok "-r reports an override" ;;
+  *) bad "-r reports an override"; printf '    got: %s\n' "$report" ;;
+esac
+case "$report" in
+  *"redundant: CONFIG_B"*) ok "-r reports a redundant definition" ;;
+  *) bad "-r reports a redundant definition"; printf '    got: %s\n' "$report" ;;
+esac
 
-# 4. --list prints the layers in application order.
-printf 'CONFIG_A=y\n' >"$tmp/leaf.config"
-printf '# fragment: leaf.config\nCONFIG_B=y\n' >"$tmp/mid.config"
-printf '# fragment: mid.config\nCONFIG_C=y\n' >"$tmp/top.config"
-want_list="$(realpath "$tmp/leaf.config") $(realpath "$tmp/mid.config") $(realpath "$tmp/top.config")"
-got_list="$("$merge" --list "$tmp/top.config" | tr '\n' ' ' | sed 's/ $//')"
-if [ "$got_list" = "$want_list" ]; then
-  ok "--list reports application order"
+# 5. -o writes the merged configuration to a file.
+if "$merge" -o "$tmp/out.config" "$tmp/base.config" && \
+   [ "$(cat "$tmp/out.config")" = 'CONFIG_MSIZE=1' ]; then
+  ok "-o writes the output file"
 else
-  bad "--list reports application order"
-  printf '    want: %s\n    got:  %s\n' "$want_list" "$got_list"
+  bad "-o writes the output file"
 fi
 
-# 5. Broken inputs are rejected instead of silently dropped.
-printf '# fragment: b.config\n' >"$tmp/a.config"
-printf '# fragment: a.config\n' >"$tmp/b.config"
-expect_fail "include cycle" "$tmp/a.config"
-
-printf 'CONFIG_A=y\n# fragment: leaf.config\n' >"$tmp/late-include.config"
-expect_fail "include after CONFIG_ lines" "$tmp/late-include.config"
-
+# 6. Broken inputs are rejected instead of silently dropped.
 printf 'CONFIG_A\n' >"$tmp/malformed.config"
 expect_fail "malformed configuration line" "$tmp/malformed.config"
 
 printf '# CONFIG_A is not set please\n' >"$tmp/malformed-unset.config"
 expect_fail "malformed unset line" "$tmp/malformed-unset.config"
 
-printf '# fragment: missing.config\n' >"$tmp/missing.config"
-expect_fail "missing included layer" "$tmp/missing.config"
+expect_fail "missing layer" "$tmp/does-not-exist.config"
 
 if [ "$fail" -ne 0 ]; then
   echo "merge_config_test: FAILED" >&2

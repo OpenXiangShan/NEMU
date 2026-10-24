@@ -5,8 +5,8 @@
 # See configs/README.md.  Compose and install with:
 #   make riscv64-xs_bitmap_defconfig
 #
-# fragment: riscv64/xs/base.config
-# fragment: fragments/ext/bitmap.config
+# layer: riscv64/xs/sim.config
+# layer: fragments/ext/bitmap.config
 #
 # Target-specific overrides.
 # CONFIG_CC_O3 is not set

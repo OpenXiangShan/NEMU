@@ -5,9 +5,9 @@
 # See configs/README.md.  Compose and install with:
 #   make riscv64-xs-cpt-with-flash_defconfig
 #
-# fragment: riscv64/xs/base.config
-# fragment: fragments/checkpoint/cpt.config
-# fragment: fragments/checkpoint/flash.config
+# layer: riscv64/xs/sim.config
+# layer: fragments/checkpoint/cpt.config
+# layer: fragments/checkpoint/flash.config
 #
 # Target-specific overrides.
 # CONFIG_RV_ZAWRS is not set

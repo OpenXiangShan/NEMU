@@ -5,10 +5,10 @@
 # See configs/README.md.  Compose and install with:
 #   make riscv32-pa_defconfig
 #
-# fragment: riscv32/isa.config
-# fragment: fragments/toolchain/clang.config
+# layer: riscv32/isa.config
 #
 # Target-specific overrides.
+CONFIG_CC_CLANG=y
 CONFIG_CC_DEBUG=y
 CONFIG_CC_O3=y
 CONFIG_PC_RESET_OFFSET=0x100000

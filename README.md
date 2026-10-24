@@ -158,17 +158,18 @@ make -j
 ```
 `./build/riscv64-nemu-interpreter-so` is the reference design.
 
-The named configurations live in `configs/` and are composed from a board base
-plus feature fragments (see [configs/README.md](configs/README.md)).
+The named configurations live in `configs/` and are composed from a
+self-contained machine profile plus feature fragments (see
+[configs/README.md](configs/README.md)).
 `riscv64-xs-ref_defconfig` is the XiangShan difftest reference board;
 `riscv64-xs_defconfig` is the XiangShan simulation board and the base for a
 series of other XiangShan configurations:
 
 ```
-configs/riscv64/xs/base.config                                    -> riscv64-xs
-configs/riscv64/xs/base.config + configs/fragments/checkpoint/cpt.config -> riscv64-xs-cpt
-configs/riscv64/xs/base.config + configs/riscv64/xs/ref.config    -> riscv64-xs-ref
-configs/riscv64/xs/base.config + configs/fragments/difftest/spike.config -> riscv64-xs-diff-spike
+configs/riscv64/xs/sim.config                                    -> riscv64-xs
+configs/riscv64/xs/sim.config + configs/fragments/checkpoint/cpt.config -> riscv64-xs-cpt
+configs/riscv64/xs/ref.config                                    -> riscv64-xs-ref
+configs/riscv64/xs/sim.config + configs/fragments/difftest/spike.config -> riscv64-xs-diff-spike
 ```
 Run `make menuconfig` to edit a configuration interactively and
 `make savedefconfig` to save it as a single-file `configs/defconfig`.

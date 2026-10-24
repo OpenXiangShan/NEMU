@@ -5,9 +5,8 @@
 # See configs/README.md.  Compose and install with:
 #   make riscv64-xs-southlake-ref-debug_defconfig
 #
-# fragment: riscv64/southlake/base.config
-# fragment: riscv64/southlake/ref.config
-# fragment: fragments/debug/debug.config
+# layer: riscv64/southlake/ref.config
+# layer: fragments/debug/debug.config
 #
 # Target-specific overrides.
 # CONFIG_RV_SDEXT is not set

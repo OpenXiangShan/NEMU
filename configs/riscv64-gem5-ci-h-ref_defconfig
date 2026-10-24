@@ -5,7 +5,7 @@
 # See configs/README.md.  Compose and install with:
 #   make riscv64-gem5-ci-h-ref_defconfig
 #
-# fragment: riscv64/gem5/base.config
+# layer: riscv64/gem5/ref.config
 #
 # Target-specific overrides.
 CONFIG_GUIDED_TVAL=y

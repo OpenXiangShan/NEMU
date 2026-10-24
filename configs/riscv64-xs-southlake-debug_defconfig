@@ -5,8 +5,8 @@
 # See configs/README.md.  Compose and install with:
 #   make riscv64-xs-southlake-debug_defconfig
 #
-# fragment: riscv64/southlake/base.config
-# fragment: fragments/debug/debug.config
+# layer: riscv64/southlake/sim.config
+# layer: fragments/debug/debug.config
 #
 # Target-specific overrides.
 CONFIG_INSTR_CNT_BY_INSTR_PERF_OPT=y

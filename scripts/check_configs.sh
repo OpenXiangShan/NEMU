@@ -67,12 +67,33 @@ fi
 targets=("$CONFIGS"/*_defconfig)
 [ "${#targets[@]}" -gt 0 ] || { echo "check_configs: no configs/*_defconfig found" >&2; exit 1; }
 
+override_slots=0
+redundant_slots=0
+
 for target in "${targets[@]}"; do
   name="$(basename "$target")"
   merged="$tmp/$name.config"
-  if ! "$MERGE" -o "$merged" "$target"; then
+
+  # The target manifest lists its layers as "# layer: <path>" lines relative
+  # to configs/; the manifest itself is merged last for its own overrides.
+  mapfile -t layer_rel < <(sed -n 's|^# layer: ||p' "$target")
+  layer_abs=()
+  for layer in "${layer_rel[@]}"; do
+    layer_abs+=("$CONFIGS/$layer")
+  done
+
+  merge_diag="$tmp/$name.merge"
+  if ! "$MERGE" -r -o "$merged" "${layer_abs[@]}" "$target" 2>"$merge_diag"; then
     problem "FAIL $name: cannot merge the configuration layers"
+    sed 's/^/         /' "$merge_diag" >&2
     continue
+  fi
+  overrides=$(grep -c '^override:' "$merge_diag" || true)
+  redundant=$(grep -c '^redundant:' "$merge_diag" || true)
+  override_slots=$((override_slots + overrides))
+  redundant_slots=$((redundant_slots + redundant))
+  if [ "$redundant" -gt 0 ]; then
+    printf '  note %s: %d redundant definition(s)\n' "$name" "$redundant"
   fi
   diag="$tmp/$name.diag"
   if ! KCONFIG_CONFIG="$tmp/$name.out" "$CONF" -s --defconfig="$merged" "$KCONFIG" 2>"$diag"; then
@@ -94,7 +115,7 @@ for target in "${targets[@]}"; do
     problem "FAIL $name: expected $want_isa in the composed configuration"
     continue
   fi
-  if ! "$MERGE" -o "$merged.again" "$target" || ! cmp -s "$merged" "$merged.again"; then
+  if ! "$MERGE" -o "$merged.again" "${layer_abs[@]}" "$target" || ! cmp -s "$merged" "$merged.again"; then
     problem "FAIL $name: composition is not deterministic"
     continue
   fi
@@ -136,8 +157,10 @@ fi
 # ---------------------------------------------------------------------------
 : >"$tmp/used-layers"
 for target in "${targets[@]}"; do
-  "$MERGE" --list "$target"
-done | grep "^$CONFIGS/" | sort -u >"$tmp/used-layers" || true
+  while IFS= read -r layer; do
+    realpath "$CONFIGS/$layer"
+  done < <(sed -n 's|^# layer: ||p' "$target")
+done | sort -u >"$tmp/used-layers"
 
 while IFS= read -r layer; do
   if ! grep -qxF "$(realpath "$layer")" "$tmp/used-layers"; then
@@ -154,5 +177,5 @@ if [ "$fail" -ne 0 ]; then
   exit 1
 fi
 
-printf '%sOK: %d targets, %d layers%s\n' \
-  "$color_green" "${#targets[@]}" "$layers" "$color_end"
+printf '%sOK: %d targets, %d layers (%d override slots, %d redundant)%s\n' \
+  "$color_green" "${#targets[@]}" "$layers" "$override_slots" "$redundant_slots" "$color_end"

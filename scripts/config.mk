@@ -50,13 +50,14 @@ menuconfig: $(MCONF) $(CONF) $(FIXDEP)
 savedefconfig: $(CONF)
 	$(Q)$< $(silent) --$@=configs/defconfig $(Kconfig)
 
-# A target (configs/xxx_defconfig) is a stack of configuration layers: a board
-# base under configs/<isa>/<board>/, board variants next to it and shared
-# feature fragments under configs/fragments/.  Merge the stack first, then let
-# Kconfig install it exactly like a full .config.
+# A target (configs/xxx_defconfig) is a composition manifest: "# layer: <path>"
+# lines name a machine profile under configs/<isa>/ plus optional fragments
+# under configs/fragments/.  Merge the layers first, then let Kconfig install
+# the result exactly like a full .config.
 %defconfig: $(CONF) $(FIXDEP) $(CONFIG_MK)
-	$(Q)merged=$$(mktemp $(NEMU_HOME)/.config.fragments.XXXXXX) && \
-		$(CONFIG_MK) -o $$merged configs/$@ && \
+	$(Q)layers=$$(sed -n 's|^# layer: |configs/|p' configs/$@); \
+		merged=$$(mktemp $(NEMU_HOME)/.config.fragments.XXXXXX) && \
+		$(CONFIG_MK) -o $$merged $$layers configs/$@ && \
 		$(CONF) $(silent) --defconfig=$$merged $(Kconfig) && \
 		$(CONF) $(silent) --syncconfig $(Kconfig); \
 		status=$$?; rm -f $$merged; exit $$status
