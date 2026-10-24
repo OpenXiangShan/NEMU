@@ -1,7 +1,8 @@
 # NEMU configuration target: riscv64-xs_mpt
 #
-# A target is a stack of configuration layers merged in order; the last
-# definition of a symbol wins.  See configs/README.md.  Compose with:
+# A target is a composition manifest, not a .config: it lists configuration
+# layers that are merged in order (the last definition of a symbol wins).
+# See configs/README.md.  Compose and install with:
 #   make riscv64-xs_mpt_defconfig
 #
 # fragment: riscv64/xs/base.config

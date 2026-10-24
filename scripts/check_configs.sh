@@ -52,6 +52,16 @@ make -s -C "$NEMU_HOME/tools/kconfig" NAME=conf
 make -s -C "$NEMU_HOME/tools/fixdep"
 
 # ---------------------------------------------------------------------------
+# 0. The merger itself has regression tests.
+# ---------------------------------------------------------------------------
+if [ -x "$NEMU_HOME/scripts/merge_config_test.sh" ]; then
+  if ! bash "$NEMU_HOME/scripts/merge_config_test.sh"; then
+    echo "check_configs: the configuration merger failed its own tests" >&2
+    exit 1
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # 1+2. Compose every target.
 # ---------------------------------------------------------------------------
 targets=("$CONFIGS"/*_defconfig)
@@ -64,8 +74,24 @@ for target in "${targets[@]}"; do
     problem "FAIL $name: cannot merge the configuration layers"
     continue
   fi
-  if ! KCONFIG_CONFIG="$tmp/$name.out" "$CONF" -s --defconfig="$merged" "$KCONFIG"; then
+  diag="$tmp/$name.diag"
+  if ! KCONFIG_CONFIG="$tmp/$name.out" "$CONF" -s --defconfig="$merged" "$KCONFIG" 2>"$diag"; then
     problem "FAIL $name: Kconfig rejected the merged configuration"
+    sed 's/^/         /' "$diag" >&2
+    continue
+  fi
+  if [ -s "$diag" ]; then
+    problem "FAIL $name: Kconfig reported diagnostics"
+    sed 's/^/         /' "$diag" >&2
+    continue
+  fi
+  case "$name" in
+    riscv64-*) want_isa=CONFIG_ISA_riscv64=y ;;
+    riscv32-*) want_isa=CONFIG_ISA_riscv32=y ;;
+    *)         want_isa="" ;;
+  esac
+  if [ -n "$want_isa" ] && ! grep -qx "$want_isa" "$tmp/$name.out"; then
+    problem "FAIL $name: expected $want_isa in the composed configuration"
     continue
   fi
   if ! "$MERGE" -o "$merged.again" "$target" || ! cmp -s "$merged" "$merged.again"; then

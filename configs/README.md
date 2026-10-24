@@ -85,6 +85,10 @@ make riscv64-xs-ref_defconfig
 make -j"$(nproc)"
 ```
 
+A target file is a **composition manifest**, not a `.config`: feeding it to
+`conf --defconfig=` directly would only see the few lines it carries itself.
+Always use `make <target>_defconfig` (or `scripts/merge_config.sh`).
+
 The merge itself is a standalone script:
 
 ```sh
@@ -104,11 +108,18 @@ Rules:
 * Layers are merged in the order in which the target lists them.  For each
   `CONFIG_*` symbol the last definition wins, so a later layer (or the target
   itself) overrides an earlier one.
-* A layer may pull in another one with a `# fragment: <path>` line (path
-  relative to the file).  Board bases use this for their ISA baseline; targets
-  do not need it.
+* A layer may pull in another one with `# fragment: <path>` lines at the top
+  of the file (path relative to the file); includes must precede the file's own
+  `CONFIG_` lines.  Board bases use this for their ISA baseline; targets list
+  their layers explicitly.
+* Including the same layer twice re-applies it; only real include cycles are
+  rejected.
+* A layer that switches to another member of a Kconfig choice should also
+  disable the previous member (`# CONFIG_X is not set`).  `make config-check`
+  fails if Kconfig reports an override warning for a target.
 * Symbols that are not mentioned keep their Kconfig default.
-* The merged result is ordinary `.config` syntax.
+* The merged result is ordinary `.config` syntax and keeps the position of each
+  symbol's *last* definition, so Kconfig choice precedence is preserved.
 
 ## Target files
 
@@ -162,9 +173,13 @@ that
 
 * every target composes into a configuration that Kconfig accepts,
 * composition is deterministic,
+* Kconfig accepts the composition without diagnostics (an invalid value or a
+  conflicting choice member fails the check),
+* the target name's ISA prefix matches the composed configuration
+  (`riscv64-*` must produce `CONFIG_ISA_riscv64=y`),
 * every `CONFIG_*` symbol used by a layer exists in some `Kconfig` file
   (a typo would otherwise be ignored silently),
-* every layer is used by at least one target.
+* layers that no target uses are reported as warnings.
 
 ## Notes
 
@@ -173,5 +188,16 @@ that
   `$KCONFIG_CONFIG`).
 * `make savedefconfig` still writes `configs/defconfig`, which is a normal
   single-file defconfig usable with `make defconfig`.
+* The layers are *sparse*: settings that are not pinned follow the Kconfig
+  default, so changing a Kconfig default changes every target that does not
+  pin it.  Keep machine-defining capabilities (ISA extensions, memory map,
+  devices, reset path) pinned in the board base or variant if they must not
+  drift.  Newly added Kconfig options therefore no longer need to be written
+  into all target files, which is the main maintenance win of this layout.
 * The tree was produced from the previous complete `*_defconfig` files and was
   verified target by target to produce byte-identical `.config` output.
+* Some feature fragments still bundle settings that belong to a machine (for
+  example `difftest/multicore` carries `MSIZE`/`FLASH_SIZE`, and
+  `checkpoint/cpt` carries PMP/reset/toolchain settings).  They are kept as
+  named bundles for now so the composed configurations stay identical; moving
+  those settings to the board layers is a follow-up cleanup.

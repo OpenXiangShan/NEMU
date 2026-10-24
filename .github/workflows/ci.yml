@@ -536,6 +536,19 @@ jobs:
                 --output baseline_ref_so.md \
                 --metrics-output baseline_ref_so.tsv \
                 --binary "${GITHUB_WORKSPACE}/tools/ref-so-runner/runner"
+            elif [ -x perf-baseline/tools/ref-so-runner/gen-xs-ref-perf-defconfig.sh ]; then
+              # Baseline predates the tracked riscv64-xs-ref-perf target: use
+              # the generator that ships with that baseline revision.
+              tools/perf-benchmark.sh \
+                --repo-dir perf-baseline \
+                --defconfig riscv64-xs-ref-perf_defconfig \
+                --title "Baseline - XS Ref Shared Object" \
+                --workloads "$workloads_dir" \
+                --dynamorio-dir "$dynamorio_dir" \
+                --output baseline_ref_so.md \
+                --metrics-output baseline_ref_so.tsv \
+                --defconfig-gen-script "$(realpath perf-baseline/tools/ref-so-runner/gen-xs-ref-perf-defconfig.sh)" \
+                --binary "${GITHUB_WORKSPACE}/tools/ref-so-runner/runner"
             fi
 
             if [ -f perf-baseline/configs/riscv64-matrix-xs_defconfig ]; then

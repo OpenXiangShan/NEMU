@@ -26,9 +26,8 @@ KCONFIG_PATH := $(NEMU_HOME)/tools/kconfig
 FIXDEP_PATH  := $(NEMU_HOME)/tools/fixdep
 Kconfig      := $(NEMU_HOME)/Kconfig
 CONFIG_MK     := $(NEMU_HOME)/scripts/merge_config.sh
-CONFIG_MERGED := $(NEMU_HOME)/.config.fragments
 rm-distclean += include/generated include/config .config .config.old \
-                $(CONFIG_MERGED)
+                .config.fragments.*
 silent := -s
 
 CONF   := $(KCONFIG_PATH)/build/conf
@@ -56,10 +55,11 @@ savedefconfig: $(CONF)
 # feature fragments under configs/fragments/.  Merge the stack first, then let
 # Kconfig install it exactly like a full .config.
 %defconfig: $(CONF) $(FIXDEP) $(CONFIG_MK)
-	$(Q)$(CONFIG_MK) -o $(CONFIG_MERGED) configs/$@
-	$(Q)$< $(silent) --defconfig=$(CONFIG_MERGED) $(Kconfig)
-	$(Q)$< $(silent) --syncconfig $(Kconfig)
-	$(Q)rm -f $(CONFIG_MERGED)
+	$(Q)merged=$$(mktemp $(NEMU_HOME)/.config.fragments.XXXXXX) && \
+		$(CONFIG_MK) -o $$merged configs/$@ && \
+		$(CONF) $(silent) --defconfig=$$merged $(Kconfig) && \
+		$(CONF) $(silent) --syncconfig $(Kconfig); \
+		status=$$?; rm -f $$merged; exit $$status
 
 # Check that every configuration target composes (used by CI).
 config-check: $(CONF)
