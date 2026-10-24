@@ -108,6 +108,12 @@ while IFS= read -r line || [ -n "$line" ]; do
   lineno=$((lineno + 1))
   line="${line%$'\r'}"   # tolerate CRLF manifests
 
+  # An indented layer directive would be silently ignored; reject it.
+  if [[ "$line" =~ ^[[:space:]]+#[[:space:]]*layer([^A-Za-z0-9_]|$) ]]; then
+    echo "merge_target: $manifest:$lineno: layer directive must not be indented: $line" >&2
+    exit 1
+  fi
+
   # Any line that starts a "layer" word is a directive and must parse; other
   # comments (including "# target: ...") are ignored.
   if [[ "$line" =~ ^#[[:space:]]*layer([^A-Za-z0-9_]|$) ]]; then
@@ -132,7 +138,7 @@ while IFS= read -r line || [ -n "$line" ]; do
         echo "merge_target: $manifest:$lineno: layer not found: configs/$rel" >&2
         exit 1
       fi
-      layers+=("$abs")
+      layers+=("$(realpath "$abs")")
     else
       echo "merge_target: $manifest:$lineno: malformed layer directive (expected '# layer: <path>'): $line" >&2
       exit 1

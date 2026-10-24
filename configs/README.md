@@ -59,9 +59,10 @@ A **fragment** is an overlay for a build/run mode or an ISA extension
 (`checkpoint/cpt` turns on ZSTD images, `difftest/multicore` enables multicore
 difftest, ...).  A fragment only contains the *capability*: machine properties
 (memory map, flash size, reset path, PMP/PMA sizing, toolchain) stay in the
-profile or in the target's own overrides.  Keeping that split means a fragment
-never has to override a machine setting; the `override` report of
-`merge_config.sh -r` makes any violation visible.
+profile or in the target's own overrides.  A fragment may still override a
+profile value on purpose (for example enabling a device the profile explicitly
+disabled); `merge_config.sh -r` reports it so the reviewer can decide whether
+it is a capability or misplaced machine policy.
 
 ## Composition
 
@@ -118,9 +119,10 @@ settings that are unique to it:
 CONFIG_DIFFTEST_AMU_CTRL=y
 ```
 
-Feeding a manifest directly to `conf` would only see its own overrides, so
-always use `make <target>_defconfig` (or `scripts/merge_config.sh` with the
-layer list).
+The manifest itself is merged last, so its own overrides win over every layer
+even when a `# layer:` line appears after them.  Feeding a manifest directly to
+`conf` would only see its own overrides, so always use `make <target>_defconfig`
+(or `scripts/merge_config.sh` with the layer list).
 
 ## Overlap and overrides
 
@@ -136,10 +138,12 @@ error, but it should be visible:
   already has.  It is a cleanup signal, not proof of globally dead code: a
   shared fragment line can be redundant for some of its users and required by
   the others.  Only delete a line when it is redundant for *all* users.
-* An `override` from a fragment onto a profile means machine settings leaked
-  into a fragment; move them into the profile or the target.  Overrides from a
-  target onto its profile are the normal "this target is slightly different"
-  case and are not a problem.
+* An `override` is a review signal, not proof of wrong ownership: a capability
+  may legitimately flip a value (enabling flash whether the profile omits
+  `HAS_FLASH` or sets it to `n`).  Frequent machine-like overrides in a
+  fragment are a hint to move them into the profile or the target.  Overrides
+  from a target onto its profile are the normal "this target is slightly
+  different" case.
 
 ## Where does a setting belong?
 

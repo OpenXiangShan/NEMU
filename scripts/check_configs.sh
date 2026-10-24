@@ -168,7 +168,7 @@ fi
 : >"$tmp/used-layers"
 for target in "${targets[@]}"; do
   "$MERGE_TARGET" --list "$target" 2>/dev/null || true
-done | sort -u >"$tmp/used-layers"
+done | while IFS= read -r layer; do realpath "$layer"; done | sort -u >"$tmp/used-layers"
 
 while IFS= read -r layer; do
   if ! grep -qxF "$(realpath "$layer")" "$tmp/used-layers"; then

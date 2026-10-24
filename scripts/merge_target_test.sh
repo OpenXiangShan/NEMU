@@ -63,13 +63,13 @@ expect_fail() {
 # Plain manifest.
 printf '# NEMU configuration target: demo\n# layer: riscv64/prof.config\n#\nCONFIG_C=y\n' >"$NEMU_HOME/m1"
 expect_list "plain manifest" \
-  "$NEMU_HOME/configs/riscv64/prof.config" "$NEMU_HOME/m1"
+  "$(realpath "$NEMU_HOME/configs/riscv64/prof.config")" "$NEMU_HOME/m1"
 
 # Tab after the colon, trailing blanks and CRLF are accepted and normalized.
 printf '# layer:\triscv64/prof.config\r\n# layer: fragments/frag.config   \r\n' >"$NEMU_HOME/m2"
 expect_list "tab / trailing blanks / CRLF" \
-  "$NEMU_HOME/configs/riscv64/prof.config
-$NEMU_HOME/configs/fragments/frag.config" "$NEMU_HOME/m2"
+  "$(realpath "$NEMU_HOME/configs/riscv64/prof.config")
+$(realpath "$NEMU_HOME/configs/fragments/frag.config")" "$NEMU_HOME/m2"
 
 # Malformed directives are rejected instead of dropping the layer.
 printf '# layer : riscv64/prof.config\n' >"$NEMU_HOME/bad1"
@@ -89,6 +89,9 @@ expect_fail "path with .." "$NEMU_HOME/bad5"
 
 printf '# layer: riscv64/prof config\n' >"$NEMU_HOME/bad6"
 expect_fail "path with a space" "$NEMU_HOME/bad6"
+
+printf '  # layer: riscv64/prof.config\n' >"$NEMU_HOME/bad8"
+expect_fail "indented layer directive" "$NEMU_HOME/bad8"
 
 printf '# no layers here\n' >"$NEMU_HOME/bad7"
 expect_fail "manifest without layers" "$NEMU_HOME/bad7"
