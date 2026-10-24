@@ -10,7 +10,9 @@
 # layer: fragments/difftest/multicore.config
 #
 # Target-specific overrides.
+CONFIG_FLASH_SIZE=0x100000
 CONFIG_GUIDED_TVAL=y
 # CONFIG_HAS_PLIC is not set
 # CONFIG_HAS_UARTLITE is not set
+CONFIG_MSIZE=0x200000000
 # CONFIG_RV_PMP_CHECK is not set

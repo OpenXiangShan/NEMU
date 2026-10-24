@@ -6,4 +6,7 @@
 #   make riscv64-xs-zicfilp_defconfig
 #
 # layer: riscv64/xs/sim.config
-# layer: fragments/ext/zicfilp.config
+#
+# Target-specific overrides.
+# CONFIG_RV_ZABHA is not set
+CONFIG_RV_ZICFILP=y

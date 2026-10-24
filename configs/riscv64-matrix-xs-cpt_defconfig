@@ -7,20 +7,14 @@
 #
 # layer: riscv64/xs/sim.config
 # layer: fragments/ext/ame-matrix.config
-# layer: fragments/checkpoint/cpt.config
 #
 # Target-specific overrides.
 CONFIG_AME_MLDST_VECTORIZE=y
 CONFIG_AME_MMACC_VECTORIZE=y
+# CONFIG_CC_O3 is not set
+# CONFIG_HAS_FLASH is not set
 # CONFIG_MDT_INIT is not set
-CONFIG_RVV_AGNOSTIC=y
-CONFIG_RV_PMA_ENTRY_32=y
-CONFIG_RV_PMP_ACTIVE_NUM=32
-CONFIG_RV_PMP_ENTRY_64=y
-CONFIG_RV_SDTRIG=y
+CONFIG_NMIE_INIT=y
+# CONFIG_RESET_FROM_MMIO is not set
 # CONFIG_RV_SMCNTRPMF is not set
-CONFIG_RV_SMCSRIND=y
-CONFIG_RV_SMDBLTRP=y
-CONFIG_RV_SSDBLTRP=y
 # CONFIG_RV_ZABHA is not set
-# CONFIG_ZSTD_COMPRESS is not set

@@ -94,6 +94,13 @@ read_layer() {
   while IFS= read -r line || [ -n "$line" ]; do
     line="${line%$'\r'}"
 
+    # Both this script and Kconfig ignore configuration lines that start with
+    # whitespace; reject them instead of silently dropping the setting.
+    if [[ "$line" =~ ^[[:space:]]+CONFIG_ ]] || [[ "$line" =~ ^[[:space:]]+#[[:space:]]*CONFIG_ ]]; then
+      echo "merge_config: '$file': configuration line must not be indented: $line" >&2
+      exit 1
+    fi
+
     # Canonicalize "# CONFIG_X is not set" (allow CRLF and trailing blanks).
     if [[ "$line" =~ ^#[[:space:]]*CONFIG_[A-Za-z0-9_]+([[:space:]]+is[[:space:]]+not[[:space:]]+set)[[:space:]]*$ ]]; then
       sym="${line#*CONFIG_}"

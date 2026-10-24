@@ -30,6 +30,7 @@ export NEMU_HOME
 CONFIGS="$NEMU_HOME/configs"
 KCONFIG="$NEMU_HOME/Kconfig"
 MERGE="$NEMU_HOME/scripts/merge_config.sh"
+MERGE_TARGET="$NEMU_HOME/scripts/merge_target.sh"
 CONF="$NEMU_HOME/tools/kconfig/build/conf"
 
 color_red=$'\033[1;31m'
@@ -54,12 +55,14 @@ make -s -C "$NEMU_HOME/tools/fixdep"
 # ---------------------------------------------------------------------------
 # 0. The merger itself has regression tests.
 # ---------------------------------------------------------------------------
-if [ -x "$NEMU_HOME/scripts/merge_config_test.sh" ]; then
-  if ! bash "$NEMU_HOME/scripts/merge_config_test.sh"; then
-    echo "check_configs: the configuration merger failed its own tests" >&2
-    exit 1
+for test in merge_config_test.sh merge_target_test.sh; do
+  if [ -x "$NEMU_HOME/scripts/$test" ]; then
+    if ! bash "$NEMU_HOME/scripts/$test"; then
+      echo "check_configs: $test failed" >&2
+      exit 1
+    fi
   fi
-fi
+done
 
 # ---------------------------------------------------------------------------
 # 1+2. Compose every target.
@@ -74,16 +77,18 @@ for target in "${targets[@]}"; do
   name="$(basename "$target")"
   merged="$tmp/$name.config"
 
-  # The target manifest lists its layers as "# layer: <path>" lines relative
-  # to configs/; the manifest itself is merged last for its own overrides.
-  mapfile -t layer_rel < <(sed -n 's|^# layer: ||p' "$target")
-  layer_abs=()
-  for layer in "${layer_rel[@]}"; do
-    layer_abs+=("$CONFIGS/$layer")
-  done
+  # merge_target.sh is the single parser for the manifest's "# layer:" list
+  # (the same parser make uses); it also appends the manifest's own overrides.
+  layers_err="$tmp/$name.layers"
+  if ! layer_list="$("$MERGE_TARGET" --list "$target" 2>"$layers_err")"; then
+    problem "FAIL $name: cannot parse the composition manifest"
+    sed 's/^/         /' "$layers_err" >&2
+    continue
+  fi
+  mapfile -t layer_abs <<<"$layer_list"
 
   merge_diag="$tmp/$name.merge"
-  if ! "$MERGE" -r -o "$merged" "${layer_abs[@]}" "$target" 2>"$merge_diag"; then
+  if ! "$MERGE_TARGET" -r -o "$merged" "$target" 2>"$merge_diag"; then
     problem "FAIL $name: cannot merge the configuration layers"
     sed 's/^/         /' "$merge_diag" >&2
     continue
@@ -115,7 +120,7 @@ for target in "${targets[@]}"; do
     problem "FAIL $name: expected $want_isa in the composed configuration"
     continue
   fi
-  if ! "$MERGE" -o "$merged.again" "${layer_abs[@]}" "$target" || ! cmp -s "$merged" "$merged.again"; then
+  if ! "$MERGE_TARGET" -o "$merged.again" "$target" || ! cmp -s "$merged" "$merged.again"; then
     problem "FAIL $name: composition is not deterministic"
     continue
   fi
@@ -127,28 +132,33 @@ done
 # ---------------------------------------------------------------------------
 known="$tmp/known-symbols"
 used="$tmp/used-symbols"
-used_lines="$tmp/used-lines"
 
 find "$NEMU_HOME" -name 'Kconfig*' -type f -not -path "$NEMU_HOME/tools/*" -print0 |
   xargs -0 awk '$1 == "config" || $1 == "menuconfig" { print $2 }' |
   sort -u >"$known"
 
-grep -rHn -E '^(CONFIG_[A-Za-z0-9_]+=|# CONFIG_[A-Za-z0-9_]+ is not set$)' \
-  "$CONFIGS" --include='*.config' --include='*_defconfig' >"$used_lines" || true
-if [ -f "$CONFIGS/defconfig" ]; then
-  grep -Hn -E '^(CONFIG_[A-Za-z0-9_]+=|# CONFIG_[A-Za-z0-9_]+ is not set$)' \
-    "$CONFIGS/defconfig" >>"$used_lines" || true
-fi
+# Normalize every source file through the merger first: it accepts the same
+# spellings as the merge (CRLF, trailing blanks, ...), so the symbol set is not
+# limited by a raw grep regex.
+: >"$tmp/normalized"
+while IFS= read -r file; do
+  if ! "$MERGE" "$file" >>"$tmp/normalized" 2>"$tmp/normalize.err"; then
+    problem "FAIL cannot parse $file"
+    sed 's/^/         /' "$tmp/normalize.err" >&2
+  fi
+done < <(find "$CONFIGS" -name '*.config' -type f | sort
+         printf '%s\n' "$CONFIGS"/*_defconfig)
 
-sed -E -e 's/^[^:]+:[0-9]+:CONFIG_([A-Za-z0-9_]+)=.*/\1/' \
-       -e 's/^[^:]+:[0-9]+:# CONFIG_([A-Za-z0-9_]+) is not set$/\1/' \
-       "$used_lines" | sort -u >"$used"
+sed -E -e 's/^CONFIG_([A-Za-z0-9_]+)=.*/\1/' \
+       -e 's/^# CONFIG_([A-Za-z0-9_]+) is not set$/\1/' \
+       "$tmp/normalized" | sort -u >"$used"
 
 unknown="$(comm -13 "$known" "$used")"
 if [ -n "$unknown" ]; then
   while IFS= read -r symbol; do
     problem "unknown symbol CONFIG_$symbol"
-    grep -F "CONFIG_$symbol" "$used_lines" | sed 's/^/         /' >&2
+    grep -rnE "CONFIG_$symbol([^A-Za-z0-9_]|$)" "$CONFIGS" | head -3 |
+      sed 's/^/         /' >&2
   done <<<"$unknown"
 fi
 
@@ -157,9 +167,7 @@ fi
 # ---------------------------------------------------------------------------
 : >"$tmp/used-layers"
 for target in "${targets[@]}"; do
-  while IFS= read -r layer; do
-    realpath "$CONFIGS/$layer"
-  done < <(sed -n 's|^# layer: ||p' "$target")
+  "$MERGE_TARGET" --list "$target" 2>/dev/null || true
 done | sort -u >"$tmp/used-layers"
 
 while IFS= read -r layer; do

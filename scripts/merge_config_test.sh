@@ -102,6 +102,9 @@ expect_fail "malformed configuration line" "$tmp/malformed.config"
 printf '# CONFIG_A is not set please\n' >"$tmp/malformed-unset.config"
 expect_fail "malformed unset line" "$tmp/malformed-unset.config"
 
+printf ' CONFIG_MSIZE=0x40000000\n' >"$tmp/indented.config"
+expect_fail "indented configuration line" "$tmp/indented.config"
+
 expect_fail "missing layer" "$tmp/does-not-exist.config"
 
 if [ "$fail" -ne 0 ]; then

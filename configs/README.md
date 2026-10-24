@@ -24,7 +24,8 @@ configs/
 │   │   ├── ref.config              difftest reference     -> riscv64-xs-ref
 │   │   ├── fpga.config             FPGA machine           -> riscv64-xs-fpga
 │   │   ├── ahead.config            "ahead" reference      -> riscv64-xs-ahead-ref
-│   │   └── novga.config            lean machine, no VGA   -> riscv64-xs-novga
+│   │   ├── novga.config            lean machine, no VGA   -> riscv64-xs-novga
+│   │   └── cpt.config              checkpoint machine     -> riscv64-xs-cpt*
 │   ├── southlake/
 │   │   ├── sim.config              SouthLake machine      -> riscv64-xs-southlake
 │   │   ├── ref.config              difftest reference     -> riscv64-xs-southlake-ref
@@ -38,13 +39,12 @@ configs/
 ├── riscv32/
 │   └── isa.config                  ISA baseline for riscv32-pa
 ├── fragments/                      overlays shared by several machines
-│   ├── difftest/                   ref-share, spike, multicore, ctrl
-│   ├── checkpoint/                 cpt, libcheckpoint, flash
+│   ├── difftest/                   ref-share, spike, multicore
+│   ├── checkpoint/                 cpt (ZSTD), flash (flash boot)
 │   ├── debug/debug.config
 │   ├── toolchain/clang.config
 │   ├── mem/dedup.config
-│   └── ext/                        ame-matrix, mpt, bitmap, zicfilp,
-│                                   custom-tensor, kunminghu-v3
+│   └── ext/                        ame-matrix, mpt, bitmap, custom-tensor
 └── <target>_defconfig              composition manifests (53)
 ```
 
@@ -55,11 +55,13 @@ are flat and self-contained; they do not include or inherit from each other.
 The only shared baseline is `configs/<isa>/isa.config`, which the `*-pa`
 targets use directly.
 
-A **fragment** is an overlay for a build/run mode or an ISA extension.  It is
-applied after a profile and may override profile values (for example
-`checkpoint/cpt` turns on ZSTD images).  A fragment only contains the settings
-that *all* targets using it agree on; anything machine-specific belongs in a
-profile or in the target's own overrides.
+A **fragment** is an overlay for a build/run mode or an ISA extension
+(`checkpoint/cpt` turns on ZSTD images, `difftest/multicore` enables multicore
+difftest, ...).  A fragment only contains the *capability*: machine properties
+(memory map, flash size, reset path, PMP/PMA sizing, toolchain) stay in the
+profile or in the target's own overrides.  Keeping that split means a fragment
+never has to override a machine setting; the `override` report of
+`merge_config.sh -r` makes any violation visible.
 
 ## Composition
 
@@ -130,10 +132,14 @@ error, but it should be visible:
   `redundant: CONFIG_X` lines.
 * `make config-check` counts both per target and prints the totals, and points
   out targets with redundant definitions.
-* A `redundant` entry (the later layer writes the same value again) is dead
-  weight and a cleanup candidate.  A large number of overrides in a fragment
-  usually means that machine settings ended up in a fragment; move them into
-  the profile or the target.
+* A `redundant` entry means the later layer writes a value the earlier layer
+  already has.  It is a cleanup signal, not proof of globally dead code: a
+  shared fragment line can be redundant for some of its users and required by
+  the others.  Only delete a line when it is redundant for *all* users.
+* An `override` from a fragment onto a profile means machine settings leaked
+  into a fragment; move them into the profile or the target.  Overrides from a
+  target onto its profile are the normal "this target is slightly different"
+  case and are not a problem.
 
 ## Where does a setting belong?
 
@@ -179,8 +185,10 @@ that
   single-file defconfig usable with `make defconfig`.
 * The tree was produced from the previous complete `*_defconfig` files and was
   verified target by target to produce byte-identical `.config` output.
-* Some feature fragments still bundle settings that belong to a machine (for
-  example `difftest/multicore` carries `MSIZE`/`FLASH_SIZE`, and
-  `checkpoint/cpt` carries PMP/reset/toolchain settings).  Moving those into
-  the profiles is a follow-up cleanup that does not change any composed
-  configuration.
+* Fragments carry capabilities only; the machine settings that used to be
+  bundled with them (flash/RAM sizes, PMP/PMA tables, reset path, compiler
+  flags) live in the profiles or in the targets' own overrides.  The XS
+  checkpoint machines have their own profile (`riscv64/xs/cpt.config`).
+* A few fragment lines are redundant for some of their users (the profile
+  already sets the same value).  They are needed by the other users, so they
+  stay; `make config-check` reports the count.

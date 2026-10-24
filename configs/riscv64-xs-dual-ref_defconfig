@@ -11,4 +11,5 @@
 # Target-specific overrides.
 CONFIG_CC_DEBUG=y
 # CONFIG_CC_O3 is not set
+CONFIG_MSIZE=0x200000000
 # CONFIG_STORE_LOG is not set

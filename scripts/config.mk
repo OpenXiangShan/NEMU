@@ -26,6 +26,7 @@ KCONFIG_PATH := $(NEMU_HOME)/tools/kconfig
 FIXDEP_PATH  := $(NEMU_HOME)/tools/fixdep
 Kconfig      := $(NEMU_HOME)/Kconfig
 CONFIG_MK     := $(NEMU_HOME)/scripts/merge_config.sh
+MERGE_TARGET  := $(NEMU_HOME)/scripts/merge_target.sh
 rm-distclean += include/generated include/config .config .config.old \
                 .config.fragments.*
 silent := -s
@@ -52,12 +53,12 @@ savedefconfig: $(CONF)
 
 # A target (configs/xxx_defconfig) is a composition manifest: "# layer: <path>"
 # lines name a machine profile under configs/<isa>/ plus optional fragments
-# under configs/fragments/.  Merge the layers first, then let Kconfig install
-# the result exactly like a full .config.
-%defconfig: $(CONF) $(FIXDEP) $(CONFIG_MK)
-	$(Q)layers=$$(sed -n 's|^# layer: |configs/|p' configs/$@); \
-		merged=$$(mktemp $(NEMU_HOME)/.config.fragments.XXXXXX) && \
-		$(CONFIG_MK) -o $$merged $$layers configs/$@ && \
+# under configs/fragments/.  merge_target.sh validates and resolves the list;
+# merge_config.sh merges it, then Kconfig installs the result exactly like a
+# full .config.
+%defconfig: $(CONF) $(FIXDEP) $(CONFIG_MK) $(MERGE_TARGET)
+	$(Q)merged=$$(mktemp $(NEMU_HOME)/.config.fragments.XXXXXX) && \
+		$(MERGE_TARGET) -o $$merged configs/$@ && \
 		$(CONF) $(silent) --defconfig=$$merged $(Kconfig) && \
 		$(CONF) $(silent) --syncconfig $(Kconfig); \
 		status=$$?; rm -f $$merged; exit $$status

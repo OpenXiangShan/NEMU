@@ -6,4 +6,9 @@
 #   make riscv64-xs-kunminghu-v3-ref_defconfig
 #
 # layer: riscv64/xs/ref.config
-# layer: fragments/ext/kunminghu-v3.config
+#
+# Target-specific overrides.
+# CONFIG_CC_LTO is not set
+# CONFIG_CC_O3 is not set
+CONFIG_CUSTOM_CSR_KMHV3=y
+# CONFIG_CUSTOM_XVEXP2 is not set

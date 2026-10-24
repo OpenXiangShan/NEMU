@@ -167,7 +167,7 @@ series of other XiangShan configurations:
 
 ```
 configs/riscv64/xs/sim.config                                    -> riscv64-xs
-configs/riscv64/xs/sim.config + configs/fragments/checkpoint/cpt.config -> riscv64-xs-cpt
+configs/riscv64/xs/cpt.config + configs/fragments/checkpoint/cpt.config -> riscv64-xs-cpt
 configs/riscv64/xs/ref.config                                    -> riscv64-xs-ref
 configs/riscv64/xs/sim.config + configs/fragments/difftest/spike.config -> riscv64-xs-diff-spike
 ```
