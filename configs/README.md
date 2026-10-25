@@ -18,9 +18,10 @@ configs/
 │   │   ├── kmh/
 │   │   │   ├── v2/
 │   │   │   │   ├── isa.config     V2 ISA compatibility
-│   │   │   │   └── ref.config     V2-specific REF exceptions
+│   │   │   │   └── ref.config     V2 REF differences
 │   │   │   └── v3/
-│   │   │       └── isa.config     current mainline/V3 ISA compatibility
+│   │   │       ├── isa.config     current mainline/V3 ISA compatibility
+│   │   │       └── ref.config     V3 REF differences
 │   │   └── {ahead,cpt,fpga,novga}.config   separate complete machine profiles
 │   ├── southlake/                 base + dut/ref/fpga runtime layers
 │   ├── gem5/                      base + ref + ci-normal/ci-h workload layers
@@ -47,8 +48,10 @@ complete where there is no useful common base to factor out.
 KMH V2 and V3 have separate directories and use the same XS base and runtime
 layers. `v2/isa.config` and `v3/isa.config` pin seven differences: CBO/PBMT
 checks, MNRET state handling, trigger `tdata3`, Smcntrpmf, extra indirect CSR
-registers, `sstatus.MS` and Zabha. `v2/ref.config` overrides the shared REF's
-Xvexp2/BF16 support, Smcdeleg and `GEILEN`.
+registers, `sstatus.MS` and Zabha. `xs/ref.config` contains only REF settings
+common to both versions. `v2/ref.config` and `v3/ref.config` each own the
+version's Xvexp2/BF16 support, Smcdeleg and `GEILEN`, without redefining symbols
+from the shared REF layer.
 This keeps version/runtime combinations explicit without duplicating whole
 machine profiles. `v3/isa.config` preserves existing non-kmhv2 XS behavior; it
 does not restore the retired `CUSTOM_CSR_KMHV3` implementation.
@@ -81,8 +84,9 @@ For example, the V2 REF target lists:
 # layer: riscv64/xs/kmh/v2/ref.config
 ```
 
-The mainline REF uses `base`, `kmh/v3/isa` and `ref`. Optional multicore, debug,
-fastref or extension fragments follow; target-specific assignments go last.
+The mainline REF uses `base`, `kmh/v3/isa`, shared `ref` and `kmh/v3/ref`.
+Optional multicore, debug, fastref or extension fragments follow;
+target-specific assignments go last.
 Special targets such as XS checkpoint and FPGA use their own machine profiles.
 All existing public target names are retained.
 
@@ -98,7 +102,8 @@ scripts/merge_target.sh -r -o /tmp/nemu.config configs/riscv64-xs-ref_defconfig
 # The lower-level merger also accepts an explicit list.
 scripts/merge_config.sh -r -o /tmp/nemu.config \
     configs/riscv64/xs/base.config configs/riscv64/xs/kmh/v3/isa.config \
-    configs/riscv64/xs/ref.config configs/fragments/ext/mpt.config
+    configs/riscv64/xs/ref.config configs/riscv64/xs/kmh/v3/ref.config \
+    configs/fragments/ext/mpt.config
 ```
 
 ## Override rules
@@ -118,8 +123,8 @@ scripts/merge_config.sh -r -o /tmp/nemu.config \
 repeated equal values (`redundant`). Changing an omitted symbol can change its
 Kconfig default without being a textual override.
 
-Prefer shared layers for differences used by several targets, such as V2 REF
-compatibility, and final-target overrides for local exceptions. Feature
+Keep common settings in shared layers and version differences in the matching
+version layer. Reserve final-target overrides for local exceptions. Feature
 fragments should not silently replace another fragment's policy or carry board
 addresses and sizes. Forbidding all overrides would either duplicate complete
 profiles or repeat shared feature settings in every target.

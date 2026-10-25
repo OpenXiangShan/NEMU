@@ -161,12 +161,15 @@ make -j
 The named configurations live in `configs/` (see
 [configs/README.md](configs/README.md)). XS/KMH targets compose the shared
 `xs/base.config`, a `xs/kmh/v2/isa.config` or `xs/kmh/v3/isa.config` version
-layer, and a `xs/dut.config` or `xs/ref.config` runtime layer. V2 REF targets
-also apply `xs/kmh/v2/ref.config`; feature fragments and local settings follow.
+layer, and a `xs/dut.config` or `xs/ref.config` runtime layer. REF targets also
+apply the matching `xs/kmh/v2/ref.config` or `xs/kmh/v3/ref.config`; feature
+fragments and local settings follow.
 
 The base contains common ISA, machine and build settings. The DUT layer adds
 standalone execution settings; REF adds shared-reference runtime settings.
 Neither runtime layer duplicates symbols from the base.
+The shared REF layer contains only settings common to both versions; each
+version's REF layer owns its differing values.
 
 `riscv64-xs_defconfig` is the standalone mainline/V3 target;
 `riscv64-xs-ref_defconfig` is its shared reference target.
