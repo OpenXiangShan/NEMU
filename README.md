@@ -160,7 +160,7 @@ make -j
 
 The named configurations live in `configs/` (see
 [configs/README.md](configs/README.md)). XS/KMH targets compose the shared
-`xs/base.config`, a `xs/kmh/v2/isa.config` or `xs/kmh/v3/isa.config` version
+`xs/base.config`, a `xs/kmh/v2/base.config` or `xs/kmh/v3/base.config` version
 layer, and a `xs/dut.config` or `xs/ref.config` runtime layer. REF targets also
 apply the matching `xs/kmh/v2/ref.config` or `xs/kmh/v3/ref.config`; feature
 fragments and local settings follow.

@@ -1,4 +1,4 @@
-# layer: riscv32/isa.config
+# layer: riscv32/base.config
 
 CONFIG_CC_CLANG=y
 CONFIG_CC_DEBUG=y

@@ -1,5 +1,5 @@
 # layer: riscv64/xs/base.config
-# layer: riscv64/xs/kmh/v3/isa.config
+# layer: riscv64/xs/kmh/v3/base.config
 # layer: riscv64/xs/dut.config
 # layer: fragments/difftest/spike.config
 

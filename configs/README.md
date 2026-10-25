@@ -8,19 +8,19 @@ feature fragments and target-specific settings. Public entry points remain
 
 ```
 configs/
-├── riscv32/isa.config              baseline for riscv32-pa
+├── riscv32/base.config              baseline for riscv32-pa
 ├── riscv64/
-│   ├── isa.config                  baseline for riscv64-pa
+│   ├── base.config                  baseline for riscv64-pa
 │   ├── xs/
 │   │   ├── base.config             shared XS/KMH machine settings
 │   │   ├── dut.config              standalone execution and devices
 │   │   ├── ref.config              shared REF runtime and device selection
 │   │   ├── kmh/
 │   │   │   ├── v2/
-│   │   │   │   ├── isa.config     V2 ISA compatibility
+│   │   │   │   ├── base.config     V2 ISA compatibility
 │   │   │   │   └── ref.config     V2 REF differences
 │   │   │   └── v3/
-│   │   │       ├── isa.config     current mainline/V3 ISA compatibility
+│   │   │       ├── base.config     current mainline/V3 ISA compatibility
 │   │   │       └── ref.config     V3 REF differences
 │   │   └── {ahead,cpt,fpga,novga}.config   separate complete machine profiles
 │   ├── southlake/                 base + dut/ref/fpga runtime layers
@@ -45,15 +45,20 @@ layers define disjoint sets of symbols. They are deltas to the base, not
 complete configurations to load on their own. Other machine profiles remain
 complete where there is no useful common base to factor out.
 
+The directory gives a base its scope: `xs/base.config` is common to V2/V3,
+while `kmh/v2/base.config` and `kmh/v3/base.config` contain each version's
+settings shared by DUT and REF. A base need not contain only ISA settings;
+there is no separate `isa.config` layer at the same scope.
+
 KMH V2 and V3 have separate directories and use the same XS base and runtime
-layers. `v2/isa.config` and `v3/isa.config` pin seven differences: CBO/PBMT
+layers. `v2/base.config` and `v3/base.config` pin seven differences: CBO/PBMT
 checks, MNRET state handling, trigger `tdata3`, Smcntrpmf, extra indirect CSR
 registers, `sstatus.MS` and Zabha. `xs/ref.config` contains only REF settings
 common to both versions. `v2/ref.config` and `v3/ref.config` each own the
 version's Xvexp2/BF16 support, Smcdeleg and `GEILEN`, without redefining symbols
 from the shared REF layer.
 This keeps version/runtime combinations explicit without duplicating whole
-machine profiles. `v3/isa.config` preserves existing non-kmhv2 XS behavior; it
+machine profiles. `v3/base.config` preserves existing non-kmhv2 XS behavior; it
 does not restore the retired `CUSTOM_CSR_KMHV3` implementation.
 
 GEM5's `ref` layer supplies the shared-reference ABI/runtime settings.
@@ -65,8 +70,9 @@ are named for their test policy, not for a general CI or ISA enable switch.
 Feature fragments carry reusable capabilities. Machine/version/runtime
 layers may intentionally override earlier values; a final target holds its
 remaining local exceptions. No file implicitly inherits or includes another:
-the manifest lists every input in application order. The `isa.config` files
-remain inputs to the `*-pa` targets, not an implicit base for board profiles.
+the manifest lists every input in application order. The top-level
+`riscv32/base.config` and `riscv64/base.config` serve only the `*-pa` targets;
+they are not implicit parents of machine bases.
 
 ## Building and composing
 
@@ -79,12 +85,12 @@ For example, the V2 REF target lists:
 
 ```
 # layer: riscv64/xs/base.config
-# layer: riscv64/xs/kmh/v2/isa.config
+# layer: riscv64/xs/kmh/v2/base.config
 # layer: riscv64/xs/ref.config
 # layer: riscv64/xs/kmh/v2/ref.config
 ```
 
-The mainline REF uses `base`, `kmh/v3/isa`, shared `ref` and `kmh/v3/ref`.
+The mainline REF uses `base`, `kmh/v3/base`, shared `ref` and `kmh/v3/ref`.
 Optional multicore, debug, fastref or extension fragments follow;
 target-specific assignments go last.
 Special targets such as XS checkpoint and FPGA use their own machine profiles.
@@ -93,6 +99,8 @@ All existing public target names are retained.
 `merge_target.sh` validates the layer list, `merge_config.sh` merges its inputs,
 then Kconfig resolves dependencies, choices and defaults. Feed manifests
 through make or the merger: `conf` itself does not understand `# layer:`.
+Make passes the merged input to `conf --defconfig` to write `.config`, then
+runs `conf --syncconfig` to update the generated configuration headers.
 
 ```sh
 # Show the layer list or compose a target with override diagnostics.
@@ -101,7 +109,7 @@ scripts/merge_target.sh -r -o /tmp/nemu.config configs/riscv64-xs-ref_defconfig
 
 # The lower-level merger also accepts an explicit list.
 scripts/merge_config.sh -r -o /tmp/nemu.config \
-    configs/riscv64/xs/base.config configs/riscv64/xs/kmh/v3/isa.config \
+    configs/riscv64/xs/base.config configs/riscv64/xs/kmh/v3/base.config \
     configs/riscv64/xs/ref.config configs/riscv64/xs/kmh/v3/ref.config \
     configs/fragments/ext/mpt.config
 ```
