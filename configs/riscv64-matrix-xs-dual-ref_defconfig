@@ -1,19 +1,12 @@
-# NEMU configuration target: riscv64-matrix-xs-dual-ref
-#
-# A target is a composition manifest, not a .config: it lists configuration
-# layers that are merged in order (the last definition of a symbol wins).
-# See configs/README.md.  Compose and install with:
-#   make riscv64-matrix-xs-dual-ref_defconfig
-#
 # layer: riscv64/xs/ref.config
 # layer: fragments/ext/ame-matrix.config
 # layer: fragments/difftest/multicore.config
-#
-# Target-specific overrides.
+
 CONFIG_CC_DEBUG=y
 # CONFIG_CC_O3 is not set
 CONFIG_DIFFTEST_AMU_CTRL=y
 CONFIG_MSIZE=0x200000000
 # CONFIG_RV_SMCNTRPMF is not set
+# CONFIG_RV_SMCDELEG is not set
 # CONFIG_RV_ZABHA is not set
 # CONFIG_STORE_LOG is not set

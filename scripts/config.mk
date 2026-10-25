@@ -51,17 +51,17 @@ menuconfig: $(MCONF) $(CONF) $(FIXDEP)
 savedefconfig: $(CONF)
 	$(Q)$< $(silent) --$@=configs/defconfig $(Kconfig)
 
-# A target (configs/xxx_defconfig) is a composition manifest: "# layer: <path>"
-# lines name a machine profile under configs/<isa>/ plus optional fragments
-# under configs/fragments/.  merge_target.sh validates and resolves the list;
-# merge_config.sh merges it, then Kconfig installs the result exactly like a
-# full .config.
+defconfig: $(CONF) $(FIXDEP)
+	$(Q)$(CONF) $(silent) --defconfig=configs/defconfig $(Kconfig)
+	$(Q)$(CONF) $(silent) --syncconfig $(Kconfig)
+
+# Targets accept ordinary defconfigs or manifests with ordered "# layer:" inputs.
 %defconfig: $(CONF) $(FIXDEP) $(CONFIG_MK) $(MERGE_TARGET)
 	$(Q)merged=$$(mktemp $(NEMU_HOME)/.config.fragments.XXXXXX) && \
 		$(MERGE_TARGET) -o $$merged configs/$@ && \
 		$(CONF) $(silent) --defconfig=$$merged $(Kconfig) && \
 		$(CONF) $(silent) --syncconfig $(Kconfig); \
-		status=$$?; rm -f $$merged; exit $$status
+		status=$$?; rm -f "$$merged"; exit $$status
 
 # Check that every configuration target composes (used by CI).
 config-check: $(CONF)

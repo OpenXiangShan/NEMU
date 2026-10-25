@@ -1,14 +1,7 @@
-# NEMU configuration target: riscv64-xs-southlake-ref-debug
-#
-# A target is a composition manifest, not a .config: it lists configuration
-# layers that are merged in order (the last definition of a symbol wins).
-# See configs/README.md.  Compose and install with:
-#   make riscv64-xs-southlake-ref-debug_defconfig
-#
 # layer: riscv64/southlake/ref.config
 # layer: fragments/debug/debug.config
-#
-# Target-specific overrides.
+
 # CONFIG_RV_SDEXT is not set
 # CONFIG_RV_SDTRIG is not set
+# CONFIG_TDATA1_MCONTROL6 is not set
 # CONFIG_USE_XS_ARCH_CSRS is not set

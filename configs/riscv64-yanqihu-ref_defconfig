@@ -1,17 +1,10 @@
-# NEMU configuration target: riscv64-yanqihu-ref
-#
-# A target is a composition manifest, not a .config: it lists configuration
-# layers that are merged in order (the last definition of a symbol wins).
-# See configs/README.md.  Compose and install with:
-#   make riscv64-yanqihu-ref_defconfig
-#
 # layer: riscv64/yanqihu.config
 # layer: fragments/difftest/ref-share.config
-#
-# Target-specific overrides.
+
 CONFIG_FLASH_SIZE=0x100000
 CONFIG_GUIDED_TVAL=y
 # CONFIG_HAS_PLIC is not set
 # CONFIG_HAS_UARTLITE is not set
+# CONFIG_UARTLITE_ASSERT_FOUR is not set
 CONFIG_MSIZE=0x200000000
 # CONFIG_RV_PMP_CHECK is not set

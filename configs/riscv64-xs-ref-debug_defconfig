@@ -1,17 +1,10 @@
-# NEMU configuration target: riscv64-xs-ref-debug
-#
-# A target is a composition manifest, not a .config: it lists configuration
-# layers that are merged in order (the last definition of a symbol wins).
-# See configs/README.md.  Compose and install with:
-#   make riscv64-xs-ref-debug_defconfig
-#
 # layer: riscv64/xs/ref.config
 # layer: fragments/debug/debug.config
-#
-# Target-specific overrides.
+
 # CONFIG_CC_LTO is not set
 # CONFIG_CC_O3 is not set
 # CONFIG_CUSTOM_XVEXP2 is not set
+# CONFIG_CUSTOM_XVEXP2_BF16 is not set
 CONFIG_SHARE_OUTPUT_LOG_TO_FILE=y
 CONFIG_SIMPLE_LOG=y
 CONFIG_TRACE_INST_DASM=y

@@ -93,8 +93,22 @@ expect_fail "path with a space" "$NEMU_HOME/bad6"
 printf '  # layer: riscv64/prof.config\n' >"$NEMU_HOME/bad8"
 expect_fail "indented layer directive" "$NEMU_HOME/bad8"
 
-printf '# no layers here\n' >"$NEMU_HOME/bad7"
-expect_fail "manifest without layers" "$NEMU_HOME/bad7"
+# Plain defconfigs need no layers and remain valid Kconfig inputs.
+printf 'CONFIG_A=y\n# CONFIG_B is not set\n' >"$NEMU_HOME/plain"
+expect_list "plain defconfig has no layers" "" "$NEMU_HOME/plain"
+got="$("$merge_target" -o /dev/stdout "$NEMU_HOME/plain")"
+if [ "$got" = $'CONFIG_A=y\n# CONFIG_B is not set' ]; then
+  ok "plain defconfig retains its settings"
+else
+  bad "plain defconfig retains its settings"
+fi
+
+printf ' CONFIG_A=y\n' >"$NEMU_HOME/indented"
+if "$merge_target" -o /dev/null "$NEMU_HOME/indented" >/dev/null 2>&1; then
+  bad "plain defconfig rejects malformed settings"
+else
+  ok "plain defconfig rejects malformed settings"
+fi
 
 # The manifest's own overrides are merged last.
 printf '# layer: riscv64/prof.config\nCONFIG_A=n\n' >"$NEMU_HOME/m3"

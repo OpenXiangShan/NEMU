@@ -87,6 +87,11 @@ case "$report" in
   *) bad "-r reports a redundant definition"; printf '    got: %s\n' "$report" ;;
 esac
 
+case "$report" in
+  *"$tmp/one.config -> $tmp/two.config"*) ok "-r shows both override sources" ;;
+  *) bad "-r shows both override sources" ;;
+esac
+
 # 5. -o writes the merged configuration to a file.
 if "$merge" -o "$tmp/out.config" "$tmp/base.config" && \
    [ "$(cat "$tmp/out.config")" = 'CONFIG_MSIZE=1' ]; then

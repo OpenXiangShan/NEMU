@@ -1,17 +1,10 @@
-# NEMU configuration target: riscv64-xs-ref_mpt
-#
-# A target is a composition manifest, not a .config: it lists configuration
-# layers that are merged in order (the last definition of a symbol wins).
-# See configs/README.md.  Compose and install with:
-#   make riscv64-xs-ref_mpt_defconfig
-#
 # layer: riscv64/xs/ref.config
 # layer: fragments/ext/mpt.config
-#
-# Target-specific overrides.
+
 # CONFIG_CC_LTO is not set
 # CONFIG_CC_O3 is not set
 # CONFIG_CUSTOM_XVEXP2 is not set
+# CONFIG_CUSTOM_XVEXP2_BF16 is not set
 CONFIG_FLASH_PRESET_CONTENT="0x0010029b,0x01f29293,0x00028067"
 # CONFIG_MDT_INIT is not set
 CONFIG_NMIE_INIT=y

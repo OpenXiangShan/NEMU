@@ -1,10 +1,3 @@
-# NEMU configuration target: riscv64-gem5-multicore-ref
-#
-# A target is a composition manifest, not a .config: it lists configuration
-# layers that are merged in order (the last definition of a symbol wins).
-# See configs/README.md.  Compose and install with:
-#   make riscv64-gem5-multicore-ref_defconfig
-#
 # layer: riscv64/gem5/ref.config
 # layer: fragments/difftest/multicore.config
 # layer: fragments/mem/dedup.config

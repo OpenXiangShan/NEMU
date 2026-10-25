@@ -1,15 +1,8 @@
-# NEMU configuration target: riscv64-nanhu-dual-ref
-#
-# A target is a composition manifest, not a .config: it lists configuration
-# layers that are merged in order (the last definition of a symbol wins).
-# See configs/README.md.  Compose and install with:
-#   make riscv64-nanhu-dual-ref_defconfig
-#
 # layer: riscv64/nanhu.config
 # layer: fragments/difftest/ref-share.config
 # layer: fragments/difftest/multicore.config
-#
-# Target-specific overrides.
+
 CONFIG_GUIDED_TVAL=y
 # CONFIG_HAS_PLIC is not set
 # CONFIG_HAS_UARTLITE is not set
+# CONFIG_UARTLITE_ASSERT_FOUR is not set

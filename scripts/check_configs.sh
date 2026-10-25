@@ -55,7 +55,7 @@ make -s -C "$NEMU_HOME/tools/fixdep"
 # ---------------------------------------------------------------------------
 # 0. The merger itself has regression tests.
 # ---------------------------------------------------------------------------
-for test in merge_config_test.sh merge_target_test.sh; do
+for test in merge_config_test.sh merge_target_test.sh check_configs_test.sh; do
   if [ -x "$NEMU_HOME/scripts/$test" ]; then
     if ! bash "$NEMU_HOME/scripts/$test"; then
       echo "check_configs: $test failed" >&2
@@ -72,6 +72,7 @@ targets=("$CONFIGS"/*_defconfig)
 
 override_slots=0
 redundant_slots=0
+dormant_slots=0
 
 for target in "${targets[@]}"; do
   name="$(basename "$target")"
@@ -85,7 +86,6 @@ for target in "${targets[@]}"; do
     sed 's/^/         /' "$layers_err" >&2
     continue
   fi
-  mapfile -t layer_abs <<<"$layer_list"
 
   merge_diag="$tmp/$name.merge"
   if ! "$MERGE_TARGET" -r -o "$merged" "$target" 2>"$merge_diag"; then
@@ -110,6 +110,53 @@ for target in "${targets[@]}"; do
     problem "FAIL $name: Kconfig reported diagnostics"
     sed 's/^/         /' "$diag" >&2
     continue
+  fi
+  # A valid request can still disappear when its dependencies are disabled.
+  # Inactive scalar device parameters are reported; enabled capabilities and
+  # values that Kconfig changes are errors.
+  if ! awk '
+    function remember(line,    key, value) {
+      if (line ~ /^CONFIG_[A-Za-z0-9_]+=/) {
+        key = line; sub(/=.*/, "", key)
+        value = substr(line, length(key) + 2)
+      } else if (line ~ /^# CONFIG_[A-Za-z0-9_]+ is not set$/) {
+        key = line; sub(/^# /, "", key); sub(/ is not set$/, "", key)
+        value = "n"
+      } else return
+      if (FILENAME == ARGV[1]) effective[key] = value
+      else requested[key] = value
+    }
+    { remember($0) }
+    END {
+      for (key in requested) {
+        value = requested[key]
+        if (!(key in effective)) {
+          if (value == "n") continue
+          if (value ~ /^".*"$/ || value ~ /^-?[0-9]+$/ ||
+              value ~ /^0[xX][0-9a-fA-F]+$/) {
+            print "dormant: " key " requested " value " is inactive"
+            continue
+          }
+          actual = "<absent>"
+        } else {
+          actual = effective[key]
+          if ("x" value == "x" actual) continue
+        }
+        print "mismatch: " key " requested " value ", effective " actual
+        failed = 1
+      }
+      exit failed
+    }
+  ' "$tmp/$name.out" "$merged" >"$tmp/$name.values"; then
+    problem "FAIL $name: requested configuration did not take effect"
+    sed 's/^/         /' "$tmp/$name.values" >&2
+    continue
+  fi
+  dormant=$(grep -c '^dormant:' "$tmp/$name.values" || true)
+  dormant_slots=$((dormant_slots + dormant))
+  if [ "$dormant" -gt 0 ]; then
+    printf '  note %s: %d inactive parameter(s)\n' "$name" "$dormant"
+    sort "$tmp/$name.values" | sed 's/^/         /'
   fi
   case "$name" in
     riscv64-*) want_isa=CONFIG_ISA_riscv64=y ;;
@@ -185,5 +232,6 @@ if [ "$fail" -ne 0 ]; then
   exit 1
 fi
 
-printf '%sOK: %d targets, %d layers (%d override slots, %d redundant)%s\n' \
-  "$color_green" "${#targets[@]}" "$layers" "$override_slots" "$redundant_slots" "$color_end"
+printf '%sOK: %d targets, %d layers (%d override slots, %d redundant, %d inactive parameters)%s\n' \
+  "$color_green" "${#targets[@]}" "$layers" "$override_slots" "$redundant_slots" \
+  "$dormant_slots" "$color_end"

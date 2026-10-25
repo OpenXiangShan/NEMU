@@ -1,11 +1,3 @@
-# NEMU configuration target: riscv64-pa
-#
-# A target is a composition manifest, not a .config: it lists configuration
-# layers that are merged in order (the last definition of a symbol wins).
-# See configs/README.md.  Compose and install with:
-#   make riscv64-pa_defconfig
-#
 # layer: riscv64/isa.config
-#
-# Target-specific overrides.
+
 CONFIG_CC_O3=y

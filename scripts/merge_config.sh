@@ -125,7 +125,7 @@ read_layer() {
       if [ "$val" = "${seen_val[$sym]}" ]; then
         [ "$report" = 1 ] && echo "redundant: CONFIG_$sym (${file#"$PWD"/})" >&2
       else
-        [ "$report" = 1 ] && echo "override: CONFIG_$sym ${seen_val[$sym]} -> $val (${file#"$PWD"/})" >&2
+        [ "$report" = 1 ] && echo "override: CONFIG_$sym ${seen_val[$sym]} -> $val (${seen_src[$sym]#"$PWD"/} -> ${file#"$PWD"/})" >&2
       fi
     fi
     seen_val[$sym]="$val"

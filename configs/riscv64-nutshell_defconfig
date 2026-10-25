@@ -1,8 +1,1 @@
-# NEMU configuration target: riscv64-nutshell
-#
-# A target is a composition manifest, not a .config: it lists configuration
-# layers that are merged in order (the last definition of a symbol wins).
-# See configs/README.md.  Compose and install with:
-#   make riscv64-nutshell_defconfig
-#
 # layer: riscv64/nutshell.config

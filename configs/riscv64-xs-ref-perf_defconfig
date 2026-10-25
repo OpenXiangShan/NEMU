@@ -1,17 +1,10 @@
-# NEMU configuration target: riscv64-xs-ref-perf
-#
-# A target is a composition manifest, not a .config: it lists configuration
-# layers that are merged in order (the last definition of a symbol wins).
-# See configs/README.md.  Compose and install with:
-#   make riscv64-xs-ref-perf_defconfig
-#
 # layer: riscv64/xs/ref.config
-#
-# Target-specific overrides.
+
 CONFIG_CLINT_LOCAL_TIMER_INTERRUPT=y
 CONFIG_HAS_PLIC=y
 CONFIG_HAS_UART16550=y
 CONFIG_HAS_UARTLITE=y
 # CONFIG_RV_AIA is not set
+# CONFIG_RV_IMSIC is not set
 CONFIG_UARTLITE_ASSERT_FOUR=y
 CONFIG_UARTLITE_MMIO=0x40600000

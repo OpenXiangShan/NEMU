@@ -23,6 +23,7 @@
 # lines, where <path> is relative to configs/.  This script validates those
 # lines, resolves them against configs/, appends the manifest itself (for its
 # target-specific overrides) and runs scripts/merge_config.sh on the result.
+# Files without layer directives are ordinary defconfigs.
 # Both `make <name>_defconfig` and scripts/check_configs.sh use this parser, so
 # they cannot disagree about which layers a target has.
 #
@@ -146,13 +147,10 @@ while IFS= read -r line || [ -n "$line" ]; do
   fi
 done <"$manifest"
 
-[ "${#layers[@]}" -gt 0 ] || {
-  echo "merge_target: $manifest lists no '# layer:' entries" >&2
-  exit 1
-}
-
 if [ "$list" = 1 ]; then
-  printf '%s\n' "${layers[@]}"
+  if [ "${#layers[@]}" -gt 0 ]; then
+    printf '%s\n' "${layers[@]}"
+  fi
   exit 0
 fi
 

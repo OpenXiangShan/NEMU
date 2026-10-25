@@ -1,14 +1,6 @@
-# NEMU configuration target: riscv64-matrix-xs-cpt
-#
-# A target is a composition manifest, not a .config: it lists configuration
-# layers that are merged in order (the last definition of a symbol wins).
-# See configs/README.md.  Compose and install with:
-#   make riscv64-matrix-xs-cpt_defconfig
-#
 # layer: riscv64/xs/sim.config
 # layer: fragments/ext/ame-matrix.config
-#
-# Target-specific overrides.
+
 CONFIG_AME_MLDST_VECTORIZE=y
 CONFIG_AME_MMACC_VECTORIZE=y
 # CONFIG_CC_O3 is not set
