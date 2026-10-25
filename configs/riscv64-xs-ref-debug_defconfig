@@ -1,3 +1,5 @@
+# layer: riscv64/xs/base.config
+# layer: riscv64/xs/kmh/v3.config
 # layer: riscv64/xs/ref.config
 # layer: fragments/debug/debug.config
 

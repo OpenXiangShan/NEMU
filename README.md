@@ -158,19 +158,18 @@ make -j
 ```
 `./build/riscv64-nemu-interpreter-so` is the reference design.
 
-The named configurations live in `configs/` and are composed from a
-self-contained machine profile plus feature fragments (see
-[configs/README.md](configs/README.md)).
-`riscv64-xs-ref_defconfig` is the XiangShan difftest reference board;
-`riscv64-xs_defconfig` is the XiangShan simulation board and the base for a
-series of other XiangShan configurations:
+The named configurations live in `configs/` (see
+[configs/README.md](configs/README.md)). XS/KMH targets compose a common
+`xs/base.config`, a `xs/kmh/v2.config` or `v3.config` version layer, and a
+`xs/sim.config` or `ref.config` runtime layer. V2 REF targets also apply
+`xs/kmh/v2-ref.config`; feature fragments and local settings follow.
 
-```
-configs/riscv64/xs/sim.config                                    -> riscv64-xs
-configs/riscv64/xs/cpt.config + configs/fragments/checkpoint/cpt.config -> riscv64-xs-cpt
-configs/riscv64/xs/ref.config                                    -> riscv64-xs-ref
-configs/riscv64/xs/sim.config + configs/fragments/difftest/spike.config -> riscv64-xs-diff-spike
-```
+`riscv64-xs_defconfig` is the standalone mainline/V3 target;
+`riscv64-xs-ref_defconfig` is its shared reference target.
+`riscv64-xs-kmhv2_defconfig` and `riscv64-xs-kmhv2-ref_defconfig` select V2.
+Checkpoint, FPGA and other specialized machines retain separate profiles.
+All public target names are unchanged.
+
 Run `make menuconfig` to edit a configuration interactively and
 `make savedefconfig` to save it as a single-file `configs/defconfig`.
 

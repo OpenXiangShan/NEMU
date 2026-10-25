@@ -1,6 +1,5 @@
+# layer: riscv64/gem5/base.config
 # layer: riscv64/gem5/ref.config
+# layer: riscv64/gem5/ci-h.config
 
-CONFIG_GUIDED_TVAL=y
 # CONFIG_RVV_AGNOSTIC is not set
-CONFIG_RV_SV48=y
-CONFIG_TVAL_EX_II=y

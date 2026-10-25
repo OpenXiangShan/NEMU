@@ -1,7 +1,5 @@
+# layer: riscv64/gem5/base.config
 # layer: riscv64/gem5/ref.config
 # layer: fragments/difftest/multicore.config
 # layer: fragments/mem/dedup.config
-
-CONFIG_GUIDED_TVAL=y
-CONFIG_RV_SV48=y
-CONFIG_TVAL_EX_II=y
+# layer: riscv64/gem5/ci-h.config

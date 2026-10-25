@@ -1,3 +1,4 @@
+# layer: riscv64/gem5/base.config
 # layer: riscv64/gem5/ref.config
 # layer: fragments/difftest/multicore.config
 # layer: fragments/mem/dedup.config

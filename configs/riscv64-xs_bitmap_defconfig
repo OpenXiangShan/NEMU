@@ -1,3 +1,5 @@
+# layer: riscv64/xs/base.config
+# layer: riscv64/xs/kmh/v3.config
 # layer: riscv64/xs/sim.config
 # layer: fragments/ext/bitmap.config
 
@@ -7,4 +9,5 @@
 CONFIG_NMIE_INIT=y
 # CONFIG_RESET_FROM_MMIO is not set
 # CONFIG_RV_SMCSRIND is not set
+# CONFIG_RV_SMCSRIND_EXTRA_REGS is not set
 # CONFIG_RV_ZAWRS is not set

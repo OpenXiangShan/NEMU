@@ -1,4 +1,7 @@
-# layer: riscv64/xs/kmhv2-ref.config
+# layer: riscv64/xs/base.config
+# layer: riscv64/xs/kmh/v2.config
+# layer: riscv64/xs/ref.config
+# layer: riscv64/xs/kmh/v2-ref.config
 # layer: fragments/difftest/multicore.config
 # layer: fragments/debug/debug.config
 

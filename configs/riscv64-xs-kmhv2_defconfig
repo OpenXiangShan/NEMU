@@ -1,1 +1,3 @@
-# layer: riscv64/xs/kmhv2.config
+# layer: riscv64/xs/base.config
+# layer: riscv64/xs/kmh/v2.config
+# layer: riscv64/xs/sim.config

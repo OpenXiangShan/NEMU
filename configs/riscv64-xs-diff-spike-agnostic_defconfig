@@ -1,3 +1,5 @@
+# layer: riscv64/xs/base.config
+# layer: riscv64/xs/kmh/v3.config
 # layer: riscv64/xs/sim.config
 # layer: fragments/difftest/spike.config
 
@@ -15,6 +17,7 @@ CONFIG_RV_PMP_ACTIVE_NUM=16
 # CONFIG_RV_PMP_ENTRY_64 is not set
 # CONFIG_RV_SHLCOFIDELEG is not set
 # CONFIG_RV_SMCSRIND is not set
+# CONFIG_RV_SMCSRIND_EXTRA_REGS is not set
 # CONFIG_RV_SMSTATEEN is not set
 CONFIG_RV_ZFH=y
 CONFIG_ZSTD_COMPRESS=y

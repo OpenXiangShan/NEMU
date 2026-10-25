@@ -1,8 +1,8 @@
 # NEMU configuration files
 
-NEMU uses Kconfig. Named configurations consist of a self-contained machine
-profile, optional feature fragments and target-specific settings. The public
-entry points remain `make <name>_defconfig`.
+NEMU uses Kconfig. Named targets compose machine, version and runtime layers,
+feature fragments and target-specific settings. Public entry points remain
+`make <name>_defconfig`; ordinary single-file defconfigs also work.
 
 ## Layout
 
@@ -11,32 +11,53 @@ configs/
 ├── riscv32/isa.config              baseline for riscv32-pa
 ├── riscv64/
 │   ├── isa.config                  baseline for riscv64-pa
-│   ├── xs/                        sim, ref, fpga, ahead, novga, cpt,
-│   │                              kmhv2 and kmhv2-ref profiles
-│   ├── southlake/                 sim, ref and fpga profiles
-│   ├── gem5/                      ref and ci profiles
-│   └── {nutshell,nanhu,yanqihu}.config
+│   ├── xs/
+│   │   ├── base.config             shared XS/KMH machine settings
+│   │   ├── sim.config              standalone execution and devices
+│   │   ├── ref.config              shared REF runtime and device selection
+│   │   ├── kmh/
+│   │   │   ├── v2.config           V2 ISA compatibility
+│   │   │   ├── v3.config           current mainline/V3 ISA compatibility
+│   │   │   └── v2-ref.config       V2-specific REF exceptions
+│   │   └── {ahead,cpt,fpga,novga}.config   separate complete machine profiles
+│   ├── southlake/                 base + sim/ref/fpga runtime layers
+│   ├── gem5/                      base + ref + ci-normal/ci-h workload layers
+│   └── {nutshell,nanhu,yanqihu}.config    complete machine profiles
 ├── fragments/
-│   ├── difftest/                  ref-share, spike, multicore, fastref
-│   ├── checkpoint/                cpt (ZSTD), flash
-│   ├── debug/                     debug
-│   ├── toolchain/                 clang
-│   ├── mem/                       dedup
-│   └── ext/                       ame-matrix, mpt, bitmap, custom-tensor
-└── <target>_defconfig              manifest or ordinary defconfig
+│   ├── difftest/                   ref-share, spike, multicore, fastref
+│   ├── checkpoint/                 cpt (ZSTD), flash
+│   ├── debug/                      debug
+│   ├── toolchain/                  clang
+│   ├── mem/                        dedup
+│   └── ext/                        ame-matrix, mpt, bitmap, custom-tensor
+└── <target>_defconfig               manifest or ordinary defconfig
 ```
 
-A machine profile is a complete usable configuration expressed as a delta
-from the Kconfig defaults, like a Linux board defconfig. Profiles are flat:
-none includes or inherits another profile. Machine properties such as memory
-map, reset path, PMP/PMA sizing and extension compatibility belong here.
-The `isa.config` baselines are used by the `*-pa` targets, not automatically
-inherited by every profile.
+A `base.config` owns shared machine settings such as the memory map, reset,
+PMP/PMA sizing and common ISA features. `sim`, `ref` and `fpga` layers add
+runtime-specific devices and behavior. They are deltas to the base, not
+complete configurations to load on their own. Other machine profiles remain
+complete where there is no useful common base to factor out.
 
-A fragment describes a shared capability, such as multicore difftest,
-checkpoint compression or an ISA extension. Machine-specific parameters stay
-in the profile or final target. Keep features that have only one user in that
-target unless a separate fragment makes their purpose substantially clearer.
+KMH V2 and V3 use the same XS base and runtime layers. The version files pin
+seven differences: CBO/PBMT checks, MNRET state handling, trigger `tdata3`,
+Smcntrpmf, extra indirect CSR registers, `sstatus.MS` and Zabha. The V2 REF
+layer overrides the shared REF's Xvexp2/BF16 support, Smcdeleg and `GEILEN`.
+This keeps version/runtime combinations explicit without duplicating whole
+machine profiles. `v3.config` preserves existing non-kmhv2 XS behavior; it
+does not restore the retired `CUSTOM_CSR_KMHV3` implementation.
+
+GEM5's `ref` layer supplies the shared-reference ABI/runtime settings.
+`ci-normal` adds the ISA and trigger settings for the existing normal CI
+profiles. `ci-h` supplies shared trap/translation settings for the H and
+multicore CI targets; H is already enabled by Kconfig defaults. These files
+are named for their test policy, not for a general CI or ISA enable switch.
+
+Feature fragments carry reusable capabilities. Machine/version/runtime
+layers may intentionally override earlier values; a final target holds its
+remaining local exceptions. No file implicitly inherits or includes another:
+the manifest lists every input in application order. The `isa.config` files
+remain inputs to the `*-pa` targets, not an implicit base for board profiles.
 
 ## Building and composing
 
@@ -45,103 +66,92 @@ make riscv64-xs-ref_defconfig
 make -j"$(nproc)"
 ```
 
-A manifest lists paths relative to `configs/`, followed by its own settings:
+For example, the V2 REF target lists:
 
 ```
+# layer: riscv64/xs/base.config
+# layer: riscv64/xs/kmh/v2.config
 # layer: riscv64/xs/ref.config
-# layer: fragments/ext/ame-matrix.config
-# layer: fragments/difftest/multicore.config
-
-CONFIG_DIFFTEST_AMU_CTRL=y
-# CONFIG_RV_SMCNTRPMF is not set
-# CONFIG_RV_SMCDELEG is not set
+# layer: riscv64/xs/kmh/v2-ref.config
 ```
 
-`merge_target.sh` parses the list, `merge_config.sh` merges the inputs, then
-Kconfig evaluates dependencies, choices and defaults. A file without layer
-directives is an ordinary defconfig and follows the same make entry point.
-Feed manifests through make or the merger, not directly to `conf`: Kconfig
-itself does not understand `# layer:`.
+The mainline REF uses `base`, `kmh/v3` and `ref`. Optional multicore, debug,
+fastref or extension fragments follow; target-specific assignments go last.
+Special targets such as XS checkpoint and FPGA use their own machine profiles.
+All existing public target names are retained.
+
+`merge_target.sh` validates the layer list, `merge_config.sh` merges its inputs,
+then Kconfig resolves dependencies, choices and defaults. Feed manifests
+through make or the merger: `conf` itself does not understand `# layer:`.
 
 ```sh
-# Show the manifest's layers, in application order.
+# Show the layer list or compose a target with override diagnostics.
 scripts/merge_target.sh --list configs/riscv64-xs-ref_defconfig
-
-# Compose and report every changed or repeated assignment.
-scripts/merge_target.sh -r -o /tmp/nemu.config \
-    configs/riscv64-xs-ref_defconfig
+scripts/merge_target.sh -r -o /tmp/nemu.config configs/riscv64-xs-ref_defconfig
 
 # The lower-level merger also accepts an explicit list.
 scripts/merge_config.sh -r -o /tmp/nemu.config \
+    configs/riscv64/xs/base.config configs/riscv64/xs/kmh/v3.config \
     configs/riscv64/xs/ref.config configs/fragments/ext/mpt.config
 ```
 
 ## Override rules
 
-1. Layers are applied in the order listed. For each symbol, the last explicit
-   definition wins and keeps the position of that last definition. Listing a
-   file twice reapplies it.
+1. Layers are applied in listed order. The last explicit definition of a symbol
+   wins and keeps its position. Listing a file twice reapplies it.
 2. The manifest's own settings are always merged last, even if a layer
-   directive appears after a setting in the file. Keep directives first for
-   readability.
+   directive appears after a setting. Keep directives first for readability.
 3. `# CONFIG_X is not set` means `X=n`; it is a configuration directive.
-   A missing symbol instead follows Kconfig defaults or dependencies.
-4. Choice members are distinct symbols: switching one on does not textually
-   remove another. Disable the previous member explicitly. CI rejects Kconfig
-   choice diagnostics.
-5. Textual precedence does not bypass Kconfig dependencies or `select`. The
-   generated `.config` is the effective configuration.
+   A missing symbol follows Kconfig defaults and dependencies instead.
+4. Choice members are distinct symbols. When switching members, disable the
+   previous one explicitly. CI rejects Kconfig choice diagnostics.
+5. Textual precedence does not bypass dependencies or `select`. The generated
+   `.config` is the effective configuration.
 
-The merger permits intentional overrides. `-r` distinguishes changed values
-(`override`, with both source files) from repeated equal values (`redundant`).
-Changing a symbol omitted by a profile is not a textual override, even if the
-fragment changes its Kconfig default.
+`-r` distinguishes changed values (`override`, with both source files) from
+repeated equal values (`redundant`). Changing an omitted symbol can change its
+Kconfig default without being a textual override.
 
-Prefer final-target overrides for machine/version exceptions. A reusable
-fragment may intentionally change a capability, but should not quietly replace
-another fragment's policy or carry board addresses and memory sizes. There is
-no global ban on overrides: forbidding them would force duplicated profiles or
-move shared feature policy into every target. Independent version profiles
-remain useful when their standalone machine behavior differs.
+Prefer shared layers for differences used by several targets, such as V2 REF
+compatibility, and final-target overrides for local exceptions. Feature
+fragments should not silently replace another fragment's policy or carry board
+addresses and sizes. Forbidding all overrides would either duplicate complete
+profiles or repeat shared feature settings in every target.
 
-Equal definitions in shared fragments may be needed by other users. Delete
-them only after checking every consumer. New unpinned symbols follow Kconfig
-defaults; pin behavior that must remain stable, and record the repository
-revision plus generated `.config` when reproducing a build. A target name alone
-does not pin a source version.
+Equal assignments in shared fragments may be needed by other consumers. Delete
+them only after checking all users. Unpinned settings follow Kconfig defaults:
+record the repository revision and effective `.config` when reproducing a
+build. A target name alone does not pin a source version.
 
 ## Checking and maintaining
 
-`make config-check` composes all named targets without replacing the working
-`.config`. It runs the merger, manifest and checker regression suites, then
-checks Kconfig diagnostics, target ISA, determinism and unknown symbols. It
-reports unused layers and override/redundancy counts.
+`make config-check` composes every named target without replacing the working
+`.config`. It runs the merger, manifest and checker regression suites, checks
+Kconfig diagnostics, target ISA, determinism and unknown symbols, and reports
+unused layers and override/redundancy counts.
 
-The checker also compares merged requests with the effective `.config`:
+It also compares merged requests with the effective `.config`:
 
-* Requested `y`/`m` must remain enabled with that value.
+* Requested `y`/`m` must retain that value.
 * Any present effective value must match its request, including an explicit
   `n` that Kconfig might otherwise force to `y`. Missing `n` counts as disabled.
-* Missing scalar parameters (int/hex/string) are reported as `dormant`, not
-  errors. For example, a profile's flash size is inactive after a target
-  disables flash. This report does not prove that an intended device was
-  enabled; review it when adding or changing a target.
+* Missing int/hex/string parameters are reported as `dormant`, not errors: a
+  machine's flash size becomes inactive after a target disables flash. This
+  report does not prove the intended device is enabled; review it on changes.
 
-When a target disables a parent capability, explicitly disable inherited
-boolean children too. Do not use `# CONFIG_X is not set` to delete a scalar:
-Kconfig only gives that syntax a disabling meaning for bool/tristate symbols.
+When disabling a parent capability, explicitly disable inherited boolean
+children too. Do not use `# CONFIG_X is not set` to delete scalar parameters;
+that syntax disables bool/tristate values only.
 
-To add a target, select a profile and fragments, add the manifest and its
-unique settings, then run `make <name>_defconfig`, build, and run
-`make config-check`. Derive a new independent profile with `make savedefconfig`
-when appropriate; do not add profile inheritance.
+To add a target, select its layers, create the manifest and local settings,
+then configure, build and run `make config-check`. Use `make savedefconfig` to
+save a complete minimal configuration when useful. It minimizes against Kconfig
+defaults, not against a selected base, so it is not a fragment minimizer.
+`make menuconfig` edits the current configuration; `make savedefconfig` writes
+`configs/defconfig`, and `make defconfig` loads it.
 
-`make menuconfig` edits the current configuration. `make savedefconfig` saves
-a minimal ordinary file to `configs/defconfig`; `make defconfig` loads it.
-`savedefconfig` minimizes against Kconfig defaults, not against a chosen base
-profile, so it is not a fragment minimizer.
-
-Input files under `configs/` are tracked; `.config` (or `$KCONFIG_CONFIG`) is
-the build output. `riscv64-xs-ref-perf_defconfig` is a tracked target. The old
-config-bumping and perf-generation scripts are removed; CI uses `config-check`
-and uses the baseline revision's own generator only for older baselines.
+Inputs under `configs/` are tracked. `.config` (or `$KCONFIG_CONFIG`) is a build
+output. The tracked `riscv64-xs-ref-perf_defconfig` replaces the old perf config
+generator; CI uses an older baseline's own generator only when that baseline
+predates the tracked target. `config-check` replaces config bumping and does
+not rewrite manifests as complete configs.
