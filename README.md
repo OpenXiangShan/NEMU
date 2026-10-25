@@ -153,13 +153,26 @@ apt install build-essential man gcc gdb git libreadline-dev libsdl2-dev zstd lib
 
 To build NEMU as reference design, run
 ``` bash
-make menuconfig  #  at the first time when NEMU is downloaded
 make xxx-ref_defconfig
 make -j
 ```
 `./build/riscv64-nemu-interpreter-so` is the reference design.
 
-riscv64-xs_defconfig is the base configuration targeting XiangShan processor, which has already enabled RVH and RVV. There are also a series of other configurations based on this base configuration.
+The named configurations live in `configs/` and are composed from a
+self-contained machine profile plus feature fragments (see
+[configs/README.md](configs/README.md)).
+`riscv64-xs-ref_defconfig` is the XiangShan difftest reference board;
+`riscv64-xs_defconfig` is the XiangShan simulation board and the base for a
+series of other XiangShan configurations:
+
+```
+configs/riscv64/xs/sim.config                                    -> riscv64-xs
+configs/riscv64/xs/cpt.config + configs/fragments/checkpoint/cpt.config -> riscv64-xs-cpt
+configs/riscv64/xs/ref.config                                    -> riscv64-xs-ref
+configs/riscv64/xs/sim.config + configs/fragments/difftest/spike.config -> riscv64-xs-diff-spike
+```
+Run `make menuconfig` to edit a configuration interactively and
+`make savedefconfig` to save it as a single-file `configs/defconfig`.
 
 #### Cosimulation
 

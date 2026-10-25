@@ -59,15 +59,9 @@ jobs:
     - name: Setup env
       run: |
         echo "NEMU_HOME=$GITHUB_WORKSPACE" >> $GITHUB_ENV
-    - name: bump configs
+    - name: check configs
       run: |
-        bash ./scripts/bump_configs.sh
-    - name: check
-      run: |
-        if [ -n "$(git status --porcelain)" ]; then
-          echo "Please run 'bash ./scripts/bump_configs.sh' manually"
-          exit 1
-        fi
+        bash ./scripts/check_configs.sh
 
   compilation-all:
     strategy:
@@ -486,7 +480,6 @@ jobs:
           workloads_dir=$(realpath "${CI_WORKLOADS}")
           xsai_blas_dir=$(realpath "${XSAI_BLAS_WORKLOADS}")
           dynamorio_dir=$(realpath DynamoRIO-Linux-11.3.0-1)
-          ref_config_generator=$(realpath tools/ref-so-runner/gen-xs-ref-perf-defconfig.sh)
 
           tools/perf-benchmark.sh \
             --defconfig riscv64-xs_defconfig \
@@ -502,7 +495,6 @@ jobs:
             --dynamorio-dir "$dynamorio_dir" \
             --output performance_ref_so.md \
             --metrics-output performance_ref_so.tsv \
-            --defconfig-gen-script "$ref_config_generator" \
             --binary "${GITHUB_WORKSPACE}/tools/ref-so-runner/runner"
           tools/perf-benchmark.sh \
             --defconfig riscv64-matrix-xs_defconfig \
@@ -534,7 +526,7 @@ jobs:
                 --metrics-output baseline_xs.tsv
             fi
 
-            if [ -f perf-baseline/configs/riscv64-xs-ref_defconfig ]; then
+            if [ -f perf-baseline/configs/riscv64-xs-ref-perf_defconfig ]; then
               tools/perf-benchmark.sh \
                 --repo-dir perf-baseline \
                 --defconfig riscv64-xs-ref-perf_defconfig \
@@ -543,7 +535,19 @@ jobs:
                 --dynamorio-dir "$dynamorio_dir" \
                 --output baseline_ref_so.md \
                 --metrics-output baseline_ref_so.tsv \
-                --defconfig-gen-script "$ref_config_generator" \
+                --binary "${GITHUB_WORKSPACE}/tools/ref-so-runner/runner"
+            elif [ -x perf-baseline/tools/ref-so-runner/gen-xs-ref-perf-defconfig.sh ]; then
+              # Baseline predates the tracked riscv64-xs-ref-perf target: use
+              # the generator that ships with that baseline revision.
+              tools/perf-benchmark.sh \
+                --repo-dir perf-baseline \
+                --defconfig riscv64-xs-ref-perf_defconfig \
+                --title "Baseline - XS Ref Shared Object" \
+                --workloads "$workloads_dir" \
+                --dynamorio-dir "$dynamorio_dir" \
+                --output baseline_ref_so.md \
+                --metrics-output baseline_ref_so.tsv \
+                --defconfig-gen-script "$(realpath perf-baseline/tools/ref-so-runner/gen-xs-ref-perf-defconfig.sh)" \
                 --binary "${GITHUB_WORKSPACE}/tools/ref-so-runner/runner"
             fi
 
