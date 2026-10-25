@@ -1,2 +1,2 @@
 # layer: riscv64/southlake/base.config
-# layer: riscv64/southlake/sim.config
+# layer: riscv64/southlake/dut.config

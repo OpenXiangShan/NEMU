@@ -13,14 +13,16 @@ configs/
 │   ├── isa.config                  baseline for riscv64-pa
 │   ├── xs/
 │   │   ├── base.config             shared XS/KMH machine settings
-│   │   ├── sim.config              standalone execution and devices
+│   │   ├── dut.config              standalone execution and devices
 │   │   ├── ref.config              shared REF runtime and device selection
 │   │   ├── kmh/
-│   │   │   ├── v2.config           V2 ISA compatibility
-│   │   │   ├── v3.config           current mainline/V3 ISA compatibility
-│   │   │   └── v2-ref.config       V2-specific REF exceptions
+│   │   │   ├── v2/
+│   │   │   │   ├── isa.config     V2 ISA compatibility
+│   │   │   │   └── ref.config     V2-specific REF exceptions
+│   │   │   └── v3/
+│   │   │       └── isa.config     current mainline/V3 ISA compatibility
 │   │   └── {ahead,cpt,fpga,novga}.config   separate complete machine profiles
-│   ├── southlake/                 base + sim/ref/fpga runtime layers
+│   ├── southlake/                 base + dut/ref/fpga runtime layers
 │   ├── gem5/                      base + ref + ci-normal/ci-h workload layers
 │   └── {nutshell,nanhu,yanqihu}.config    complete machine profiles
 ├── fragments/
@@ -33,18 +35,22 @@ configs/
 └── <target>_defconfig               manifest or ordinary defconfig
 ```
 
-A `base.config` owns shared machine settings such as the memory map, reset,
-PMP/PMA sizing and common ISA features. `sim`, `ref` and `fpga` layers add
-runtime-specific devices and behavior. They are deltas to the base, not
+A `base.config` owns shared machine settings: ISA features, the memory map,
+reset, PMP/PMA sizing and common build options. It is more than an ISA-only
+baseline. `dut`, `ref` and `fpga` layers add runtime-specific devices and
+behavior. `dut` names the standalone execution mode; `ref` names the shared
+reference mode. Within each factored machine family, the base and runtime
+layers define disjoint sets of symbols. They are deltas to the base, not
 complete configurations to load on their own. Other machine profiles remain
 complete where there is no useful common base to factor out.
 
-KMH V2 and V3 use the same XS base and runtime layers. The version files pin
-seven differences: CBO/PBMT checks, MNRET state handling, trigger `tdata3`,
-Smcntrpmf, extra indirect CSR registers, `sstatus.MS` and Zabha. The V2 REF
-layer overrides the shared REF's Xvexp2/BF16 support, Smcdeleg and `GEILEN`.
+KMH V2 and V3 have separate directories and use the same XS base and runtime
+layers. `v2/isa.config` and `v3/isa.config` pin seven differences: CBO/PBMT
+checks, MNRET state handling, trigger `tdata3`, Smcntrpmf, extra indirect CSR
+registers, `sstatus.MS` and Zabha. `v2/ref.config` overrides the shared REF's
+Xvexp2/BF16 support, Smcdeleg and `GEILEN`.
 This keeps version/runtime combinations explicit without duplicating whole
-machine profiles. `v3.config` preserves existing non-kmhv2 XS behavior; it
+machine profiles. `v3/isa.config` preserves existing non-kmhv2 XS behavior; it
 does not restore the retired `CUSTOM_CSR_KMHV3` implementation.
 
 GEM5's `ref` layer supplies the shared-reference ABI/runtime settings.
@@ -70,12 +76,12 @@ For example, the V2 REF target lists:
 
 ```
 # layer: riscv64/xs/base.config
-# layer: riscv64/xs/kmh/v2.config
+# layer: riscv64/xs/kmh/v2/isa.config
 # layer: riscv64/xs/ref.config
-# layer: riscv64/xs/kmh/v2-ref.config
+# layer: riscv64/xs/kmh/v2/ref.config
 ```
 
-The mainline REF uses `base`, `kmh/v3` and `ref`. Optional multicore, debug,
+The mainline REF uses `base`, `kmh/v3/isa` and `ref`. Optional multicore, debug,
 fastref or extension fragments follow; target-specific assignments go last.
 Special targets such as XS checkpoint and FPGA use their own machine profiles.
 All existing public target names are retained.
@@ -91,7 +97,7 @@ scripts/merge_target.sh -r -o /tmp/nemu.config configs/riscv64-xs-ref_defconfig
 
 # The lower-level merger also accepts an explicit list.
 scripts/merge_config.sh -r -o /tmp/nemu.config \
-    configs/riscv64/xs/base.config configs/riscv64/xs/kmh/v3.config \
+    configs/riscv64/xs/base.config configs/riscv64/xs/kmh/v3/isa.config \
     configs/riscv64/xs/ref.config configs/fragments/ext/mpt.config
 ```
 

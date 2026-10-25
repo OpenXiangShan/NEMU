@@ -1,5 +1,5 @@
 # layer: riscv64/southlake/base.config
-# layer: riscv64/southlake/sim.config
+# layer: riscv64/southlake/dut.config
 # layer: fragments/debug/debug.config
 
 CONFIG_INSTR_CNT_BY_INSTR_PERF_OPT=y

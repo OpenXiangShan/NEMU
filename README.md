@@ -159,10 +159,14 @@ make -j
 `./build/riscv64-nemu-interpreter-so` is the reference design.
 
 The named configurations live in `configs/` (see
-[configs/README.md](configs/README.md)). XS/KMH targets compose a common
-`xs/base.config`, a `xs/kmh/v2.config` or `v3.config` version layer, and a
-`xs/sim.config` or `ref.config` runtime layer. V2 REF targets also apply
-`xs/kmh/v2-ref.config`; feature fragments and local settings follow.
+[configs/README.md](configs/README.md)). XS/KMH targets compose the shared
+`xs/base.config`, a `xs/kmh/v2/isa.config` or `xs/kmh/v3/isa.config` version
+layer, and a `xs/dut.config` or `xs/ref.config` runtime layer. V2 REF targets
+also apply `xs/kmh/v2/ref.config`; feature fragments and local settings follow.
+
+The base contains common ISA, machine and build settings. The DUT layer adds
+standalone execution settings; REF adds shared-reference runtime settings.
+Neither runtime layer duplicates symbols from the base.
 
 `riscv64-xs_defconfig` is the standalone mainline/V3 target;
 `riscv64-xs-ref_defconfig` is its shared reference target.
