@@ -27,6 +27,7 @@
 void require_matrix();
 uint8_t get_pack(mcfg_t cfg);
 bool is_signed_int_mtype(uint64_t type_code);
+uint8_t get_mma_op_amuctrl(uint64_t type_code);
 
 typedef enum {
   MMACC_TYPE_INVALID,

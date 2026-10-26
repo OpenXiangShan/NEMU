@@ -71,8 +71,6 @@ def_EHelper(mmacc) {
   if (mmacc_type == MMACC_TYPE_INVALID) {
     longjmp_exception(EX_II);
   }
-  bool s1_signed = is_signed_int_mtype(s1mcfg.type_code);
-  bool s2_signed = is_signed_int_mtype(s2mcfg.type_code);
 #ifdef CONFIG_AME_TILEREG_UB_CHECK
   if (tile_m != 0 && tile_n != 0 && tile_k != 0) {
     ame_matrix_region_check_read(ts1, tile_m, tile_k << s1size, s->pc);
@@ -83,6 +81,8 @@ def_EHelper(mmacc) {
 #ifndef CONFIG_SHARE_REF
   // When NEMU is not used as a reference model, execute MMA here directly.
   if (mmacc_type == MMACC_TYPE_INTEGER) {
+    bool s1_signed = is_signed_int_mtype(s1mcfg.type_code);
+    bool s2_signed = is_signed_int_mtype(s2mcfg.type_code);
 #ifdef CONFIG_AME_MMACC_VECTORIZE
     bool auto_vectorized = try_auto_vectorized_int8_mmacc(
       td, ts1, ts2, tile_m, tile_n, tile_k,
@@ -180,22 +180,23 @@ def_EHelper(mmacc) {
   }
 #endif // CONFIG_AME_TILEREG_UB_CHECK
 #if defined(CONFIG_DIFFTEST_AMU_CTRL) || defined(CONFIG_SHARE_CTRL) || defined(PRINT_AMUCTRLIO)
-  uint8_t m_s_sz = s1size;
-  uint8_t m_d_sz = dsize;
+  uint8_t event_s1 = get_mma_op_amuctrl(s1mcfg.type_code);
+  uint8_t event_s2 = get_mma_op_amuctrl(s2mcfg.type_code);
+  uint8_t event_d = get_mma_op_amuctrl(dmcfg.type_code);
   bool is_float_mmacc = mmacc_type == MMACC_TYPE_FLOAT;
 #endif
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mma_emplace(
     td, mxrm->val, msaten->val, is_float_mmacc, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val,
-    (s1_signed << 2) | m_s_sz, (s2_signed << 2) | m_s_sz, m_d_sz
+    event_s1, event_s2, event_d
   );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
   cutest_mma_emplace(
     td, mxrm->val, msaten->val, is_float_mmacc, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val,
-    (s1_signed << 2) | m_s_sz, (s2_signed << 2) | m_s_sz, m_d_sz
+    event_s1, event_s2, event_d
   );
 #endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
@@ -205,7 +206,7 @@ def_EHelper(mmacc) {
     "            mtilem=%ld, mtilen=%ld, mtilek=%ld, types1=%#x, types2=%#x, typed=%#x\n",
     td, msaten->val, is_float_mmacc, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val,
-    (s1_signed << 2) | m_s_sz, (s2_signed << 2) | m_s_sz, m_d_sz);
+    event_s1, event_s2, event_d);
 #endif // PRINT_AMUCTRLIO
 }
 
