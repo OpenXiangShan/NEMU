@@ -298,7 +298,17 @@ static bool host_fma_env_begin(
 }
 
 static void host_fma_env_end(const fenv_t *saved_env) {
+  int exceptions = fetestexcept(FE_ALL_EXCEPT);
   fesetenv(saved_env);
+#ifdef CONFIG_FPU_SOFT
+  // Retain fast-path exceptions for ame_fp_matrix_end(), just like SoftFloat.
+  if (exceptions & FE_INEXACT) softfloat_exceptionFlags |= softfloat_flag_inexact;
+  if (exceptions & FE_UNDERFLOW) softfloat_exceptionFlags |= softfloat_flag_underflow;
+  if (exceptions & FE_OVERFLOW) softfloat_exceptionFlags |= softfloat_flag_overflow;
+  if (exceptions & FE_INVALID) softfloat_exceptionFlags |= softfloat_flag_invalid;
+#else
+  feraiseexcept(exceptions);
+#endif
 }
 
 static inline float fp32_from_bits(uint32_t bits) {
