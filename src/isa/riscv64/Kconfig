@@ -1,5 +1,14 @@
 menu "ISA-dependent Options for riscv64"
 
+config RV_MEDELEG_ROCKET
+  bool "Rocket/BOOM machine exception delegation mask"
+  depends on !RVH
+  default n
+  help
+    Restrict medeleg to Rocket/BOOM delegable_base_exceptions. Keep access
+    faults, supervisor ecalls, software checks and hardware errors WARL zero.
+
+
 config HAS_CLINT
   bool
   default y

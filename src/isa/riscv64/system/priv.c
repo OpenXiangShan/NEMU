@@ -635,10 +635,26 @@ static inline word_t* csr_decode(uint32_t addr) {
                      (1 << EX_VI  ) | \
                      (1 << EX_SGPF))
 
+#define MEDELEG_NONRVH ((1 << EX_IAM) | \
+                        (1 << EX_IAF) | \
+                        (1 << EX_II ) | \
+                        (1 << EX_BP ) | \
+                        (1 << EX_LAM) | \
+                        (1 << EX_LAF) | \
+                        (1 << EX_SAM) | \
+                        (1 << EX_SAF) | \
+                        (1 << EX_ECU) | \
+                        (1 << EX_ECS) | \
+                        (1 << EX_IPF) | \
+                        (1 << EX_LPF) | \
+                        (1 << EX_SPF) | \
+                        (1 << EX_SWC) | \
+                        (1 << EX_HWE))
+
 /* Rocket/BOOM delegable_base_exceptions. Access faults, ecall-from-S,
  * software-check and hardware-error are not delegable, so those medeleg
  * bits are WARL 0. OpenSBI still writes CAUSE_SW_CHECK (bit 18). */
-#define MEDELEG_NONRVH ((1 << EX_IAM) | \
+#define MEDELEG_ROCKET ((1 << EX_IAM) | \
                         (1 << EX_II ) | \
                         (1 << EX_BP ) | \
                         (1 << EX_LAM) | \
@@ -648,7 +664,8 @@ static inline word_t* csr_decode(uint32_t addr) {
                         (1 << EX_LPF) | \
                         (1 << EX_SPF))
 
-#define MEDELEG_MASK MUXDEF(CONFIG_RVH,  MEDELEG_RVH, MEDELEG_NONRVH)
+#define MEDELEG_MASK MUXDEF(CONFIG_RVH, MEDELEG_RVH, \
+    MUXDEF(CONFIG_RV_MEDELEG_ROCKET, MEDELEG_ROCKET, MEDELEG_NONRVH))
 
 
 #define MIDELEG_WMASK_SSI (1 << IRQ_S_SOFT)

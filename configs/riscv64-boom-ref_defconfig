@@ -9,6 +9,7 @@ CONFIG_ISA_riscv64=y
 CONFIG_ISA="riscv64"
 CONFIG_ILEN_MIN=2
 CONFIG_ISA64=y
+CONFIG_RV_MEDELEG_ROCKET=y
 
 #
 # ISA-dependent Options for riscv64
