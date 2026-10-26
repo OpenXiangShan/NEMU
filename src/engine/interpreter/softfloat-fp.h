@@ -325,6 +325,39 @@ static inline float16_t  my_f32_to_f16 (float32_t a) {
 static inline bfloat16_t my_f32_to_bf16(float32_t a) {
   return f32_to_bf16(a);
 }
+
+/* OCP E4M3: bias 7, finite exponent 15, NaN at |value| == 0x7f.
+ * Widening preserves signed zero and represents every finite value exactly. */
+static inline float32_t my_fp8e4m3_to_f32(uint8_t value) {
+  uint32_t sign = (uint32_t)(value & 0x80) << 24;
+  unsigned fraction = value & 0x07;
+  int exponent = (value >> 3) & 0x0f;
+
+  if ((value & 0x7f) == 0x7f) {
+    return (float32_t){.v = sign | 0x7fc00000u};
+  }
+  if (exponent == 0) {
+    if (fraction == 0) {
+      return (float32_t){.v = sign};
+    }
+    exponent = 1;
+    while ((fraction & 0x08) == 0) {
+      fraction <<= 1;
+      exponent--;
+    }
+    fraction &= 0x07;
+  }
+  return (float32_t){.v = sign | ((uint32_t)(exponent - 7 + 127) << 23) |
+                             (fraction << 20)};
+}
+
+/* E5M2 shares FP16's exponent and bias. Its fraction occupies the two
+ * highest FP16 fraction bits, so widening the encoding is exact. SoftFloat
+ * handles infinities/NaNs and raises invalid for signaling NaNs here. */
+static inline float32_t my_fp8e5m2_to_f32(uint8_t value) {
+  return f16_to_f32((float16_t){.v = (uint16_t)value << 8});
+}
+
 static inline float32_t  my_f16_to_f32 (float16_t a) {
   return f16_to_f32(a);
 }

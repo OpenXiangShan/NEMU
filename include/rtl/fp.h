@@ -30,6 +30,8 @@ enum {
   FPCALL_SRC2_W16_to_32,
   FPCALL_SRC1_W32_to_64,
   FPCALL_SRC2_W32_to_64,
+  FPCALL_FP8E4M3,
+  FPCALL_FP8E5M2,
 };
 
 enum {
@@ -149,6 +151,6 @@ enum {
 
 #define FPCALL_CMD(op, w) (((op) << 16) | (w))
 #define FPCALL_OP(cmd) ((cmd) >> 16)
-#define FPCALL_W(cmd)  ((cmd) & 0xf)
+#define FPCALL_W(cmd)  ((cmd) & 0xffff)
 
 #endif

@@ -1,0 +1,10 @@
+# layer: riscv64/xs/base.config
+# layer: riscv64/xs/kmh/v3/base.config
+# layer: riscv64/xs/dut.config
+# layer: fragments/ext/ame-matrix.config
+
+CONFIG_AME_MLDST_VECTORIZE=y
+CONFIG_AME_MMACC_VECTORIZE=y
+CONFIG_RV_AME_TLEN=32768
+# CONFIG_RV_SMCNTRPMF is not set
+# CONFIG_RV_ZABHA is not set
