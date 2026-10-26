@@ -23,6 +23,7 @@ configs/
 │   │   │       ├── base.config     current mainline/V3 ISA compatibility
 │   │   │       └── ref.config     V3 REF differences
 │   │   └── {ahead,cpt,fpga,novga}.config   separate complete machine profiles
+│   ├── boom/                      base + ref policy + FPGA UART layer
 │   ├── southlake/                 base + dut/ref/fpga runtime layers
 │   ├── gem5/                      base + ref + ci-normal/ci-h workload layers
 │   └── {nutshell,nanhu,yanqihu}.config    complete machine profiles
@@ -66,6 +67,20 @@ GEM5's `ref` layer supplies the shared-reference ABI/runtime settings.
 profiles. `ci-h` supplies shared trap/translation settings for the H and
 multicore CI targets; H is already enabled by Kconfig defaults. These files
 are named for their test policy, not for a general CI or ISA enable switch.
+
+BOOM uses `boom/base.config` for its machine properties, including 2 GiB
+DRAM, 16 PMP entries, Sv39 and the Rocket/BOOM `medeleg` WARL mask. Its REF
+targets apply `fragments/difftest/ref-share.config` followed by
+`boom/ref.config` for BOOM comparison policy. The optional `boom/fpga.config`
+adds the board UART16550 at `0x310b0000` with register shift 2. Fast targets
+append the shared `fragments/difftest/fastref.config`; no BOOM-specific fast
+interpreter implementation is needed.
+
+`riscv64-boom-ref` and `riscv64-boom-fastref` select the normal and fast
+references without the board UART. `riscv64-boom-fpga-ref` and
+`riscv64-boom-fpga-fastref` add that UART. Each name takes the usual
+`_defconfig` suffix. The existing `riscv64-boom-fast-ref_defconfig` remains
+a compatibility entry for the FPGA fast reference, preserving its behavior.
 
 Feature fragments carry reusable capabilities. Machine/version/runtime
 layers may intentionally override earlier values; a final target holds its
