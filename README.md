@@ -153,13 +153,32 @@ apt install build-essential man gcc gdb git libreadline-dev libsdl2-dev zstd lib
 
 To build NEMU as reference design, run
 ``` bash
-make menuconfig  #  at the first time when NEMU is downloaded
 make xxx-ref_defconfig
 make -j
 ```
 `./build/riscv64-nemu-interpreter-so` is the reference design.
 
-riscv64-xs_defconfig is the base configuration targeting XiangShan processor, which has already enabled RVH and RVV. There are also a series of other configurations based on this base configuration.
+The named configurations live in `configs/` (see
+[configs/README.md](configs/README.md)). XS/KMH targets compose the shared
+`xs/base.config`, a `xs/kmh/v2/base.config` or `xs/kmh/v3/base.config` version
+layer, and a `xs/dut.config` or `xs/ref.config` runtime layer. REF targets also
+apply the matching `xs/kmh/v2/ref.config` or `xs/kmh/v3/ref.config`; feature
+fragments and local settings follow.
+
+The base contains common ISA, machine and build settings. The DUT layer adds
+standalone execution settings; REF adds shared-reference runtime settings.
+Neither runtime layer duplicates symbols from the base.
+The shared REF layer contains only settings common to both versions; each
+version's REF layer owns its differing values.
+
+`riscv64-xs_defconfig` is the standalone mainline/V3 target;
+`riscv64-xs-ref_defconfig` is its shared reference target.
+`riscv64-xs-kmhv2_defconfig` and `riscv64-xs-kmhv2-ref_defconfig` select V2.
+Checkpoint, FPGA and other specialized machines retain separate profiles.
+All public target names are unchanged.
+
+Run `make menuconfig` to edit a configuration interactively and
+`make savedefconfig` to save it as a single-file `configs/defconfig`.
 
 #### Cosimulation
 

@@ -25,7 +25,10 @@ Q            := @
 KCONFIG_PATH := $(NEMU_HOME)/tools/kconfig
 FIXDEP_PATH  := $(NEMU_HOME)/tools/fixdep
 Kconfig      := $(NEMU_HOME)/Kconfig
-rm-distclean += include/generated include/config .config .config.old
+CONFIG_MK     := $(NEMU_HOME)/scripts/merge_config.sh
+MERGE_TARGET  := $(NEMU_HOME)/scripts/merge_target.sh
+rm-distclean += include/generated include/config .config .config.old \
+                .config.fragments.*
 silent := -s
 
 CONF   := $(KCONFIG_PATH)/build/conf
@@ -48,16 +51,29 @@ menuconfig: $(MCONF) $(CONF) $(FIXDEP)
 savedefconfig: $(CONF)
 	$(Q)$< $(silent) --$@=configs/defconfig $(Kconfig)
 
-%defconfig: $(CONF) $(FIXDEP)
-	$(Q)$< $(silent) --defconfig=configs/$@ $(Kconfig)
-	$(Q)$< $(silent) --syncconfig $(Kconfig)
+defconfig: $(CONF) $(FIXDEP)
+	$(Q)$(CONF) $(silent) --defconfig=configs/defconfig $(Kconfig)
+	$(Q)$(CONF) $(silent) --syncconfig $(Kconfig)
 
-.PHONY: menuconfig savedefconfig defconfig
+# Targets accept ordinary defconfigs or manifests with ordered "# layer:" inputs.
+%defconfig: $(CONF) $(FIXDEP) $(CONFIG_MK) $(MERGE_TARGET)
+	$(Q)merged=$$(mktemp $(NEMU_HOME)/.config.fragments.XXXXXX) && \
+		$(MERGE_TARGET) -o $$merged configs/$@ && \
+		$(CONF) $(silent) --defconfig=$$merged $(Kconfig) && \
+		$(CONF) $(silent) --syncconfig $(Kconfig); \
+		status=$$?; rm -f "$$merged"; exit $$status
+
+# Check that every configuration target composes (used by CI).
+config-check: $(CONF)
+	$(Q)$(NEMU_HOME)/scripts/check_configs.sh
+
+.PHONY: menuconfig savedefconfig defconfig config-check
 
 # Help text used by make help
 help:
 	@echo  '  menuconfig	  - Update current config utilising a menu based program'
 	@echo  '  savedefconfig   - Save current config as configs/defconfig (minimal config)'
+	@echo  '  config-check    - Verify that every configs/*_defconfig target composes'
 
 distclean: clean
 	-@rm -rf $(rm-distclean)
