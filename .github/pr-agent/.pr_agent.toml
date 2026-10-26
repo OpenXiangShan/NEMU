@@ -6,10 +6,12 @@ git_provider = "github"
 model = "gpt-5.6"
 response_language = "en-US"
 publish_output = true
-publish_output_progress = true
+publish_output_progress = false
 ai_timeout = 300
 
 [pr_reviewer]
+persistent_comment = true
+final_update_message = false
 num_max_findings = 5
 require_tests_review = true
 require_security_review = true
