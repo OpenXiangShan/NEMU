@@ -3,7 +3,6 @@
 
 [config]
 git_provider = "github"
-model = "gpt-5.6"
 response_language = "en-US"
 publish_output = true
 publish_output_progress = false
