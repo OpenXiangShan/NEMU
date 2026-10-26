@@ -188,6 +188,38 @@ bool is_signed_int_mtype(uint64_t type_code) {
   }
 }
 
+// Encode an MMA operand's mcfg type_code for AMU control types1/types2/typed.
+// Bits[1:0] encode element width (8/16/32/4).
+// Bit 2 selects signed 4/8-bit integers or the alternate floating-point format.
+// This is distinct from the byte-storage size returned by get_size().
+uint8_t get_mma_op_amuctrl(uint64_t type_code) {
+  switch (type_code) {
+    case MTYPECODE_UINT8:
+    case MTYPECODE_FP8E5M2:
+      return 0;
+    case MTYPECODE_FP16:
+      return 1;
+    case MTYPECODE_INT32:
+    case MTYPECODE_FP32:
+      return 2;
+    case MTYPECODE_UINT4:
+    case MTYPECODE_NVFP4:
+      return 3;
+    case MTYPECODE_INT8:
+    case MTYPECODE_FP8E4M3:
+      return 4;
+    case MTYPECODE_BF16:
+      return 5;
+    case MTYPECODE_TF32:
+      return 6;
+    case MTYPECODE_INT4:
+    case MTYPECODE_MXFP4:
+      return 7;
+    default:
+      longjmp_exception(EX_II);
+  }
+}
+
 #ifdef CONFIG_AME_MMACC_VECTORIZE
 
 #define MACC_REG_BASE 4
