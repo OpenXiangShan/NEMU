@@ -7,6 +7,9 @@ model = "gpt-5.6"
 response_language = "en-US"
 publish_output = true
 publish_output_progress = false
+# CLI runs are automation: do not add a new "Failed to review PR" comment on
+# every failed run. Review errors stay in the Actions log.
+is_auto_command = true
 ai_timeout = 300
 
 [pr_reviewer]
