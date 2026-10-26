@@ -65,7 +65,52 @@ enum op_t {
   FWMUL, FWMACC, FWNMACC, FWMSAC, FWNMSAC,
 
   ANDN, BREV_V, BREV8_V, REV8_V, CLZ_V, CTZ_V, CPOP_V, ROL, ROR,
+  VCLMUL, VCLMULH,
+  VAESZ, VAESEF, VAESEM, VAESDF, VAESDM,
+  VGHSH, VGMUL
 };
+
+#ifdef CONFIG_RV_ZVKNED
+typedef enum {
+  VAES_OP_VAESZ,
+  VAES_OP_VAESEF,
+  VAES_OP_VAESEM,
+  VAES_OP_VAESDF,
+  VAES_OP_VAESDM,
+  VAES_OP_VAESKF1,
+  VAES_OP_VAESKF2,
+} vaes_op_t;
+
+void vaes_exec(vaes_op_t op, Decode *s);
+#endif
+
+#if defined(CONFIG_RV_ZVKNHA) || defined(CONFIG_RV_ZVKNHB)
+typedef enum {
+  VSHA2_OP_MS,
+  VSHA2_OP_CL,
+  VSHA2_OP_CH,
+} vsha2_op_t;
+
+void vsha2_exec(vsha2_op_t op, Decode *s);
+#endif
+
+#ifdef CONFIG_RV_ZVKSH
+typedef enum {
+  VSM3_OP_ME,
+  VSM3_OP_C,
+} vsm3_op_t;
+
+void vsm3_exec(vsm3_op_t op, Decode *s);
+#endif
+
+#ifdef CONFIG_RV_ZVKSED
+typedef enum {
+  VSM_OP_VSM4R,
+  VSM_OP_VSM4K
+} vsm_op_t;
+
+void vsm_exec(vsm_op_t op, Decode *s);
+#endif
 
 enum fp_wop_t {
   noWidening,
