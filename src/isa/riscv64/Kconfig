@@ -1,5 +1,94 @@
 menu "ISA-dependent Options for riscv64"
 
+menu "Machine exception delegation writable bits"
+
+config RV_MEDELEG_IAM
+  bool "medeleg[0]: Instruction address misaligned"
+  default y
+
+config RV_MEDELEG_IAF
+  bool "medeleg[1]: Instruction access fault"
+  default y
+
+config RV_MEDELEG_II
+  bool "medeleg[2]: Illegal instruction"
+  default y
+
+config RV_MEDELEG_BP
+  bool "medeleg[3]: Breakpoint"
+  default y
+
+config RV_MEDELEG_LAM
+  bool "medeleg[4]: Load address misaligned"
+  default y
+
+config RV_MEDELEG_LAF
+  bool "medeleg[5]: Load access fault"
+  default y
+
+config RV_MEDELEG_SAM
+  bool "medeleg[6]: Store/AMO address misaligned"
+  default y
+
+config RV_MEDELEG_SAF
+  bool "medeleg[7]: Store/AMO access fault"
+  default y
+
+config RV_MEDELEG_ECU
+  bool "medeleg[8]: Environment call from U-mode"
+  default y
+
+config RV_MEDELEG_ECS
+  bool "medeleg[9]: Environment call from S/HS-mode"
+  default y
+
+config RV_MEDELEG_ECVS
+  bool "medeleg[10]: Environment call from VS-mode"
+  depends on RVH
+  default y
+
+config RV_MEDELEG_IPF
+  bool "medeleg[12]: Instruction page fault"
+  default y
+
+config RV_MEDELEG_LPF
+  bool "medeleg[13]: Load page fault"
+  default y
+
+config RV_MEDELEG_SPF
+  bool "medeleg[15]: Store/AMO page fault"
+  default y
+
+config RV_MEDELEG_SWC
+  bool "medeleg[18]: Software check"
+  default y
+
+config RV_MEDELEG_HWE
+  bool "medeleg[19]: Hardware error"
+  default y
+
+config RV_MEDELEG_IGPF
+  bool "medeleg[20]: Instruction guest-page fault"
+  depends on RVH
+  default y
+
+config RV_MEDELEG_LGPF
+  bool "medeleg[21]: Load guest-page fault"
+  depends on RVH
+  default y
+
+config RV_MEDELEG_VI
+  bool "medeleg[22]: Virtual instruction"
+  depends on RVH
+  default y
+
+config RV_MEDELEG_SGPF
+  bool "medeleg[23]: Store/AMO guest-page fault"
+  depends on RVH
+  default y
+
+endmenu
+
 config HAS_CLINT
   bool
   default y

@@ -1,0 +1,4 @@
+# layer: riscv64/boom/base.config
+# layer: fragments/difftest/ref-share.config
+# layer: riscv64/boom/ref.config
+# layer: fragments/difftest/fastref.config

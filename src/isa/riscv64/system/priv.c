@@ -614,45 +614,26 @@ static inline word_t* csr_decode(uint32_t addr) {
                        (1 << EX_HWE))
 #endif
 
-#define MEDELEG_RVH ((1 << EX_IAM ) | \
-                     (1 << EX_IAF ) | \
-                     (1 << EX_II  ) | \
-                     (1 << EX_BP  ) | \
-                     (1 << EX_LAM ) | \
-                     (1 << EX_LAF ) | \
-                     (1 << EX_SAM ) | \
-                     (1 << EX_SAF ) | \
-                     (1 << EX_ECU ) | \
-                     (1 << EX_ECS ) | \
-                     (1 << EX_ECVS) | \
-                     (1 << EX_IPF ) | \
-                     (1 << EX_LPF ) | \
-                     (1 << EX_SPF ) | \
-                     (1 << EX_SWC ) | \
-                     (1 << EX_HWE ) | \
-                     (1 << EX_IGPF) | \
-                     (1 << EX_LGPF) | \
-                     (1 << EX_VI  ) | \
-                     (1 << EX_SGPF))
-
-#define MEDELEG_NONRVH ((1 << EX_IAM) | \
-                        (1 << EX_IAF) | \
-                        (1 << EX_II ) | \
-                        (1 << EX_BP ) | \
-                        (1 << EX_LAM) | \
-                        (1 << EX_LAF) | \
-                        (1 << EX_SAM) | \
-                        (1 << EX_SAF) | \
-                        (1 << EX_ECU) | \
-                        (1 << EX_ECS) | \
-                        (1 << EX_IPF) | \
-                        (1 << EX_LPF) | \
-                        (1 << EX_SPF) | \
-                        (1 << EX_SWC) | \
-                        (1 << EX_HWE))
-
-#define MEDELEG_MASK MUXDEF(CONFIG_RVH,  MEDELEG_RVH, MEDELEG_NONRVH)
-
+#define MEDELEG_MASK (MUXDEF(CONFIG_RV_MEDELEG_IAM, (1 << EX_IAM), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_IAF, (1 << EX_IAF), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_II, (1 << EX_II), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_BP, (1 << EX_BP), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_LAM, (1 << EX_LAM), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_LAF, (1 << EX_LAF), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_SAM, (1 << EX_SAM), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_SAF, (1 << EX_SAF), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_ECU, (1 << EX_ECU), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_ECS, (1 << EX_ECS), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_ECVS, (1 << EX_ECVS), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_IPF, (1 << EX_IPF), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_LPF, (1 << EX_LPF), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_SPF, (1 << EX_SPF), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_SWC, (1 << EX_SWC), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_HWE, (1 << EX_HWE), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_IGPF, (1 << EX_IGPF), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_LGPF, (1 << EX_LGPF), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_VI, (1 << EX_VI), 0) | \
+                     MUXDEF(CONFIG_RV_MEDELEG_SGPF, (1 << EX_SGPF), 0))
 
 #define MIDELEG_WMASK_SSI (1 << IRQ_S_SOFT)
 #define MIDELEG_WMASK_STI (1 << IRQ_S_TIMER)
