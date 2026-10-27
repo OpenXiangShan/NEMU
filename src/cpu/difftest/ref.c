@@ -505,6 +505,7 @@ void difftest_store_log_reset() {
 void difftest_store_log_restore() {
   extern void pmem_record_restore();
   pmem_record_restore();
+  isa_mmu_tlb_flush();
   IFDEF(CONFIG_PERF_OPT_SHARE, hosttlb_flush(0));
 }
 #endif

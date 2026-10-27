@@ -789,7 +789,7 @@ int get_hyperinst_mmu_state() {
 
 #ifdef CONFIG_PERF_OPT_SHARE
 bool isa_hosttlb_check(int type) {
-  if (!ref_is_fast() || cpu.amo || cpu.guided_exec ||
+  if (ISDEF(CONFIG_RV_MBMC) || !ref_is_fast() || cpu.amo || cpu.guided_exec ||
       (type != MEM_TYPE_IFETCH && get_mprv()) ||
       MUXDEF(CONFIG_RVH, has_two_stage_translation(), false)) {
     return false;
