@@ -22,6 +22,7 @@
 #include <memory/paddr.h>
 #include <cpu/cpu.h>
 #include <cpu/decode.h>
+#include "../local-include/intr.h"
 #ifdef CONFIG_AME_MEM_ACCESS_CHECK
 #include <ame/svstore_queue_wrapper.h>
 #endif // CONFIG_AME_MEM_ACCESS_CHECK
