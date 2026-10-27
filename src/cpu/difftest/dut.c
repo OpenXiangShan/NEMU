@@ -105,6 +105,13 @@ void init_difftest(char *ref_so_file, long img_size, long flash_size, int port) 
   void (*ref_difftest_init)(int) = dlsym(handle, "difftest_init");
   assert(ref_difftest_init);
 
+  // The reference model may default to less RAM than the DUT. Resize it
+  // before init so copying the image below cannot write past its memory.
+  void (*ref_difftest_set_ramsize)(size_t) = dlsym(handle, "difftest_set_ramsize");
+  if (ref_difftest_set_ramsize != NULL) {
+    ref_difftest_set_ramsize(MEMORY_SIZE);
+  }
+
 #ifdef CONFIG_DIFFTEST_REF_SPIKE
   ref_difftest_store_commit = dlsym(handle, "difftest_store_commit");
   assert(ref_difftest_store_commit);
