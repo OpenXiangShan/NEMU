@@ -32,9 +32,11 @@
 typedef struct {
   uint8_t *offset; // offset from the guest virtual address of the data page to the host virtual address
   vaddr_t gvpn; // guest virtual page number
+  uint64_t generation;
 } HostTLBEntry;
 
 static HostTLBEntry hosttlb[HOSTTLB_SIZE * 3];
+static uint64_t hosttlb_generation = 1;
 // dummy_hosttlb_translate assumes that write tlb is right after read tlb by 1*HOSTTLB_SIZE
 static HostTLBEntry* const hostrtlb = &hosttlb[0];
 static HostTLBEntry* const hostwtlb = &hosttlb[HOSTTLB_SIZE];
@@ -53,11 +55,22 @@ void hosttlb_flush(vaddr_t vaddr) {
   // HostTLB entries are keyed by 4 KiB VPNs but do not retain the page-table
   // leaf size. An address-specific SFENCE.VMA must also invalidate sibling
   // entries derived from a superpage translation, so flush conservatively.
-  memset(hosttlb, -1, sizeof(hosttlb));
+  if (unlikely(++hosttlb_generation == 0)) {
+    memset(hosttlb, 0, sizeof(hosttlb));
+    hosttlb_generation = 1;
+  }
 }
 
 void hosttlb_init() {
   hosttlb_flush(0);
+}
+
+static inline bool hosttlb_cacheable(int type) {
+#ifdef CONFIG_PERF_OPT_SHARE
+  return isa_hosttlb_check(type);
+#else
+  return true;
+#endif
 }
 
 static paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) {
@@ -70,11 +83,27 @@ static paddr_t va2pa(struct Decode *s, vaddr_t vaddr, int len, int type) {
   return pg_base | (vaddr & PAGE_MASK);
 }
 
+static inline word_t hosttlb_paddr_read(paddr_t paddr, int len, int type,
+                                       int trap_type, vaddr_t vaddr) {
+#ifdef CONFIG_MULTICORE_DIFF
+  if (trap_type == MEM_TYPE_IFETCH) {
+    if (!isa_pmp_check_permission(paddr, len, MEM_TYPE_IFETCH, cpu.mode) ||
+        !isa_pma_check_permission(paddr, len, MEM_TYPE_IFETCH)) {
+      cpu.trapInfo.tval = vaddr;
+      longjmp_exception(EX_IAF);
+    }
+    return golden_pmem_read(paddr, len);
+  }
+#endif
+  return paddr_read(paddr, len, type, trap_type, cpu.mode, vaddr);
+}
+
 __attribute__((noinline))
 static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, int type, int trap_type) {
   paddr_t paddr = va2pa(s, vaddr, len, trap_type);
-  word_t data = paddr_read(paddr, len, type, trap_type, cpu.mode, vaddr);
-  if (type != MEM_TYPE_READ_EXEC &&
+  word_t data = hosttlb_paddr_read(paddr, len, type, trap_type, vaddr);
+  if (type != MEM_TYPE_READ_EXEC && hosttlb_cacheable(trap_type) &&
+    MUXDEF(CONFIG_PERF_OPT_SHARE, cpu.pbmt == 0, true) &&
     MUXDEF(CONFIG_RV_MBMC, isa_bmc_check_permission(paddr, len, 0, 0), true) &&
     likely(in_pmem(paddr))
   ) {
@@ -82,6 +111,7 @@ static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, in
       &hostxtlb[hosttlb_idx(vaddr)] : &hostrtlb[hosttlb_idx(vaddr)];
     e->offset = guest_to_host(paddr) - vaddr;
     e->gvpn = hosttlb_vpn(vaddr);
+    e->generation = hosttlb_generation;
   }
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vaddr, paddr);
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
@@ -102,6 +132,7 @@ static void hosttlb_read_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr_
     HostTLBEntry *e = &hostrtlb[hosttlb_idx(vbase)];
     e->offset = guest_to_host(pbase) - vbase;
     e->gvpn = hosttlb_vpn(vbase);
+    e->generation = hosttlb_generation;
   }
   Logtr("Slowpath, vaddr " FMT_WORD " --> paddr: " FMT_PADDR, vbase, pbase);
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
@@ -114,13 +145,15 @@ __attribute__((noinline))
 static void hosttlb_write_slowpath(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
   paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
   paddr_write(paddr, len, data, cpu.mode, vaddr);
-  if (
+  if (hosttlb_cacheable(MEM_TYPE_WRITE) &&
+    MUXDEF(CONFIG_PERF_OPT_SHARE, cpu.pbmt == 0, true) &&
     MUXDEF(CONFIG_RV_MBMC, isa_bmc_check_permission(paddr, len, 0, 0), true) &&
     likely(in_pmem(paddr))
   ) {
     HostTLBEntry *e = &hostwtlb[hosttlb_idx(vaddr)];
     e->offset = guest_to_host(paddr) - vaddr;
     e->gvpn = hosttlb_vpn(vaddr);
+    e->generation = hosttlb_generation;
   }
 }
 
@@ -134,6 +167,7 @@ static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr
     HostTLBEntry *e = &hostwtlb[hosttlb_idx(vbase)];
     e->offset = guest_to_host(pbase) - vbase;
     e->gvpn = hosttlb_vpn(vbase);
+    e->generation = hosttlb_generation;
   }
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
   fprintf(stderr, "?? slow-path hosttlb_write paddr " FMT_WORD ", len: %d, type: %d\n",
@@ -145,24 +179,33 @@ static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr
 word_t hosttlb_read(struct Decode *s, vaddr_t vaddr, int len, int type, int trap_type) {
   Logm("hosttlb_reading " FMT_WORD, vaddr);
   // A cached ordinary read does not establish HLVX execute permission.
-  if (type == MEM_TYPE_READ_EXEC) {
+  if (type == MEM_TYPE_READ_EXEC || !hosttlb_cacheable(trap_type)) {
     return hosttlb_read_slowpath(s, vaddr, len, type, trap_type);
   }
 #ifdef CONFIG_RVH
   extern bool has_two_stage_translation();
   if(has_two_stage_translation()){
     paddr_t paddr = va2pa(s, vaddr, len, trap_type);
-    return paddr_read(paddr, len, type, trap_type, cpu.mode, vaddr);
+    return hosttlb_paddr_read(paddr, len, type, trap_type, vaddr);
   }
 #endif
   vaddr_t gvpn = hosttlb_vpn(vaddr);
   HostTLBEntry *e = trap_type == MEM_TYPE_IFETCH ?
     &hostxtlb[hosttlb_idx(vaddr)] : &hostrtlb[hosttlb_idx(vaddr)];
-  if (unlikely(e->gvpn != gvpn)) {
+  if (unlikely(e->generation != hosttlb_generation || e->gvpn != gvpn)) {
     Logm("Host TLB slow path");
     return hosttlb_read_slowpath(s, vaddr, len, type, trap_type);
   } else {
     Logm("Host TLB fast path");
+#ifdef CONFIG_PERF_OPT_SHARE
+    cpu.pbmt = 0;
+    if (dynamic_config.debug_difftest || ISDEF(CONFIG_MULTICORE_DIFF) ||
+        ISDEF(CONFIG_MEMORY_REGION_ANALYSIS) || ISDEF(CONFIG_AME_MEM_ACCESS_CHECK) ||
+        ISDEF(CONFIG_RV_MPT_CHECK) || ISDEF(CONFIG_RV_MBMC)) {
+      return hosttlb_paddr_read(host_to_guest(e->offset + vaddr), len,
+                               type, trap_type, vaddr);
+    }
+#endif
     return host_read(e->offset + vaddr, len);
   }
 }
@@ -185,7 +228,7 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
   {
     vaddr_t gvpn = hosttlb_vpn(vbase);
     HostTLBEntry *e = &hostrtlb[hosttlb_idx(vbase)];
-    if (unlikely(e->gvpn != gvpn)) {
+    if (unlikely(e->generation != hosttlb_generation || e->gvpn != gvpn)) {
       Logm("Host TLB slow path");
       hosttlb_read_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, m_name, mreg_id);
     } else {
@@ -239,7 +282,7 @@ void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_w
   // Following loc assumes write tlb is right after read tlb by HOSTTLB_SIZE
   HostTLBEntry *used_tlb = &hosttlb[is_write * HOSTTLB_SIZE];
   HostTLBEntry *e = &used_tlb[hosttlb_idx(vaddr)];
-  if (unlikely(e->gvpn != gvpn)) {
+  if (unlikely(e->generation != hosttlb_generation || e->gvpn != gvpn)) {
     // TLB miss, fall back to slow path
     return;
   } else {
@@ -251,6 +294,10 @@ void dummy_hosttlb_translate(struct Decode *s, vaddr_t vaddr, int len, bool is_w
 #endif // CONFIG_RVV
 
 void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
+  if (!hosttlb_cacheable(MEM_TYPE_WRITE)) {
+    hosttlb_write_slowpath(s, vaddr, len, data);
+    return;
+  }
 #ifdef CONFIG_RVH
   if(has_two_stage_translation()){
     paddr_t paddr = va2pa(s, vaddr, len, MEM_TYPE_WRITE);
@@ -259,11 +306,23 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
 #endif
   vaddr_t gvpn = hosttlb_vpn(vaddr);
   HostTLBEntry *e = &hostwtlb[hosttlb_idx(vaddr)];
-  if (unlikely(e->gvpn != gvpn)) {
+  if (unlikely(e->generation != hosttlb_generation || e->gvpn != gvpn)) {
     hosttlb_write_slowpath(s, vaddr, len, data);
     return;
   }
   uint8_t *host_addr = e->offset + vaddr;
+#ifdef CONFIG_PERF_OPT_SHARE
+  cpu.pbmt = 0;
+  if (dynamic_config.debug_difftest ||
+      ISDEF(CONFIG_MEMORY_REGION_ANALYSIS) || ISDEF(CONFIG_AME_MEM_ACCESS_CHECK) ||
+      ISDEF(CONFIG_RV_MPT_CHECK) || ISDEF(CONFIG_RV_MBMC)) {
+    paddr_write(host_to_guest(host_addr), len, data, cpu.mode, vaddr);
+    return;
+  }
+#endif
+#if defined(CONFIG_SHARE) && (defined(CONFIG_STORE_LOG) || defined(CONFIG_STORE_LOG_HASH))
+  pmem_record_store_effect(host_to_guest(host_addr), len, data);
+#endif
 #ifdef CONFIG_DIFFTEST_STORE_COMMIT
   // Also do store commit check with performance optimization enlabled
   store_commit_queue_push(host_to_guest(host_addr), data, len, 0);
@@ -295,7 +354,7 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
 #endif
   vaddr_t gvpn = hosttlb_vpn(vbase);
   HostTLBEntry *e = &hostwtlb[hosttlb_idx(vbase)];
-  if (unlikely(e->gvpn != gvpn)) {
+  if (unlikely(e->generation != hosttlb_generation || e->gvpn != gvpn)) {
     hosttlb_write_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, m_name, mreg_id);
     return;
   }

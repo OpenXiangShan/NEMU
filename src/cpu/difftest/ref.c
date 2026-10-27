@@ -18,6 +18,7 @@
 #include <cpu/difftest/ame/amuctrl.h>
 #include <cpu/difftest/ame/msync.h>
 #include <memory/paddr.h>
+#include <memory/host-tlb.h>
 #include <memory/host.h>
 #include <memory/store_queue_wrapper.h>
 #include <memory/store_log_hash.h>
@@ -86,6 +87,7 @@ void nemu_memcpy_helper(paddr_t nemu_addr, void *dut_buf, size_t n, bool directi
   if (direction == DIFFTEST_TO_REF) {
     cpy_func(guest_to_host(nemu_addr), dut_buf, n);
     isa_mmu_tlb_flush();
+    IFDEF(CONFIG_PERF_OPT_SHARE, hosttlb_flush(0));
   }
   else cpy_func(dut_buf, guest_to_host(nemu_addr), n);
 }
@@ -96,6 +98,7 @@ void difftest_get_backed_memory(void *backed_pmem, size_t n) {
   assert(n == CONFIG_MSIZE);
   set_pmem(true, backed_pmem);
   isa_mmu_tlb_flush();
+  IFDEF(CONFIG_PERF_OPT_SHARE, hosttlb_flush(0));
 #endif
 }
 
@@ -502,6 +505,7 @@ void difftest_store_log_reset() {
 void difftest_store_log_restore() {
   extern void pmem_record_restore();
   pmem_record_restore();
+  IFDEF(CONFIG_PERF_OPT_SHARE, hosttlb_flush(0));
 }
 #endif
 #endif // CONFIG_STORE_LOG

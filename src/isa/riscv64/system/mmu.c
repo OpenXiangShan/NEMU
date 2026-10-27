@@ -18,6 +18,7 @@
 #include <memory/vaddr.h>
 #include <memory/paddr.h>
 #include <memory/host.h>
+#include <memory/host-tlb.h>
 #include <cpu/cpu.h>
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
@@ -784,6 +785,28 @@ int get_hyperinst_mmu_state() {
   return (hyperinst_mmu_state == MMU_DIRECT ? MMU_DIRECT : MMU_TRANSLATE);
 }
 
+#endif
+
+#ifdef CONFIG_PERF_OPT_SHARE
+bool isa_hosttlb_check(int type) {
+  if (!ref_is_fast() || cpu.amo || cpu.guided_exec ||
+      (type != MEM_TYPE_IFETCH && get_mprv()) ||
+      MUXDEF(CONFIG_RVH, has_two_stage_translation(), false)) {
+    return false;
+  }
+
+  static uint64_t cached_satp = UINT64_MAX;
+  static uint16_t cached_context = UINT16_MAX;
+  uint16_t context = cpu.mode | (mstatus->mxr << 2) |
+      (mstatus->sum << 3) | (menvcfg->pbmte << 4) |
+      (menvcfg->adue << 5);
+  if (unlikely(cached_satp != satp->val || cached_context != context)) {
+    hosttlb_flush(0);
+    cached_satp = satp->val;
+    cached_context = context;
+  }
+  return true;
+}
 #endif
 
 #ifdef CONFIG_RVH

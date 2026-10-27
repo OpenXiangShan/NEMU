@@ -441,7 +441,7 @@ static void execute(int n) {
     g_exec_table = local_exec_table;
     extern Decode *tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector);
     s = tcache_init(&&exec_nemu_decode, cpu.pc);
-#if defined(CONFIG_MODE_SYSTEM) && defined(CONFIG_PERF_OPT)
+#if defined(CONFIG_MODE_SYSTEM) && (defined(CONFIG_PERF_OPT) || defined(CONFIG_PERF_OPT_SHARE))
     hosttlb_init();
 #endif
     init_flag = 1;

@@ -60,6 +60,9 @@ int isa_mmu_check(vaddr_t vaddr, int len, int type);
 vaddr_t get_effective_address(vaddr_t vaddr, int type);
 #endif
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type);
+#ifdef CONFIG_PERF_OPT_SHARE
+bool isa_hosttlb_check(int type);
+#endif
 #ifdef CONFIG_RVH
 void isa_mmu_tlb_flush(void);
 #else
