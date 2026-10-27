@@ -2,3 +2,7 @@
 # layer: fragments/difftest/ref-share.config
 # layer: riscv64/boom/ref.config
 # layer: fragments/difftest/fastref.config
+
+# Match the shared XiangShan FastREF compiler settings.
+CONFIG_CC_O3=y
+CONFIG_CC_LTO=y
