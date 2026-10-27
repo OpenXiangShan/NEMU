@@ -47,6 +47,8 @@ typedef enum {
   FLOAT_MMACC_FP16_FP16_FP32,
   FLOAT_MMACC_BF16_BF16_FP32,
   FLOAT_MMACC_FP32_FP32_FP32,
+  FLOAT_MMACC_FP8E4M3_FP8E4M3_FP32,
+  FLOAT_MMACC_FP8E5M2_FP8E5M2_FP32,
 } float_mmacc_type_t;
 
 int_mmacc_type_t get_int_mmacc_type(

@@ -152,6 +152,12 @@ float_mmacc_type_t get_float_mmacc_type(
   } else if (d_type == MTYPECODE_FP32 &&
       s1_type == MTYPECODE_FP32 && s2_type == MTYPECODE_FP32) {
     return FLOAT_MMACC_FP32_FP32_FP32;
+  } else if (d_type == MTYPECODE_FP32 &&
+      s1_type == MTYPECODE_FP8E4M3 && s2_type == MTYPECODE_FP8E4M3) {
+    return FLOAT_MMACC_FP8E4M3_FP8E4M3_FP32;
+  } else if (d_type == MTYPECODE_FP32 &&
+      s1_type == MTYPECODE_FP8E5M2 && s2_type == MTYPECODE_FP8E5M2) {
+    return FLOAT_MMACC_FP8E5M2_FP8E5M2_FP32;
   } else {
     return FLOAT_MMACC_UNSUPPORTED;
   }
@@ -226,6 +232,12 @@ uint8_t get_mma_op_amuctrl(uint64_t type_code) {
 
 // IEEE-754 field widths and positions, from least significant bit upward.
 #define FP_SIGN_BITS 1
+
+#define FP8E4M3_FRACTION_BITS 3
+#define FP8E4M3_EXPONENT_BITS 4
+
+#define FP8E5M2_FRACTION_BITS 2
+#define FP8E5M2_EXPONENT_BITS 5
 
 #define FP16_FRACTION_BITS 10
 #define FP16_EXPONENT_BITS 5
@@ -387,6 +399,25 @@ static inline float fp16_to_fp32(uint16_t value) {
   return fp32_from_bits(bits);
 }
 
+static inline float fp8e4m3_to_fp32(uint8_t value) {
+  uint32_t sign = (uint32_t)(value & 0x80) << 24;
+  unsigned exponent = (value >> 3) & 0x0f;
+  unsigned fraction = value & 0x07;
+  if ((value & 0x7f) == 0x7f) {
+    return fp32_from_bits(sign | UINT32_C(0x7fc00000));
+  }
+  if (exponent == 0) {
+    return fp32_from_bits(sign | fp32_to_bits((float)fraction * 0x1p-9f));
+  }
+  return fp16_to_fp32(((uint16_t)(value & 0x80) << 8) |
+                      ((exponent + 8) << 10) | (fraction << 7));
+}
+
+static inline float fp8e5m2_to_fp32(uint8_t value) {
+  // E5M2 has the FP16 exponent/bias and its two highest fraction bits.
+  return fp16_to_fp32((uint16_t)value << 8);
+}
+
 #if HOST_HAS_IEEE_FLOAT16
 
 static inline uint16_t fp16_from_fp32(float value) {
@@ -396,91 +427,52 @@ static inline uint16_t fp16_from_fp32(float value) {
   return bits;
 }
 
-static bool mmacc_fp16_fp16_fp16(
-  int acc_idx, int ts1, int ts2,
-  uint64_t tile_m, uint64_t tile_n, uint64_t tile_k,
-  int host_rounding_mode
-) {
-  float rhs_by_k[TRENUM16][ROWNUM];
+#endif // HOST_HAS_IEEE_FLOAT16
 
-  for (uint64_t i = 0; i < tile_m; i++) {
-    const uint16_t *lhs_row = cpu.mtr[ts1][i]._16;
-    for (uint64_t k = 0; k < tile_k; k++) {
-      if (unlikely(!FP_IS_FINITE(FP16, lhs_row[k]))) {
-        return false;
-      }
-    }
-  }
-  for (uint64_t k = 0; k < tile_k; k++) {
-    for (uint64_t j = 0; j < tile_n; j++) {
-      uint16_t bits = cpu.mtr[ts2][j]._16[k];
-      if (unlikely(!FP_IS_FINITE(FP16, bits))) {
-        return false;
-      }
-      rhs_by_k[k][j] = fp16_to_fp32(bits);
-    }
-  }
-  for (uint64_t i = 0; i < tile_m; i++) {
-    const uint16_t *dest_row = cpu.macc[acc_idx][i]._16;
-    for (uint64_t j = 0; j < tile_n; j++) {
-      if (unlikely(!FP_IS_FINITE(FP16, dest_row[j]))) {
-        return false;
-      }
-    }
-  }
+// Storage, conversion and finite-value checks for the shared FMA kernel.
+#define FP8E4M3_SEW 8
+#define FP8E5M2_SEW 8
+#define FP16_SEW 16
+#define BF16_SEW 16
+#define FP32_SEW 32
 
-  fenv_t saved_env;
-  if (!host_fma_env_begin(&saved_env, host_rounding_mode)) {
-    return false;
-  }
-  for (uint64_t i = 0; i < tile_m; i++) {
-    const uint16_t *restrict lhs_row = cpu.mtr[ts1][i]._16;
-    uint16_t *restrict dest_row = cpu.macc[acc_idx][i]._16;
-    float acc_values[ROWNUM];
-    for (uint64_t j = 0; j < tile_n; j++) {
-      acc_values[j] = fp16_to_fp32(dest_row[j]);
-    }
-    for (uint64_t k = 0; k < tile_k; k++) {
-      const float lhs = fp16_to_fp32(lhs_row[k]);
-      const float *restrict rhs_row = rhs_by_k[k];
-#pragma GCC ivdep
-      for (uint64_t j = 0; j < tile_n; j++) {
-        acc_values[j] = __builtin_fmaf(lhs, rhs_row[j], acc_values[j]);
-      }
-    }
-    // AME leaves intermediate accumulation precision open. Keep the dot
-    // product in FP32 and round once when storing the FP16 accumulator.
-    for (uint64_t j = 0; j < tile_n; j++) {
-      dest_row[j] = fp16_from_fp32(acc_values[j]);
-    }
-  }
-  host_fma_env_end(&saved_env);
-  return true;
-}
+#define FP8E4M3_TO_FP32 fp8e4m3_to_fp32
+#define FP8E5M2_TO_FP32 fp8e5m2_to_fp32
+#define FP16_TO_FP32 fp16_to_fp32
+#define BF16_TO_FP32 bf16_to_fp32
+#define FP32_TO_FP32 fp32_from_bits
+#define FP16_FROM_FP32 fp16_from_fp32
+#define FP32_FROM_FP32 fp32_to_bits
 
-#endif
+#define FP8E4M3_IS_FINITE(bits) (FP_ABS_BITS(FP8E4M3, bits) != 0x7f)
+#define FP8E5M2_IS_FINITE(bits) FP_IS_FINITE(FP8E5M2, bits)
+#define FP16_IS_FINITE(bits) FP_IS_FINITE(FP16, bits)
+#define BF16_IS_FINITE(bits) FP_IS_FINITE(BF16, bits)
+#define FP32_IS_FINITE(bits) FP_IS_FINITE(FP32, bits)
 
-#define def_auto_vectorized_float16_mmacc( \
-  name, to_fp32, format \
+#define def_auto_vectorized_float_mmacc( \
+  name, src_format, dest_format \
 ) \
 static bool name( \
   int acc_idx, int ts1, int ts2, \
   uint64_t tile_m, uint64_t tile_n, uint64_t tile_k, \
   int host_rounding_mode \
 ) { \
+  typedef concat3(uint, src_format##_SEW, _t) src_type; \
+  typedef concat3(uint, dest_format##_SEW, _t) dest_type; \
   /* Transpose B so the vectorized j loop preserves k accumulation order. */ \
-  float rhs_by_k[TRENUM16][ROWNUM]; \
+  float rhs_by_k[concat(TRENUM, src_format##_SEW)][ROWNUM]; \
   long double lhs_abs_max = 0.0; \
   long double rhs_abs_max = 0.0; \
   long double dest_abs_max = 0.0; \
   for (uint64_t i = 0; i < tile_m; i++) { \
-    const uint16_t *lhs_row = cpu.mtr[ts1][i]._16; \
+    const src_type *lhs_row = cpu.mtr[ts1][i].concat(_, src_format##_SEW); \
     for (uint64_t k = 0; k < tile_k; k++) { \
-      uint16_t lhs_bits = lhs_row[k]; \
-      if (unlikely(!FP_IS_FINITE(format, lhs_bits))) { \
+      uint32_t lhs_bits = lhs_row[k]; \
+      if (unlikely(!src_format##_IS_FINITE(lhs_bits))) { \
         return false; \
       } \
-      float abs_value = to_fp32(FP_ABS_BITS(format, lhs_bits)); \
+      float abs_value = src_format##_TO_FP32(FP_ABS_BITS(src_format, lhs_bits)); \
       if (abs_value > lhs_abs_max) { \
         lhs_abs_max = abs_value; \
       } \
@@ -488,123 +480,76 @@ static bool name( \
   } \
   for (uint64_t k = 0; k < tile_k; k++) { \
     for (uint64_t j = 0; j < tile_n; j++) { \
-      uint16_t value = cpu.mtr[ts2][j]._16[k]; \
-      if (unlikely(!FP_IS_FINITE(format, value))) { \
+      uint32_t rhs_bits = cpu.mtr[ts2][j].concat(_, src_format##_SEW)[k]; \
+      if (unlikely(!src_format##_IS_FINITE(rhs_bits))) { \
         return false; \
       } \
-      rhs_by_k[k][j] = to_fp32(value); \
-      float abs_value = to_fp32(FP_ABS_BITS(format, value)); \
+      rhs_by_k[k][j] = src_format##_TO_FP32(rhs_bits); \
+      float abs_value = src_format##_TO_FP32(FP_ABS_BITS(src_format, rhs_bits)); \
       if (abs_value > rhs_abs_max) { \
         rhs_abs_max = abs_value; \
       } \
     } \
   } \
   for (uint64_t i = 0; i < tile_m; i++) { \
-    const uint32_t *dest_row = cpu.macc[acc_idx][i]._32; \
+    const dest_type *dest_row = cpu.macc[acc_idx][i].concat(_, dest_format##_SEW); \
     for (uint64_t j = 0; j < tile_n; j++) { \
       uint32_t dest_bits = dest_row[j]; \
-      if (unlikely(!FP_IS_FINITE(FP32, dest_bits))) { \
+      if (unlikely(!dest_format##_IS_FINITE(dest_bits))) { \
         return false; \
       } \
-      float abs_value = fp32_from_bits(FP_ABS_BITS(FP32, dest_bits)); \
+      float abs_value = dest_format##_TO_FP32(FP_ABS_BITS(dest_format, dest_bits)); \
       if (abs_value > dest_abs_max) { \
         dest_abs_max = abs_value; \
       } \
     } \
   } \
-  /* Keep exceptional operands and possible overflow on the SoftFloat path. */ \
-  long double result_abs_bound = dest_abs_max + \
-    (long double)tile_k * lhs_abs_max * rhs_abs_max; \
-  if (unlikely(result_abs_bound > FLT_MAX)) { \
-    return false; \
+  /* Retain the existing overflow gate for widened FP32 accumulation. */ \
+  if (dest_format##_SEW == 32 && src_format##_SEW < 32) { \
+    long double result_abs_bound = dest_abs_max + \
+      (long double)tile_k * lhs_abs_max * rhs_abs_max; \
+    if (unlikely(result_abs_bound > FLT_MAX)) { \
+      return false; \
+    } \
   } \
   fenv_t saved_env; \
   if (!host_fma_env_begin(&saved_env, host_rounding_mode)) { \
     return false; \
   } \
   for (uint64_t i = 0; i < tile_m; i++) { \
-    const uint16_t *restrict lhs_row = cpu.mtr[ts1][i]._16; \
-    uint32_t *restrict dest_row = cpu.macc[acc_idx][i]._32; \
+    const src_type *restrict lhs_row = cpu.mtr[ts1][i].concat(_, src_format##_SEW); \
+    dest_type *restrict dest_row = cpu.macc[acc_idx][i].concat(_, dest_format##_SEW); \
+    float acc_values[ROWNUM]; \
+    for (uint64_t j = 0; j < tile_n; j++) { \
+      acc_values[j] = dest_format##_TO_FP32(dest_row[j]); \
+    } \
     for (uint64_t k = 0; k < tile_k; k++) { \
-      const float lhs = to_fp32(lhs_row[k]); \
+      const float lhs = src_format##_TO_FP32(lhs_row[k]); \
       const float *restrict rhs_row = rhs_by_k[k]; \
       _Pragma("GCC ivdep") \
       for (uint64_t j = 0; j < tile_n; j++) { \
-        float dest = fp32_from_bits(dest_row[j]); \
-        dest_row[j] = fp32_to_bits(__builtin_fmaf(lhs, rhs_row[j], dest)); \
+        acc_values[j] = __builtin_fmaf(lhs, rhs_row[j], acc_values[j]); \
       } \
+    } \
+    /* FP16 destinations retain FP32 intermediates and round once on store. */ \
+    for (uint64_t j = 0; j < tile_n; j++) { \
+      dest_row[j] = dest_format##_FROM_FP32(acc_values[j]); \
     } \
   } \
   host_fma_env_end(&saved_env); \
   return true; \
 }
 
-def_auto_vectorized_float16_mmacc(
-  mmacc_fp16_fp16_fp32, fp16_to_fp32, FP16)
-def_auto_vectorized_float16_mmacc(
-  mmacc_bf16_bf16_fp32, bf16_to_fp32, BF16)
+#if HOST_HAS_IEEE_FLOAT16
+def_auto_vectorized_float_mmacc(mmacc_fp16_fp16_fp16, FP16, FP16)
+#endif
 
-#undef def_auto_vectorized_float16_mmacc
-
-static bool mmacc_fp32_fp32_fp32(
-  int acc_idx, int ts1, int ts2,
-  uint64_t tile_m, uint64_t tile_n, uint64_t tile_k,
-  int host_rounding_mode
-) {
-  float rhs_by_k[TRENUM32][ROWNUM];
-
-  for (uint64_t i = 0; i < tile_m; i++) {
-    const uint32_t *lhs_row = cpu.mtr[ts1][i]._32;
-    for (uint64_t k = 0; k < tile_k; k++) {
-      if (unlikely(!FP_IS_FINITE(FP32, lhs_row[k]))) {
-        return false;
-      }
-    }
-  }
-  for (uint64_t k = 0; k < tile_k; k++) {
-    for (uint64_t j = 0; j < tile_n; j++) {
-      uint32_t bits = cpu.mtr[ts2][j]._32[k];
-      if (unlikely(!FP_IS_FINITE(FP32, bits))) {
-        return false;
-      }
-      rhs_by_k[k][j] = fp32_from_bits(bits);
-    }
-  }
-  for (uint64_t i = 0; i < tile_m; i++) {
-    const uint32_t *dest_row = cpu.macc[acc_idx][i]._32;
-    for (uint64_t j = 0; j < tile_n; j++) {
-      if (unlikely(!FP_IS_FINITE(FP32, dest_row[j]))) {
-        return false;
-      }
-    }
-  }
-
-  fenv_t saved_env;
-  if (!host_fma_env_begin(&saved_env, host_rounding_mode)) {
-    return false;
-  }
-  for (uint64_t i = 0; i < tile_m; i++) {
-    const uint32_t *restrict lhs_row = cpu.mtr[ts1][i]._32;
-    uint32_t *restrict dest_row = cpu.macc[acc_idx][i]._32;
-    float dest_values[ROWNUM];
-    for (uint64_t j = 0; j < tile_n; j++) {
-      dest_values[j] = fp32_from_bits(dest_row[j]);
-    }
-    for (uint64_t k = 0; k < tile_k; k++) {
-      const float lhs = fp32_from_bits(lhs_row[k]);
-      const float *restrict rhs_row = rhs_by_k[k];
-#pragma GCC ivdep
-      for (uint64_t j = 0; j < tile_n; j++) {
-        dest_values[j] = __builtin_fmaf(lhs, rhs_row[j], dest_values[j]);
-      }
-    }
-    for (uint64_t j = 0; j < tile_n; j++) {
-      dest_row[j] = fp32_to_bits(dest_values[j]);
-    }
-  }
-  host_fma_env_end(&saved_env);
-  return true;
-}
+def_auto_vectorized_float_mmacc(mmacc_fp8e4m3_fp8e4m3_fp32, FP8E4M3, FP32)
+def_auto_vectorized_float_mmacc(mmacc_fp8e5m2_fp8e5m2_fp32, FP8E5M2, FP32)
+def_auto_vectorized_float_mmacc(mmacc_fp16_fp16_fp32, FP16, FP32)
+def_auto_vectorized_float_mmacc(mmacc_bf16_bf16_fp32, BF16, FP32)
+def_auto_vectorized_float_mmacc(mmacc_fp32_fp32_fp32, FP32, FP32)
+#undef def_auto_vectorized_float_mmacc
 
 #endif // CONFIG_FPU_NONE
 
@@ -665,6 +610,12 @@ bool try_auto_vectorized_float_mmacc(
         acc_idx, ts1, ts2, tile_m, tile_n, tile_k, host_rounding_mode);
     case FLOAT_MMACC_FP32_FP32_FP32:
       return mmacc_fp32_fp32_fp32(
+        acc_idx, ts1, ts2, tile_m, tile_n, tile_k, host_rounding_mode);
+    case FLOAT_MMACC_FP8E4M3_FP8E4M3_FP32:
+      return mmacc_fp8e4m3_fp8e4m3_fp32(
+        acc_idx, ts1, ts2, tile_m, tile_n, tile_k, host_rounding_mode);
+    case FLOAT_MMACC_FP8E5M2_FP8E5M2_FP32:
+      return mmacc_fp8e5m2_fp8e5m2_fp32(
         acc_idx, ts1, ts2, tile_m, tile_n, tile_k, host_rounding_mode);
     case FLOAT_MMACC_UNSUPPORTED:
     default:

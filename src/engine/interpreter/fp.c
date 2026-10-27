@@ -533,6 +533,23 @@ def_rtl(mfpcall, rtlreg_t *dest, const rtlreg_t *src1, const rtlreg_t *src2, uin
       default:
         panic("op = %d not supported for BF16 matrix operands", op);
     }
+  } else if (w == FPCALL_FP8E4M3 || w == FPCALL_FP8E5M2) {
+    float32_t fsrc1;
+    float32_t fsrc2;
+    if (w == FPCALL_FP8E4M3) {
+      fsrc1 = my_fp8e4m3_to_f32(*src1);
+      fsrc2 = my_fp8e4m3_to_f32(*src2);
+    } else {
+      fsrc1 = my_fp8e5m2_to_f32(*src1);
+      fsrc2 = my_fp8e5m2_to_f32(*src2);
+    }
+    switch (op) {
+      case FPCALL_MADD:
+        *dest = f32_mulAdd(fsrc1, fsrc2, rtlToVF32(*dest)).v;
+        break;
+      default:
+        panic("op = %d not supported for FP8 matrix operands", op);
+    }
   } else if (w == FPCALL_W32 || w == FPCALL_W16_to_32) {
     float32_t fsrc1;
     float32_t fsrc2;

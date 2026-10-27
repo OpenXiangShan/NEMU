@@ -144,6 +144,12 @@ def_EHelper(mmacc) {
       case FLOAT_MMACC_FP32_FP32_FP32:
         FPCALL_TYPE = FPCALL_W32;
         break;
+      case FLOAT_MMACC_FP8E4M3_FP8E4M3_FP32:
+        FPCALL_TYPE = FPCALL_FP8E4M3;
+        break;
+      case FLOAT_MMACC_FP8E5M2_FP8E5M2_FP32:
+        FPCALL_TYPE = FPCALL_FP8E5M2;
+        break;
       case FLOAT_MMACC_UNSUPPORTED:
       default:
         Loge("floating-point mma type not supported");
