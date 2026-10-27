@@ -70,9 +70,10 @@ are named for their test policy, not for a general CI or ISA enable switch.
 
 BOOM uses `boom/base.config` for its machine properties, including
 2 GiB DRAM, sixteen PMP entries, and individual `RV_MEDELEG_*` settings.
-Each option controls whether one `medeleg` exception bit is writable; BOOM enables
-bits 0, 2, 3, 4, 6, 8, 12, 13 and 15. Other profiles retain their existing
-defaults, and hypervisor-only exception bits depend on `RVH`.
+Each option defaults to writable; hypervisor-only bits also depend on `RVH`.
+BOOM inherits the defaults and only disables bits 1, 5, 7, 9, 18 and 19,
+leaving bits 0, 2, 3, 4, 6, 8, 12, 13 and 15 writable. Other profiles retain
+their existing defaults.
 `riscv64-boom-ref_defconfig` adds the shared REF runtime and BOOM's
 comparison policy; `riscv64-boom-fastref_defconfig` also adds the shared
 FastRef execution layer. Both disable UART devices: DiffTest skips UART
