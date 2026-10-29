@@ -19,6 +19,10 @@ permissions:
   issues: write
   pull-requests: write
 
+concurrency:
+  group: pr-agent-${{ github.event.pull_request.number || github.event.issue.number || github.event.inputs.pr_url }}
+  cancel-in-progress: true
+
 jobs:
   review:
     name: PR-Agent review
