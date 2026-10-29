@@ -1,4 +1,4 @@
-# layer: riscv64/nutshell.config
+# layer: riscv64/nutshell/base.config
 # layer: fragments/difftest/spike.config
 
 # CONFIG_RESET_FROM_MMIO is not set
