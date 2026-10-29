@@ -1,7 +1,3 @@
-# layer: riscv64/nutshell.config
+# layer: riscv64/nutshell/base.config
 # layer: fragments/difftest/ref-share.config
-
-# CONFIG_DIFFTEST_STORE_COMMIT is not set
-# CONFIG_GUIDED_EXEC is not set
-# CONFIG_HAS_FLASH is not set
-# CONFIG_HAS_UARTLITE is not set
+# layer: riscv64/nutshell/ref.config

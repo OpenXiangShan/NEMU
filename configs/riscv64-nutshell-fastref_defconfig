@@ -1,0 +1,4 @@
+# layer: riscv64/nutshell/base.config
+# layer: fragments/difftest/ref-share.config
+# layer: riscv64/nutshell/ref.config
+# layer: fragments/difftest/fastref.config
