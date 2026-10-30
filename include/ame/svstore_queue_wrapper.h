@@ -19,6 +19,9 @@ enum {
 
 void svstore_queue_reset();
 void svstore_queue_push(svstore_info_t svstore_info);
+void svstore_queue_pop();
+svstore_info_t svstore_queue_front();
+size_t svstore_queue_size();
 bool svstore_queue_empty();
 
 // Record a completed RAM store, retaining whether its mapping uses PBMT=IO.

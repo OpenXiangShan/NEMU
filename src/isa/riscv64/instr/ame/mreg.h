@@ -160,6 +160,12 @@ void ame_matrix_region_mark_write(int mreg_num, uint64_t rows, uint64_t columns,
                                  uint64_t pc);
 void ame_matrix_region_check_read(int mreg_num, uint64_t rows, uint64_t columns,
                                  uint64_t pc);
+#ifdef CONFIG_SHARE_REF
+// Keep the region representation private when snapshotting REF replay state.
+size_t ame_matrix_region_state_size(void);
+void ame_matrix_region_state_save(void *state);
+void ame_matrix_region_state_restore(const void *state);
+#endif // CONFIG_SHARE_REF
 #endif // CONFIG_AME_TILEREG_UB_CHECK
 
 #ifdef CONFIG_RV_AME_FP4

@@ -33,6 +33,18 @@ void svstore_queue_push(svstore_info_t svstore_info) {
   cpp_svstore_queue.push_back(svstore_info);
 }
 
+void svstore_queue_pop() {
+  cpp_svstore_queue.pop_front();
+}
+
+svstore_info_t svstore_queue_front() {
+  return cpp_svstore_queue.front();
+}
+
+size_t svstore_queue_size() {
+  return cpp_svstore_queue.size();
+}
+
 void svstore_queue_emplace(paddr_t addr, int len, vaddr_t pc, vaddr_t vaddr) {
   svstore_info_t svstore_info = {
     .addr = addr, .len = (uint64_t)len, .pc = pc, .vaddr = vaddr,
