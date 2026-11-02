@@ -5,6 +5,7 @@
 # layer: fragments/ext/ame-matrix.config
 
 CONFIG_DIFFTEST_AMU_CTRL=y
+CONFIG_PERF_OPT_SHARE=y
 CONFIG_RV_AME_TLEN=32768
 # CONFIG_RV_SMCNTRPMF is not set
 # CONFIG_RV_SMCDELEG is not set

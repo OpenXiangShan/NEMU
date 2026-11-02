@@ -20,6 +20,7 @@
 #include <cpu/difftest.h>
 #include <cpu/decode.h>
 #include <cpu/instr_stat.h>
+#include <ame/event.h>
 #include <memory/host-tlb.h>
 #include <isa-all-instr.h>
 #include <locale.h>
