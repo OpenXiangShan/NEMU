@@ -14,8 +14,6 @@
 * See the Mulan PSL v2 for more details.
 ***************************************************************************************/
 
-#include <cpu/difftest/ame/amu_ctrl_queue_wrapper.h>
-#include <ctrl/ame/cutest.h>
 #include <isa.h>
 #include <memory/host.h>
 #include <memory/host-tlb.h>
@@ -100,6 +98,14 @@ static inline word_t hosttlb_paddr_read(paddr_t paddr, int len, int type,
   return paddr_read(paddr, len, type, trap_type, cpu.mode, vaddr);
 }
 
+#ifdef CONFIG_RV_AME
+static inline void hosttlb_paddr_read_matrix(paddr_t pbase, paddr_t stride,
+                                             int row, int column, int msew, bool transpose,
+                                             vaddr_t vbase, char m_name, int mreg_id) {
+  paddr_read_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, m_name, mreg_id);
+}
+#endif // CONFIG_RV_AME
+
 __attribute__((noinline))
 static word_t hosttlb_read_slowpath(struct Decode *s, vaddr_t vaddr, int len, int type, int trap_type) {
   paddr_t paddr = va2pa(s, vaddr, len, trap_type);
@@ -129,8 +135,10 @@ __attribute__((noinline))
 static void hosttlb_read_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                                           int row, int column, int msew, bool transpose, char m_name, int mreg_id) {
   paddr_t pbase = va2pa(s, vbase, 1 << msew, MEM_TYPE_MATRIX_READ);
-  paddr_read_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, m_name, mreg_id);
-  if (likely(in_pmem(pbase))) {
+  hosttlb_paddr_read_matrix(pbase, stride, row, column, msew, transpose, vbase, m_name, mreg_id);
+  if (hosttlb_cacheable(MEM_TYPE_MATRIX_READ) &&
+      MUXDEF(CONFIG_PERF_OPT_SHARE, cpu.pbmt == 0, true) &&
+      likely(in_pmem(pbase))) {
     HostTLBEntry *e = &hostrtlb[hosttlb_idx(vbase)];
     e->offset = guest_to_host(pbase) - vbase;
     e->gvpn = hosttlb_vpn(vbase);
@@ -165,7 +173,9 @@ static void hosttlb_write_matrix_slowpath(struct Decode *s, vaddr_t vbase, vaddr
                                           int row, int column, int msew, bool transpose, char m_name, int mreg_id) {
   paddr_t pbase = va2pa(s, vbase, 1 << msew, MEM_TYPE_MATRIX_WRITE);
   paddr_write_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, m_name, mreg_id);
-  if (likely(in_pmem(pbase))) {
+  if (hosttlb_cacheable(MEM_TYPE_MATRIX_WRITE) &&
+      MUXDEF(CONFIG_PERF_OPT_SHARE, cpu.pbmt == 0, true) &&
+      likely(in_pmem(pbase))) {
     HostTLBEntry *e = &hostwtlb[hosttlb_idx(vbase)];
     e->offset = guest_to_host(pbase) - vbase;
     e->gvpn = hosttlb_vpn(vbase);
@@ -217,55 +227,40 @@ void hosttlb_read_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                            int row, int column, int msew, bool transpose,
                            char m_name, int mreg_id) {
   Logm("hosttlb_reading_matrix " FMT_WORD, vbase);
+  if (!hosttlb_cacheable(MEM_TYPE_MATRIX_READ)) {
+    hosttlb_read_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, m_name, mreg_id);
+    return;
+  }
 #ifdef CONFIG_RVH
   extern bool has_two_stage_translation();
-  if(has_two_stage_translation()){
+  if (has_two_stage_translation()) {
     paddr_t pbase = va2pa(s, vbase, 1 << msew, MEM_TYPE_MATRIX_READ);
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
-    fprintf(stderr, "?? 2-stage hosttlb_read paddr " FMT_WORD ", len: %d, type: %d\n", paddr, 1 << msew, type);
+    fprintf(stderr, "?? 2-stage hosttlb_read paddr " FMT_PADDR ", len: %d, type: %d\n",
+      pbase, 1 << msew, MEM_TYPE_MATRIX_READ);
 #endif // CONFIG_TRACE_MATRIX_LOAD_STORE
-    paddr_read_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, m_name, mreg_id);
-  } else
-#endif
-  {
-    vaddr_t gvpn = hosttlb_vpn(vbase);
-    HostTLBEntry *e = &hostrtlb[hosttlb_idx(vbase)];
-    if (unlikely(e->generation != hosttlb_generation || e->gvpn != gvpn)) {
-      Logm("Host TLB slow path");
-      hosttlb_read_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, m_name, mreg_id);
-    } else {
-      Logm("Host TLB fast path");
-      uint8_t *host_base = e->offset + vbase;      
-#ifdef CONFIG_AME_MEM_ACCESS_CHECK
-      svstore_queue_check_matrix_addr_conflict(host_to_guest(host_base), stride,
-          row, column, msew, transpose, s->pc, vbase);
-#endif
-#ifdef CONFIG_DIFFTEST_AMU_CTRL
-      amu_ctrl_queue_mls_emplace(mreg_id, 0, transpose, m_name == 'c', m_name == 'a',
-        host_to_guest(host_base), stride,
-        m_name == 'b' ? column : row,
-        m_name == 'b' ? row : column,
-        msew
-      );
-#endif // CONFIG_DIFFTEST_AMU_CTRL
-#ifdef CONFIG_SHARE_CTRL
-      cutest_mls_emplace(mreg_id, 0, transpose, m_name == 'c', m_name == 'a',
-        host_to_guest(host_base), stride,
-        m_name == 'b' ? column : row,
-        m_name == 'b' ? row : column,
-        msew
-      );
-#endif // CONFIG_SHARE_CTRL
-#ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
-      fprintf(stderr, "?? fast-path hosttlb_read paddr " FMT_WORD ", len: %d, type: %d\n", (paddr_t)host_to_guest(e->offset) + vbase, 1 << msew, type);
-      // guest_to_host(e->offset) when save, so in order to get the original paddr, we use host_to_guest here
-#endif // CONFIG_TRACE_MATRIX_LOAD_STORE
-#ifndef CONFIG_SHARE_REF
-      pmem_read_matrix(host_to_guest(host_base), stride,
-                       row, column, msew, transpose, m_name, mreg_id);
-#endif // CONFIG_SHARE_REF
-    }
+    hosttlb_paddr_read_matrix(pbase, stride, row, column, msew, transpose, vbase, m_name, mreg_id);
+    return;
   }
+#endif
+  vaddr_t gvpn = hosttlb_vpn(vbase);
+  HostTLBEntry *e = &hostrtlb[hosttlb_idx(vbase)];
+  if (unlikely(e->generation != hosttlb_generation || e->gvpn != gvpn)) {
+    Logm("Host TLB slow path");
+    hosttlb_read_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, m_name, mreg_id);
+    return;
+  }
+  Logm("Host TLB fast path");
+#ifdef CONFIG_PERF_OPT_SHARE
+  cpu.pbmt = 0; // Only ordinary-memory translations enter the shared cache.
+#endif
+#ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
+  fprintf(stderr, "?? fast-path hosttlb_read paddr " FMT_PADDR ", len: %d, type: %d\n",
+      host_to_guest(e->offset + vbase), 1 << msew, MEM_TYPE_MATRIX_READ);
+#endif // CONFIG_TRACE_MATRIX_LOAD_STORE
+  // Cache translation only; preserve physical checks and AMU side effects.
+  hosttlb_paddr_read_matrix(host_to_guest(e->offset + vbase), stride, row, column, msew, transpose,
+                            vbase, m_name, mreg_id);
 }
 #endif // CONFIG_RV_AME
 
@@ -338,20 +333,19 @@ void hosttlb_write(struct Decode *s, vaddr_t vaddr, int len, word_t data) {
 void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
                           int row, int column, int msew, bool transpose,
                           char m_name, int mreg_id) {
+  if (!hosttlb_cacheable(MEM_TYPE_MATRIX_WRITE)) {
+    hosttlb_write_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, m_name, mreg_id);
+    return;
+  }
 #ifdef CONFIG_RVH
-  if (has_two_stage_translation()){
-    paddr_t pbase = va2pa(s, vbase, 1 << msew, MEM_TYPE_WRITE);
+  if (has_two_stage_translation()) {
+    paddr_t pbase = va2pa(s, vbase, 1 << msew, MEM_TYPE_MATRIX_WRITE);
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
-    fprintf(stderr, "?? 2-stage hosttlb_write paddr " FMT_WORD ", len: %d, type: %d\n",
+    fprintf(stderr, "?? 2-stage hosttlb_write paddr " FMT_PADDR ", len: %d, type: %d\n",
       pbase, 1 << msew, MEM_TYPE_MATRIX_WRITE);
 #endif // CONFIG_TRACE_MATRIX_LOAD_STORE
-    // TODO: print AmuCtrlIO info here
-    // fprintf(
-    //   "[AmuCtrlIO] op=1 \n"
-    //   "            ..."
-    //   "\n");
-    return paddr_write_matrix(pbase, stride, row, column, msew, transpose,
-      cpu.mode, vbase, m_name, mreg_id);
+    paddr_write_matrix(pbase, stride, row, column, msew, transpose, cpu.mode, vbase, m_name, mreg_id);
+    return;
   }
 #endif
   vaddr_t gvpn = hosttlb_vpn(vbase);
@@ -360,34 +354,14 @@ void hosttlb_write_matrix(struct Decode *s, vaddr_t vbase, vaddr_t stride,
     hosttlb_write_matrix_slowpath(s, vbase, stride, row, column, msew, transpose, m_name, mreg_id);
     return;
   }
-  uint8_t *host_base = e->offset + vbase;
-#ifdef CONFIG_DIFFTEST_STORE_COMMIT
-  // Also do store commit check with performance optimization enlabled
-  matrix_store_commit_queue_push(host_to_guest(host_base), stride, row, column, msew, transpose);
-#endif // CONFIG_DIFFTEST_STORE_COMMIT
-#ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mls_emplace(mreg_id, 1, transpose, m_name == 'c', m_name == 'a',
-    host_to_guest(host_base), stride,
-    m_name == 'b' ? column : row,
-    m_name == 'b' ? row : column,
-    msew
-  );
-#endif // CONFIG_DIFFTEST_AMU_CTRL
-#ifdef CONFIG_SHARE_CTRL
-  cutest_mls_emplace(mreg_id, 1, transpose, m_name == 'c', m_name == 'a',
-    host_to_guest(host_base), stride,
-    m_name == 'b' ? column : row,
-    m_name == 'b' ? row : column,
-    msew
-  );
-#endif // CONFIG_SHARE_CTRL
+#ifdef CONFIG_PERF_OPT_SHARE
+  cpu.pbmt = 0;
+#endif
 #ifdef CONFIG_TRACE_MATRIX_LOAD_STORE
   fprintf(stderr, "?? fast-path hosttlb_write paddr " FMT_WORD ", len: %d, type: %d\n",
-    (paddr_t)host_to_guest(e->offset) + vbase, 1 << msew, MEM_TYPE_MATRIX_WRITE);
+    host_to_guest(e->offset + vbase), 1 << msew, MEM_TYPE_MATRIX_WRITE);
 #endif // CONFIG_TRACE_MATRIX_LOAD_STORE
-#ifndef CONFIG_SHARE_REF
-  pmem_write_matrix(host_to_guest(host_base), stride,
-                    row, column, msew, transpose, m_name, mreg_id);
-#endif // CONFIG_SHARE_REF
+  paddr_write_matrix(host_to_guest(e->offset + vbase), stride, row, column, msew, transpose,
+                     cpu.mode, vbase, m_name, mreg_id);
 }
 #endif // CONFIG_RV_AME
