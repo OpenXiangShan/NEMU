@@ -11,6 +11,10 @@ permissions:
   issues: write
   pull-requests: write
 
+concurrency:
+  group: perf-comment-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: true
+
 jobs:
   comment:
     if: github.event.workflow_run.event == 'pull_request' &&
@@ -47,7 +51,7 @@ jobs:
         run: |
           unzip ${{ runner.temp }}/artifacts/artifacts.zip -d ${{ runner.temp }}/artifacts/
       
-      - name: Post comment on PR
+      - name: Post or update comment on PR
         uses: actions/github-script@v9
         with:
           script: |
@@ -56,10 +60,35 @@ jobs:
             const resultPath = path.join('${{ runner.temp }}/artifacts/', 'performance_results.md');
             const performanceResults = fs.readFileSync(resultPath, 'utf8');
             const prNumberPath = path.join('${{ runner.temp }}/artifacts/', 'PR_NUMBER.txt');
-            const prNumber = fs.readFileSync(prNumberPath, 'utf8').trim();
-            await github.rest.issues.createComment({
+            const prNumber = Number(fs.readFileSync(prNumberPath, 'utf8').trim());
+
+            // Keep one performance comment per PR and update it on every new CI run.
+            const marker = '<!-- nemu-ci-performance-results -->';
+            const body = `${marker}\n${performanceResults}`;
+            const comments = await github.paginate(github.rest.issues.listComments, {
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
-              body: performanceResults,
+              per_page: 100,
             });
+            const existingComment = comments.find((comment) =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker)
+            );
+
+            if (existingComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existingComment.id,
+                body,
+              });
+              core.info(`Updated performance results comment ${existingComment.id} on PR #${prNumber}.`);
+            } else {
+              const comment = await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+              core.info(`Created performance results comment ${comment.data.id} on PR #${prNumber}.`);
+            }
