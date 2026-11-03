@@ -257,6 +257,10 @@ void set_vec_load_difftest_info(int fn, int len) {
 
 void vld(Decode *s, int mode, int mmu_mode) {
   vload_check(mode, s);
+  // All vloads that complete successfully are set to dirtyVS.
+  if (vl->val == 0 && vstart->val == 0) {
+    vp_set_dirty();
+  }
   if (skip_empty_vldst(s)) return;
   uint64_t nf, fn, vl_val, ori_vstart, base_addr, vd, addr, is_unit_stride;
   int64_t stride;
@@ -446,6 +450,9 @@ void vldx(Decode *s, int mmu_mode) {
   //        6  ->  32         2  ->  32
   //        7  ->  64         3  ->  64
   index_vload_check(s);
+  if (vl->val == 0 && vstart->val == 0) {
+    vp_set_dirty();
+  }
   if (skip_empty_vldst(s)) return;
   uint64_t nf = s->v_nf + 1, fn, vl_val, ori_vstart, base_addr, vd, index, addr;
   int eew, lmul, index_width, data_width;
@@ -941,6 +948,9 @@ void vsr(Decode *s, int mmu_mode) {
 void vldff(Decode *s, int mode, int mmu_mode) {
   fofvl = 0;
   vload_check(mode, s);
+  if (vl->val == 0 && vstart->val == 0) {
+    vp_set_dirty();
+  }
   if (skip_empty_vldst(s)) return;
   uint64_t nf, fn, vl_val, ori_vstart, base_addr, vd, addr, is_unit_stride;
   int64_t stride;
