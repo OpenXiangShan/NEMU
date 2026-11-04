@@ -166,7 +166,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #ifdef CONFIG_RV_IMSIC
     int vs_guest_no = NO & 0xff;
     bool vs_host_no = (vs_guest_no == IRQ_VSSIP) || (vs_guest_no == IRQ_VSTIP) || (vs_guest_no == IRQ_VSEIP);
-    if ((NO & INTR_BIT) && vs_host_no) {
+    if (virtualInterruptIsHvictlInject) {
+      vscause->val = NO | INTR_BIT;
+    } else if ((NO & INTR_BIT) && vs_host_no) {
       vscause->val = ((NO & (~INTR_BIT)) - 1) | INTR_BIT;
     } else {
       vscause->val = NO;
