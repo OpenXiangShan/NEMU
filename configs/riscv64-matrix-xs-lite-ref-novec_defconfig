@@ -1,0 +1,16 @@
+# layer: riscv64/xs/base.config
+# layer: riscv64/xs/kmh/v3/base.config
+# layer: riscv64/xs/ref.config
+# layer: riscv64/xs/kmh/v3/ref.config
+# layer: fragments/ext/ame-matrix.config
+
+CONFIG_DIFFTEST_AMU_CTRL=y
+CONFIG_PERF_OPT_SHARE=y
+CONFIG_RV_AME_TLEN=32768
+# CONFIG_RV_SMCNTRPMF is not set
+# CONFIG_RV_SMCDELEG is not set
+# CONFIG_RV_ZABHA is not set
+
+# Match DiffTest --difftest-exclude Vec while retaining RVV execution.
+# CONFIG_DIFFTEST_CHECK_VRF is not set
+# CONFIG_DIFFTEST_CHECK_VCSR is not set
