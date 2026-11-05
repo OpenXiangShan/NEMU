@@ -125,15 +125,9 @@ typedef struct {
   uint64_t vstvec, vsepc, vscause, vstval, vsatp, vsscratch;
 #endif // CONFIG_RVH
 
-#ifdef CONFIG_RVV
-  //vector
-  union {
-    uint64_t _64[VENUM64];
-    uint32_t _32[VENUM32];
-    uint16_t _16[VENUM16];
-    uint8_t  _8[VENUM8];
-  } vr[32];
-#endif // CONFIG_RVV
+#ifdef CONFIG_DIFFTEST_CHECK_VRF
+  rtlvreg_t vr[32];
+#endif // CONFIG_DIFFTEST_CHECK_VRF
 
 #ifdef CONFIG_DIFFTEST_CHECK_VCSR
   uint64_t vstart;
@@ -159,6 +153,11 @@ typedef struct {
 
   uint64_t difftest_state_end;
   /** Above will be used and synced by regcpy when run difftest, DO NOT TOUCH ***/
+
+#if defined(CONFIG_RVV) && !defined(CONFIG_DIFFTEST_CHECK_VRF)
+  // Keep execution state outside the compact DiffTest register-copy range.
+  rtlvreg_t vr[32];
+#endif
 
 
   // exec state
