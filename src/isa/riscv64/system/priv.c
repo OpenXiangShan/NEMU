@@ -1315,10 +1315,10 @@ static inline void set_mvip(word_t src) {
 
   mvip->val = mask_bitset(mvip->val, MIP_SSIP & mvien->val, src);
 
-  mip->val = mask_bitset(get_mip(), MIP_SSIP & (~mvien->val), src);
+  mip->val = mask_bitset(mip->val, MIP_SSIP & (~mvien->val), src);
 
   if (!menvcfg->stce) {
-    mip->val = mask_bitset(get_mip(), MIP_STIP, src);
+    mip->val = mask_bitset(mip->val, MIP_STIP, src);
   }
 
   mvip->val = mask_bitset(mvip->val, MIP_SEIP, src);
@@ -1348,12 +1348,12 @@ static inline word_t get_vsip() {
 static inline void set_vsip(word_t src) {
   hvip->val = mask_bitset(hvip->val, MIP_VSSIP & (get_hideleg() & (mideleg->val | MIDELEG_FORCED_MASK)), src << 1);
 #ifdef CONFIG_RV_AIA
-  mip->val = mask_bitset(get_mip(), MIP_LCOFIP & mideleg->val & get_hideleg(), src);
+  mip->val = mask_bitset(mip->val, MIP_LCOFIP & mideleg->val & get_hideleg(), src);
   mvip->val = mask_bitset(mvip->val, MIP_LCOFIP & (~mideleg->val & get_hideleg() & mvien->val), src);
   hvip->val = mask_bitset(hvip->val, MIP_LCOFIP & (~get_hideleg() & hvien->val), src);
   vmode_set_ip(src, LCI_BEGIN, 63);
 #else
-  IFDEF(CONFIG_RV_SSCOFPMF, mip->val = mask_bitset(get_mip(), MIP_LCOFIP & mideleg->val & get_hideleg(), src));
+  IFDEF(CONFIG_RV_SSCOFPMF, mip->val = mask_bitset(mip->val, MIP_LCOFIP & mideleg->val & get_hideleg(), src));
 #endif // CONFIG_RV_AIA
 }
 #endif // CONFIG_RVH
@@ -3542,11 +3542,20 @@ void riscv64_priv_csrrw(rtlreg_t *dest, word_t val, word_t csrid, word_t rd) {
 #endif // CONFIG_RV_IMSIC
 }
 
+// MIP.SEIP returns the interrupt-controller signal to rd, but only the
+// software pending bit participates in CSRRS/CSRRC read-modify-write.
+static inline word_t csr_rmw_value(uint32_t csrid, word_t rdata) {
+  if (csrid == CSR_MIP) {
+    rdata = mask_bitset(rdata, MIP_SEIP, MUXDEF(CONFIG_RV_AIA, mvip->val, mip->val));
+  }
+  return rdata;
+}
+
 void riscv64_priv_csrrs(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1) {
   csr_permit_check(csrid, rs1 != 0);
   *dest = csr_read(csrid);
   if (rs1) {
-    csr_write(csrid, val | *dest);
+    csr_write(csrid, val | csr_rmw_value(csrid, *dest));
   }
 #ifdef CONFIG_RV_IMSIC
   sync_old_xtopei();
@@ -3558,7 +3567,7 @@ void riscv64_priv_csrrc(rtlreg_t *dest, word_t val, word_t csrid, word_t rs1) {
   csr_permit_check(csrid, rs1 != 0);
   *dest = csr_read(csrid);
   if (rs1) {
-    csr_write(csrid, (~val) & *dest);
+    csr_write(csrid, (~val) & csr_rmw_value(csrid, *dest));
   }
 #ifdef CONFIG_RV_IMSIC
   sync_old_xtopei();
