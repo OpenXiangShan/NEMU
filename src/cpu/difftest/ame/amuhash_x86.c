@@ -29,231 +29,271 @@
 
 #include "amuhash_math.h"
 
-static bool host_supports_fast_path;
+static enum {
+  HASH_HOST_BASELINE,
+  HASH_HOST_AVX2,
+  HASH_HOST_AVX512,
+} host_hash_tier;
 
 AMU_HASH_TARGET_BASELINE
 __attribute__((constructor))
 static void detect_hash_host_features(void) {
   __builtin_cpu_init();
-  host_supports_fast_path = __builtin_cpu_supports("avx2") &&
-                            __builtin_cpu_supports("pclmul");
+  if (!(__builtin_cpu_supports("avx2") && __builtin_cpu_supports("sse4.2") &&
+        __builtin_cpu_supports("pclmul") && __builtin_cpu_supports("bmi2"))) return;
+  host_hash_tier = HASH_HOST_AVX2;
+  if (__builtin_cpu_supports("avx512f") && __builtin_cpu_supports("avx512dq") &&
+      __builtin_cpu_supports("vpclmulqdq")) host_hash_tier = HASH_HOST_AVX512;
 }
 
 AMU_HASH_TARGET_AVX2
-static inline gf128_t gf128_multiply_pclmul(gf128_t a, gf128_t b) {
-  const __m128i av = _mm_set_epi64x(a.hi, a.lo);
-  const __m128i bv = _mm_set_epi64x(b.hi, b.lo);
-  const __m128i low_product = _mm_clmulepi64_si128(av, bv, 0x00);
-  const __m128i high_product = _mm_clmulepi64_si128(av, bv, 0x11);
-  const __m128i ax = _mm_xor_si128(av, _mm_srli_si128(av, 8));
-  const __m128i bx = _mm_xor_si128(bv, _mm_srli_si128(bv, 8));
-  const __m128i cross = _mm_xor_si128(_mm_clmulepi64_si128(ax, bx, 0x00),
-                                    _mm_xor_si128(low_product, high_product));
-  const __m128i low = _mm_xor_si128(low_product, _mm_slli_si128(cross, 8));
-  const __m128i high = _mm_xor_si128(high_product, _mm_srli_si128(cross, 8));
-
-  gf128_t result = {0}, upper = {0};
-  _mm_storeu_si128((__m128i *)&result, low);
-  _mm_storeu_si128((__m128i *)&upper, high);
-  // Fold the upper half using x^128 = x^7+x^2+x+1, then fold its seven overflow bits.
-  const uint64_t overflow = (upper.hi >> 63) ^ (upper.hi >> 62) ^ (upper.hi >> 57);
-  result.lo ^= upper.lo ^ (upper.lo << 1) ^ (upper.lo << 2) ^ (upper.lo << 7) ^
-               overflow ^ (overflow << 1) ^ (overflow << 2) ^ (overflow << 7);
-  result.hi ^= upper.hi ^ (upper.hi << 1) ^ (upper.hi << 2) ^ (upper.hi << 7) ^
-               (upper.lo >> 63) ^ (upper.lo >> 62) ^ (upper.lo >> 57);
-  return result;
+static inline uint32_t hash_reduce64_pclmul(uint64_t value) {
+  // Reciprocal polynomial floor(x^64/P) = 0x11f91caf6. The high word
+  // determines the quotient; only the low word of quotient*P is needed.
+  const __m128i quotient = _mm_srli_epi64(_mm_clmulepi64_si128(
+    _mm_cvtsi64_si128(value >> 32), _mm_cvtsi64_si128(UINT64_C(0x11f91caf6)), 0), 32);
+  const __m128i product = _mm_clmulepi64_si128(quotient,
+    _mm_cvtsi64_si128(UINT64_C(0x11edc6f41)), 0);
+  return value ^ (uint64_t)_mm_cvtsi128_si64(product);
 }
 
 AMU_HASH_TARGET_AVX2
-static gf128_t hash_shift_factor_avx2(size_t bytes) {
-  gf128_t factor = {.lo = 1};
-  for (size_t bit = 0; bytes != 0; ++bit, bytes >>= 1) {
-    if (bytes & 1) {
-      factor = gf128_multiply_pclmul(factor, hash_shift_powers[bit]);
-    }
+static inline uint32_t hash_reduce128_pclmul(uint64_t low, uint64_t high) {
+  const __m128i factor = _mm_cvtsi64_si128(UINT64_C(0x3aab4576)); // x^64 mod P
+  const __m128i first = _mm_clmulepi64_si128(_mm_cvtsi64_si128(high), factor, 0);
+  const __m128i second = _mm_clmulepi64_si128(_mm_srli_si128(first, 8), factor, 0);
+  return hash_reduce64_pclmul(low ^ (uint64_t)_mm_cvtsi128_si64(first) ^
+                             (uint64_t)_mm_cvtsi128_si64(second));
+}
+
+AMU_HASH_TARGET_AVX2
+static inline uint32_t gf32_multiply_pclmul(uint32_t a, uint32_t b) {
+  const __m128i product = _mm_clmulepi64_si128(_mm_cvtsi64_si128(a), _mm_cvtsi64_si128(b), 0);
+  return hash_reduce64_pclmul((uint64_t)_mm_cvtsi128_si64(product));
+}
+
+AMU_HASH_TARGET_AVX2
+static uint64_t hash_shift_factor_avx2(size_t bytes) {
+  uint64_t factor = 1;
+  for (unsigned bit = 0; bytes; ++bit, bytes >>= 1) {
+    if (bytes & 1) factor = factor == 1 ? hash_shift_powers[bit] :
+                           gf32_multiply_pclmul(factor, hash_shift_powers[bit]);
   }
   return factor;
 }
 
 AMU_HASH_TARGET_AVX2
-static gf128_t hash_scalar_avx2(const uint8_t *reg_data, size_t reg_row_bytes,
-                                size_t active_rows, size_t active_row_bytes) {
-  gf128_t hash = {0};
-  if (active_rows == 0 || active_row_bytes == 0) return hash;
-  const size_t gap_bytes = reg_row_bytes - active_row_bytes;
-  const bool jump_gap = gap_bytes >= HASH_AVX2_MIN_GAP_BYTES && active_rows > 1;
-  const gf128_t gap_factor = jump_gap ? hash_shift_factor_avx2(gap_bytes) : (gf128_t){0};
-  for (size_t row = active_rows; row-- > 0;) {
-    if (row + 1 != active_rows) {
-      if (jump_gap) hash = gf128_multiply_pclmul(hash, gap_factor);
-      else hash_advance_unwritten(&hash, gap_bytes);
-    }
-    hash_update_data(&hash, reg_data + row * reg_row_bytes, active_row_bytes);
-  }
-  return hash;
-}
-
-// Each AVX2 lane holds one independent 128-bit hash, split between lo and hi.
-AMU_HASH_TARGET_AVX2
-static inline void hash_update_avx2(__m256i *lo, __m256i *hi,
-                                    __m256i symbols, unsigned bits) {
-  const __m256i high = _mm256_srli_epi64(*hi, 64 - bits);
-  __m256i next_hi = _mm256_or_si256(_mm256_slli_epi64(*hi, bits),
-                                  _mm256_srli_epi64(*lo, 64 - bits));
-  // Only long shifts spill the polynomial reduction into the upper half.
-  if (bits > 57) {
-    next_hi = _mm256_xor_si256(next_hi, _mm256_xor_si256(
-      _mm256_srli_epi64(high, 62), _mm256_srli_epi64(high, 57)));
-  }
-  __m256i next_lo = _mm256_xor_si256(_mm256_slli_epi64(*lo, bits), high);
-  next_lo = _mm256_xor_si256(next_lo, _mm256_xor_si256(
-    _mm256_slli_epi64(high, 1), _mm256_slli_epi64(high, 2)));
-  *lo = _mm256_xor_si256(_mm256_xor_si256(next_lo, _mm256_slli_epi64(high, 7)), symbols);
-  *hi = next_hi;
+static inline uint64_t hash_pack_seven_bmi2(const uint8_t *data, size_t byte) {
+  const uint64_t packed = byte ? hash_load_le64(data + byte - 1) >> 8 : hash_load_le64(data);
+  return _pdep_u64(packed, UINT64_C(0x3fdfeff7fbfdfeff)) | UINT64_C(0x4020100804020100);
 }
 
 AMU_HASH_TARGET_AVX2
-static inline void hash_update_byte_avx2(__m256i *lo, __m256i *hi,
-                                         __m256i symbols) {
-  hash_update_avx2(lo, hi, symbols, HASH_SYMBOL_BITS);
+static inline __m256i hash_pack_seven_fold(const uint8_t *data, size_t span, size_t byte) {
+  return _mm256_set_epi64x(hash_pack_seven_bmi2(data + 3 * span, byte),
+    hash_pack_seven_bmi2(data + 2 * span, byte), hash_pack_seven_bmi2(data + span, byte),
+    hash_pack_seven_bmi2(data, byte));
 }
 
-AMU_HASH_TARGET_AVX2
-static inline void hash_update_seven_avx2(__m256i *lo, __m256i *hi,
-                                          __m256i symbols) {
-  hash_update_avx2(lo, hi, symbols, HASH_SYMBOL_BITS * HASH_BATCH_BYTES);
+// Keep unreduced 128-bit lane states between blocks. Four VPCLMUL instructions
+// advance all four lanes by fourteen symbols; only final states need reduction.
+AMU_HASH_TARGET_AVX512
+static inline void hash_fold_lanes(__m256i *lo, __m256i *hi, uint64_t low_factor,
+                                   uint64_t high_factor, __m256i input_lo, __m256i input_hi) {
+  const __m256i a = _mm256_set1_epi64x(low_factor), b = _mm256_set1_epi64x(high_factor);
+  const __m256i even = _mm256_xor_si256(_mm256_clmulepi64_epi128(*lo, a, 0x00),
+                                       _mm256_clmulepi64_epi128(*hi, b, 0x00));
+  const __m256i odd = _mm256_xor_si256(_mm256_clmulepi64_epi128(*lo, a, 0x11),
+                                      _mm256_clmulepi64_epi128(*hi, b, 0x11));
+  *lo = _mm256_xor_si256(_mm256_unpacklo_epi64(even, odd), input_lo);
+  *hi = _mm256_xor_si256(_mm256_unpackhi_epi64(even, odd), input_hi);
 }
 
-AMU_HASH_TARGET_AVX2
-static inline __m256i hash_pack_seven_avx2(const uint8_t *data, __m256i offsets,
-                                           size_t byte) {
-  __m256i packed;
-  // Read eight bytes wholly within each row. Drop the preceding byte when possible;
-  // at byte zero, ignore the eighth byte. The caller requires a row width of at least eight.
-  if (byte != 0) {
-    packed = _mm256_i64gather_epi64((const long long *)(data + byte - 1), offsets, 1);
-    packed = _mm256_srli_epi64(packed, 8);
+AMU_HASH_TARGET_AVX512
+static uint64_t hash_parallel_fold(const uint8_t *data, size_t stride, size_t rows, size_t bytes) {
+  size_t rows_per_lane, span, tail;
+  if (bytes == stride) {
+    // A full tile is contiguous; remove per-row tails and gaps entirely.
+    span = rows * stride / HASH_LANES;
+    tail = 0; // Dispatch only flattens a stride divisible by HASH_LANES.
+    rows_per_lane = 1;
+    bytes = stride = span;
   } else {
-    packed = _mm256_i64gather_epi64((const long long *)data, offsets, 1);
-    packed = _mm256_and_si256(packed, _mm256_set1_epi64x(UINT64_C(0x00ffffffffffffff)));
+    rows_per_lane = rows / HASH_LANES;
+    span = rows_per_lane * stride;
+    tail = rows % HASH_LANES;
   }
-
-  // Insert one zero between adjacent bytes, then set the seven coverage bits.
-  const __m256i lower = _mm256_and_si256(packed, _mm256_set1_epi64x(UINT64_C(0xffffffff)));
-  packed = _mm256_or_si256(lower, _mm256_slli_epi64(_mm256_srli_epi64(packed, 32), 36));
-  __m256i moved = _mm256_and_si256(packed,
-                                 _mm256_set1_epi64x(UINT64_C(0x0ff00000ffff0000)));
-  packed = _mm256_or_si256(_mm256_and_si256(packed,
-    _mm256_set1_epi64x(UINT64_C(0x000ffff00000ffff))), _mm256_slli_epi64(moved, 2));
-  const __m256i odd_bytes = _mm256_set1_epi64x(UINT64_C(0x000ff003fc00ff00));
-  moved = _mm256_and_si256(packed, odd_bytes);
-  packed = _mm256_or_si256(_mm256_andnot_si256(odd_bytes, packed),
-                          _mm256_slli_epi64(moved, 1));
-  return _mm256_or_si256(packed, _mm256_set1_epi64x(UINT64_C(0x4020100804020100)));
-}
-
-AMU_HASH_TARGET_AVX2
-static inline void hash_advance_unwritten_avx2(__m256i *lo, __m256i *hi,
-                                               size_t bytes) {
-  while (bytes >= HASH_BATCH_BYTES) {
-    hash_update_seven_avx2(lo, hi, _mm256_setzero_si256());
-    bytes -= HASH_BATCH_BYTES;
-  }
-  while (bytes-- != 0) hash_update_byte_avx2(lo, hi, _mm256_setzero_si256());
-}
-
-AMU_HASH_TARGET_AVX2
-static inline void hash_multiply_lanes_avx2(__m256i *lo, __m256i *hi,
-                                            gf128_t factor) {
-  hash_lanes_t lanes;
-  _mm256_storeu_si256((__m256i *)lanes.lo, *lo);
-  _mm256_storeu_si256((__m256i *)lanes.hi, *hi);
-  for (size_t lane = 0; lane < HASH_LANES; ++lane) {
-    const gf128_t value = {.lo = lanes.lo[lane], .hi = lanes.hi[lane]};
-    const gf128_t shifted = gf128_multiply_pclmul(value, factor);
-    lanes.lo[lane] = shifted.lo;
-    lanes.hi[lane] = shifted.hi;
-  }
-  *lo = _mm256_loadu_si256((const __m256i *)lanes.lo);
-  *hi = _mm256_loadu_si256((const __m256i *)lanes.hi);
-}
-
-AMU_HASH_TARGET_AVX2
-static inline void hash_update_data_avx2(__m256i *lo, __m256i *hi,
-                                         const uint8_t *data, __m256i offsets,
-                                         size_t lane_span_bytes, size_t bytes) {
-  while (bytes >= HASH_BATCH_BYTES) {
-    bytes -= HASH_BATCH_BYTES;
-    hash_update_seven_avx2(lo, hi, hash_pack_seven_avx2(data, offsets, bytes));
-  }
-  while (bytes != 0) {
-    --bytes;
-    const __m256i symbols = _mm256_set_epi64x(
-      UINT64_C(0x100) | data[3 * lane_span_bytes + bytes],
-      UINT64_C(0x100) | data[2 * lane_span_bytes + bytes],
-      UINT64_C(0x100) | data[lane_span_bytes + bytes], UINT64_C(0x100) | data[bytes]);
-    hash_update_byte_avx2(lo, hi, symbols);
-  }
-}
-
-AMU_HASH_TARGET_AVX2
-static gf128_t hash_parallel_avx2(const uint8_t *reg_data, size_t reg_row_bytes,
-                                size_t active_rows, size_t active_row_bytes) {
-  const size_t rows_per_lane = active_rows / HASH_LANES;
-  const size_t lane_span_bytes = rows_per_lane * reg_row_bytes;
-  const size_t gap_bytes = reg_row_bytes - active_row_bytes;
-  const bool jump_gap = gap_bytes >= HASH_AVX2_MIN_GAP_BYTES && rows_per_lane > 1;
-  const gf128_t gap_factor = jump_gap ? hash_shift_factor_avx2(gap_bytes) : (gf128_t){0};
-  const __m256i offsets = _mm256_set_epi64x(3 * lane_span_bytes, 2 * lane_span_bytes, lane_span_bytes, 0);
+  const size_t gap = stride - bytes;
+  const uint64_t gap_factor = gap ? hash_shift_factor_avx2(gap) : 0;
   __m256i lo = _mm256_setzero_si256(), hi = _mm256_setzero_si256();
-
-  // Each lane hashes a contiguous group independently, removing the single state dependency.
   for (size_t row = rows_per_lane; row-- > 0;) {
-    if (row + 1 != rows_per_lane) {
-      if (jump_gap) hash_multiply_lanes_avx2(&lo, &hi, gap_factor);
-      else hash_advance_unwritten_avx2(&lo, &hi, gap_bytes);
+    if (gap && row + 1 != rows_per_lane)
+      hash_fold_lanes(&lo, &hi, gap_factor, gf32_fold(gap_factor),
+                       _mm256_setzero_si256(), _mm256_setzero_si256());
+    const uint8_t *p = data + row * stride;
+    size_t left = bytes;
+    while (left >= 14) {
+      left -= 14;
+      const __m256i lower = hash_pack_seven_fold(p, span, left);
+      const __m256i upper = hash_pack_seven_fold(p, span, left + 7);
+      hash_fold_lanes(&lo, &hi, UINT64_C(0x0615c746), UINT64_C(0x5ef7e176),
+        _mm256_xor_si256(lower, _mm256_slli_epi64(upper, 63)), _mm256_srli_epi64(upper, 1));
     }
-    const uint8_t *data = reg_data + row * reg_row_bytes;
-    hash_update_data_avx2(&lo, &hi, data, offsets, lane_span_bytes, active_row_bytes);
+    if (left >= 7) {
+      left -= 7;
+      hash_fold_lanes(&lo, &hi, UINT64_C(0x1d55a2bb), UINT64_C(0x0c2b8e8c),
+                       hash_pack_seven_fold(p, span, left), _mm256_setzero_si256());
+    }
+    if (left) {
+      const __m256i input = _mm256_and_si256(hash_pack_seven_fold(p, span, 0),
+        _mm256_set1_epi64x((UINT64_C(1) << (9 * left)) - 1));
+      const uint64_t factor = UINT64_C(1) << (9 * left);
+      hash_fold_lanes(&lo, &hi, factor, gf32_fold(factor),
+                       input, _mm256_setzero_si256());
+    }
   }
-
-  hash_lanes_t lanes;
-  _mm256_storeu_si256((__m256i *)lanes.lo, lo);
-  _mm256_storeu_si256((__m256i *)lanes.hi, hi);
-  const gf128_t lane_factor = hash_shift_factor_avx2(lane_span_bytes);
-  const size_t tail_rows = active_rows % HASH_LANES;
-  gf128_t hash;
-  size_t remaining_lanes = HASH_LANES;
-  if (tail_rows != 0) {
-    hash = hash_scalar_avx2(reg_data + HASH_LANES * lane_span_bytes, reg_row_bytes,
-                            tail_rows, active_row_bytes);
+  uint64_t low[HASH_LANES], high[HASH_LANES];
+  _mm256_storeu_si256((__m256i *)low, lo);
+  _mm256_storeu_si256((__m256i *)high, hi);
+  const uint64_t factor = hash_shift_factor_avx2(span);
+  uint64_t result;
+  unsigned remaining;
+  if (tail) {
+    result = gf32_reduce(hash_amu_portable(data + HASH_LANES * span, stride, tail, bytes));
+    remaining = HASH_LANES;
   } else {
-    remaining_lanes = HASH_LANES - 1;
-    hash = (gf128_t){.lo = lanes.lo[HASH_LANES - 1], .hi = lanes.hi[HASH_LANES - 1]};
+    result = hash_reduce128_pclmul(low[HASH_LANES - 1], high[HASH_LANES - 1]);
+    remaining = HASH_LANES - 1;
   }
-  // Concatenation is H(high group)*x^(9*lane_span_bytes) XOR H(low group), modulo the polynomial.
-  while (remaining_lanes != 0) {
-    const size_t lane = --remaining_lanes;
-    hash = gf128_multiply_pclmul(hash, lane_factor);
-    hash.lo ^= lanes.lo[lane];
-    hash.hi ^= lanes.hi[lane];
+  while (remaining) {
+    --remaining;
+    result = gf32_multiply_pclmul(result, factor) ^ hash_reduce128_pclmul(low[remaining], high[remaining]);
   }
-  return hash;
+  return result;
 }
 
-static inline bool hash_can_parallelize(size_t reg_row_bytes, size_t active_rows) {
-  return reg_row_bytes >= 8 && active_rows >= HASH_LANES &&
-         active_rows * reg_row_bytes >= HASH_PARALLEL_MIN_REGION_BYTES;
+AMU_HASH_TARGET_AVX512
+static inline __m512i hash_wide_input(__m256i low, __m256i high) {
+  return _mm512_inserti64x4(_mm512_castsi256_si512(_mm256_unpacklo_epi64(low, high)),
+                            _mm256_unpackhi_epi64(low, high), 1);
+}
+
+AMU_HASH_TARGET_AVX512
+static inline __m512i hash_wide_fold(__m512i state, uint64_t low_factor, uint64_t high_factor,
+                                    __m512i input) {
+  const __m512i factors = _mm512_set_epi64(high_factor, low_factor, high_factor, low_factor,
+                                          high_factor, low_factor, high_factor, low_factor);
+  return _mm512_xor_si512(input, _mm512_xor_si512(_mm512_clmulepi64_epi128(state, factors, 0x00),
+                                                _mm512_clmulepi64_epi128(state, factors, 0x11)));
+}
+
+// Full matrices only: four 128-bit states fit in one ZMM register. Two wide
+// carry-less products advance all lanes, avoiding the YMM state's transposition.
+AMU_HASH_TARGET_AVX512
+static uint64_t hash_full_wide(const uint8_t *data, size_t total) {
+  const size_t span = total / HASH_LANES;
+  __m512i state = _mm512_setzero_si512();
+  size_t left = span;
+  while (left >= 14) {
+    left -= 14;
+    const __m256i lower = hash_pack_seven_fold(data, span, left);
+    const __m256i upper = hash_pack_seven_fold(data, span, left + 7);
+    const __m512i input = hash_wide_input(_mm256_xor_si256(lower, _mm256_slli_epi64(upper, 63)),
+                                         _mm256_srli_epi64(upper, 1));
+    state = hash_wide_fold(state, UINT64_C(0x0615c746), UINT64_C(0x5ef7e176), input);
+  }
+  if (left >= 7) {
+    left -= 7;
+    state = hash_wide_fold(state, UINT64_C(0x1d55a2bb), UINT64_C(0x0c2b8e8c),
+      hash_wide_input(hash_pack_seven_fold(data, span, left), _mm256_setzero_si256()));
+  }
+  if (left) {
+    const __m256i input = _mm256_and_si256(hash_pack_seven_fold(data, span, 0),
+      _mm256_set1_epi64x((UINT64_C(1) << (9 * left)) - 1));
+    const uint64_t factor = UINT64_C(1) << (9 * left);
+    state = hash_wide_fold(state, factor, gf32_fold(factor),
+      hash_wide_input(input, _mm256_setzero_si256()));
+  }
+  uint64_t lanes[2 * HASH_LANES];
+  _mm512_storeu_si512((void *)lanes, state);
+  // Unpack low/high interleaves lane order 0,2,1,3.
+  const unsigned offsets[HASH_LANES] = {0,4,2,6};
+  const uint32_t factor = hash_shift_factor_avx2(span);
+  uint32_t result = hash_reduce128_pclmul(lanes[6], lanes[7]);
+  for (unsigned lane = HASH_LANES - 1; lane-- > 0;) {
+    const unsigned i = offsets[lane];
+    result = gf32_multiply_pclmul(result, factor) ^ hash_reduce128_pclmul(lanes[i], lanes[i + 1]);
+  }
+  return result;
+}
+
+AMU_HASH_TARGET_AVX2
+static inline __m128i hash_reverse_pair(uint64_t a, uint64_t b) {
+  const __m128i lookup = _mm_setr_epi8(0,8,4,12,2,10,6,14,1,9,5,13,3,11,7,15);
+  const __m128i mask = _mm_set1_epi8(15);
+  __m128i value = _mm_set_epi64x(b, a);
+  value = _mm_shuffle_epi8(value, _mm_setr_epi8(7,6,5,4,3,2,1,0,15,14,13,12,11,10,9,8));
+  return _mm_or_si128(_mm_slli_epi16(_mm_shuffle_epi8(lookup, _mm_and_si128(value, mask)), 4),
+    _mm_shuffle_epi8(lookup, _mm_and_si128(_mm_srli_epi16(value, 4), mask)));
+}
+
+AMU_HASH_TARGET_AVX2
+static inline uint64_t hash_crc_eight(uint64_t crc, uint64_t word) {
+  const uint64_t low = _pdep_u64(word, UINT64_C(0x7fbfdfeff7fbfdfe)) |
+                        UINT64_C(0x8040201008040201);
+  return _mm_crc32_u8(_mm_crc32_u64(crc, low), word >> 56);
+}
+
+AMU_HASH_TARGET_AVX2
+static inline uint32_t hash_multiply32(uint32_t a, uint32_t b) {
+  const __m128i product = _mm_clmulepi64_si128(_mm_cvtsi64_si128(a), _mm_cvtsi64_si128(b), 0);
+  return gf32_reduce((uint64_t)_mm_cvtsi128_si64(product));
+}
+
+// Each eight matrix bytes become nine canonical reflected bytes. Four independent
+// CRC32 instruction chains hide dependency latency; no temporary packed matrix.
+AMU_HASH_TARGET_AVX2
+static uint64_t hash_parallel_avx2(const uint8_t *data, size_t total) {
+  const size_t span = total / HASH_LANES;
+  uint64_t c0 = 0, c1 = 0, c2 = 0, c3 = 0;
+  for (size_t left = span; left;) {
+    left -= 8;
+    const __m128i a = hash_reverse_pair(hash_load_le64(data + left), hash_load_le64(data + span + left));
+    const __m128i b = hash_reverse_pair(hash_load_le64(data + 2 * span + left),
+                                       hash_load_le64(data + 3 * span + left));
+    c0 = hash_crc_eight(c0, _mm_cvtsi128_si64(a));
+    c1 = hash_crc_eight(c1, _mm_extract_epi64(a, 1));
+    c2 = hash_crc_eight(c2, _mm_cvtsi128_si64(b));
+    c3 = hash_crc_eight(c3, _mm_extract_epi64(b, 1));
+  }
+  const uint64_t crc[HASH_LANES] = {c0, c1, c2, c3};
+  // CRC32 returns reverse(rem(M*x^32,P)). Undo x^32 to use the shared
+  // polynomial-combination/finalization contract; 0x7e6b086b = x^-32 mod P.
+  const uint64_t factor = hash_shift_factor(span);
+  uint64_t result = 0;
+  for (unsigned lane = HASH_LANES; lane-- > 0;) {
+    const uint32_t value = hash_multiply32(hash_reverse(crc[lane]) >> 32, UINT32_C(0x7e6b086b));
+    result = hash_multiply32(result, factor) ^ value;
+  }
+  return result;
 }
 
 AMU_HASH_TARGET_BASELINE
-bool hash_amu_x86_try(const uint8_t *reg_data, size_t reg_row_bytes,
-                      size_t active_rows, size_t active_row_bytes, gf128_t *result) {
-  if (host_supports_fast_path && hash_can_parallelize(reg_row_bytes, active_rows)) {
-    *result = hash_parallel_avx2(reg_data, reg_row_bytes, active_rows, active_row_bytes);
+bool hash_amu_x86_try(const uint8_t *data, size_t stride, size_t rows, size_t bytes, uint64_t *result) {
+  if (host_hash_tier == HASH_HOST_AVX512 && bytes == stride && rows * bytes >= 128 && !(bytes % 4)) {
+    *result = hash_full_wide(data, rows * bytes);
+    return true;
+  }
+  if (host_hash_tier == HASH_HOST_AVX512 && ((bytes == stride && rows * bytes >= 128 && !(bytes % 4)) ||
+      (bytes >= 8 && rows >= HASH_LANES && rows * stride >= HASH_PARALLEL_MIN_REGION_BYTES))) {
+    *result = hash_parallel_fold(data, stride, rows, bytes);
+    return true;
+  }
+  if (host_hash_tier >= HASH_HOST_AVX2 && bytes == stride && rows * bytes >= 128 && !(rows * bytes % 32)) {
+    *result = hash_parallel_avx2(data, rows * bytes);
     return true;
   }
   return false;
 }
 
-#endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF) && defined(AMU_HASH_X86)
+#endif

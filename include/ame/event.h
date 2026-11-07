@@ -26,7 +26,8 @@ typedef struct {
   uint64_t pc;
 } amu_ctrl_event_t;
 
-// mload/mzero hash ABI shared with DiffTest's MatrixHash128 (natural layout).
+// Natural-layout CRC64-ISO completion, shared with DiffTest's MatrixHashResult.
+// lo is the CRC, hi is reserved and must be zero; preserve the ABI field order.
 typedef struct {
   uint64_t lo;
   uint64_t hi;
