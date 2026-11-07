@@ -25,7 +25,8 @@ void exec_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3
 
 // Each row's first active_columns * element_bytes bytes are covered; the rest is unwritten.
 // Require the covered bytes to fit in each row and storage for active_rows full rows.
-// An empty region returns zero without reading its data.
+// An empty region returns the ISO CRC of the all-unwritten register without
+// reading its data. The register capacity remains part of the canonical stream.
 amu_hash_t hash_amu_region(const amu_write_region_t *region);
 #endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 

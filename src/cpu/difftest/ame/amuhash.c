@@ -16,22 +16,23 @@
 
 #include <cpu/difftest/ame/amuctrl.h>
 #include "amuhash.h"
+#include "amuhash_math.h"
 
 #if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 
 AMU_HASH_TARGET_BASELINE
 amu_hash_t hash_amu_region(const amu_write_region_t *region) {
   const size_t active_row_bytes = region->active_columns * region->element_bytes;
-  if (region->active_rows == 0 || active_row_bytes == 0) return (amu_hash_t){0};
-
-  gf128_t hash;
+  uint64_t hash = 0;
+  if (region->active_rows != 0 && active_row_bytes != 0) {
 #ifdef AMU_HASH_X86
-  if (!hash_amu_x86_try(region->reg_data, region->reg_row_bytes,
-                        region->active_rows, active_row_bytes, &hash))
+    if (!hash_amu_x86_try(region->reg_data, region->reg_row_bytes,
+                          region->active_rows, active_row_bytes, &hash))
 #endif
-    hash = hash_amu_portable(region->reg_data, region->reg_row_bytes,
-                             region->active_rows, active_row_bytes);
-  return (amu_hash_t){.lo = hash.lo, .hi = hash.hi,
+      hash = hash_amu_portable(region->reg_data, region->reg_row_bytes,
+                               region->active_rows, active_row_bytes);
+  }
+  return (amu_hash_t){.lo = hash_finalize(hash, region->reg_size_bytes), .hi = 0,
                       .bytes = region->active_rows * active_row_bytes};
 }
 

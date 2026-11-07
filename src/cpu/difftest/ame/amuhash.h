@@ -8,8 +8,10 @@
 
 #if defined(__x86_64__) && (defined(__GNUC__) || defined(__clang__))
 #define AMU_HASH_X86
+// Keep these feature bundles aligned with detect_hash_host_features().
 #define AMU_HASH_TARGET_BASELINE __attribute__((target("arch=x86-64")))
-#define AMU_HASH_TARGET_AVX2 __attribute__((target("arch=x86-64,sse2,avx2,pclmul")))
+#define AMU_HASH_TARGET_AVX2 __attribute__((target("arch=x86-64,avx2,sse4.2,pclmul,bmi2")))
+#define AMU_HASH_TARGET_AVX512 __attribute__((target("arch=x86-64,avx2,sse4.2,pclmul,bmi2,avx512f,avx512dq,vpclmulqdq")))
 #else
 #define AMU_HASH_TARGET_BASELINE
 #endif
@@ -18,34 +20,18 @@
 #define HASH_BATCH_BYTES 7
 #define HASH_LANES 4
 
-// Select kernels by region size and unwritten bytes per row.
-#define HASH_AVX2_MIN_GAP_BYTES 64
-#define HASH_PORTABLE_MIN_GAP_BYTES 256
+#define HASH_PORTABLE_MIN_GAP_BYTES 128
 #define HASH_PARALLEL_MIN_REGION_BYTES 1024
-#define HASH_SMALL_SPARSE_ROW_LIMIT 32
-#define HASH_SMALL_SPARSE_MAX_ACTIVE_ROW_BYTES 16
 
-// Remainder modulo x^128+x^7+x^2+x+1, separate from the covered-byte count.
-typedef struct {
-  uint64_t lo;
-  uint64_t hi;
-} gf128_t;
-
-typedef struct {
-  gf128_t multiples[16];
-} gf128_multiplier_t;
-
-typedef struct {
-  uint64_t lo[HASH_LANES];
-  uint64_t hi[HASH_LANES];
-} hash_lanes_t;
+// Kernels return a representative of sum(symbol[i] * x^(9*i)) modulo
+// x^32+0x1edc6f41. Initialization, x^32 and reflected finalization are shared.
 
 #if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
-gf128_t hash_amu_portable(const uint8_t *reg_data, size_t reg_row_bytes,
+uint64_t hash_amu_portable(const uint8_t *reg_data, size_t reg_row_bytes,
                           size_t active_rows, size_t active_row_bytes);
 #ifdef AMU_HASH_X86
 bool hash_amu_x86_try(const uint8_t *reg_data, size_t reg_row_bytes,
-                      size_t active_rows, size_t active_row_bytes, gf128_t *result);
+                      size_t active_rows, size_t active_row_bytes, uint64_t *result);
 #endif
 #endif
 
