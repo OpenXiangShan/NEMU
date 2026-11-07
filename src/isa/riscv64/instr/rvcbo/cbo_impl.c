@@ -71,7 +71,15 @@ static paddr_t translate_and_check(vaddr_t vaddr, int type) {
   int mmu_ret = isa_mmu_check(vaddr, 8, type);
   paddr_t paddr = vaddr;
   if (mmu_ret == MMU_TRANSLATE) {
+#ifdef CONFIG_RV_CFI
+    // Clean/inval/flush use load permissions, but no CBO may access an SS page.
+    bool old_cbo_access = cpu.cbo_access;
+    cpu.cbo_access = true;
+#endif
     paddr_t pg_base = isa_mmu_translate(vaddr, 8, type);
+#ifdef CONFIG_RV_CFI
+    cpu.cbo_access = old_cbo_access;
+#endif
     int ret = pg_base & PAGE_MASK;
     if (ret == MEM_RET_OK) {
       paddr = pg_base | (vaddr & PAGE_MASK);
