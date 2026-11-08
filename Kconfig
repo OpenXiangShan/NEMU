@@ -411,6 +411,16 @@ config AMO_AC_SOFT
 
 menu "Processor difftest reference config"
 
+config DIFFTEST_CHECK_FRF
+  depends on !FPU_NONE
+  bool "Enable floating-point register file check"
+  default y
+  help
+    Include floating-point registers in the processor difftest state.
+    Disable this together with DIFFTEST_CHECK_FCSR for DiffTest
+    --difftest-exclude Fp. Floating-point instructions still execute using
+    NEMU's internal floating-point registers.
+
 config DIFFTEST_CHECK_VRF
   depends on RVV
   bool "Enable vector register file check"

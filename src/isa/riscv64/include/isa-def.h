@@ -99,11 +99,11 @@ typedef struct {
     uint64_t _64;
   } gpr[32];
 
-#ifndef CONFIG_FPU_NONE
+#ifdef CONFIG_DIFFTEST_CHECK_FRF
   union {
     uint64_t _64;
   } fpr[32];
-#endif // CONFIG_FPU_NONE
+#endif // CONFIG_DIFFTEST_CHECK_FRF
 
   // shadow CSRs for difftest
   uint64_t mode;
@@ -153,6 +153,13 @@ typedef struct {
 
   uint64_t difftest_state_end;
   /** Above will be used and synced by regcpy when run difftest, DO NOT TOUCH ***/
+
+#if !defined(CONFIG_FPU_NONE) && !defined(CONFIG_DIFFTEST_CHECK_FRF)
+  // Keep execution state outside the compact DiffTest register-copy range.
+  union {
+    uint64_t _64;
+  } fpr[32];
+#endif
 
 #if defined(CONFIG_RVV) && !defined(CONFIG_DIFFTEST_CHECK_VRF)
   // Keep execution state outside the compact DiffTest register-copy range.

@@ -156,6 +156,23 @@ them only after checking all users. Unpinned settings follow Kconfig defaults:
 record the repository revision and effective `.config` when reproducing a
 build. A target name alone does not pin a source version.
 
+## Excluding DiffTest register state
+
+Register comparison is independent of instruction emulation. To match DiffTest
+`--difftest-exclude Vec`, disable both `CONFIG_DIFFTEST_CHECK_VRF` and
+`CONFIG_DIFFTEST_CHECK_VCSR`. To match `--difftest-exclude Fp`, disable both
+`CONFIG_DIFFTEST_CHECK_FRF` and `CONFIG_DIFFTEST_CHECK_FCSR`. These options default
+to enabled when the corresponding execution support is available.
+
+The excluded register files remain in NEMU's internal execution state, outside
+the register-copy prefix. Keep RVV and FPU emulation enabled to execute those
+instructions. Rebuild the reference and use a matching DUT/host state layout;
+reference libraries with different register-copy layouts are not interchangeable.
+
+`riscv64-matrix-xs-lite-ref-novecfp_defconfig` excludes both vector and
+floating-point state. It retains the matrix lite reference's other settings;
+select the matching ISA version and matrix geometry separately for the DUT.
+
 ## Checking and maintaining
 
 `make config-check` composes every named target without replacing the working

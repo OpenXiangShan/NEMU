@@ -7,10 +7,13 @@
 CONFIG_DIFFTEST_AMU_CTRL=y
 CONFIG_PERF_OPT_SHARE=y
 CONFIG_RV_AME_TLEN=32768
+CONFIG_RV_AME_MSYNC_32=y
 # CONFIG_RV_SMCNTRPMF is not set
 # CONFIG_RV_SMCDELEG is not set
 # CONFIG_RV_ZABHA is not set
 
-# Match DiffTest --difftest-exclude Vec while retaining RVV execution.
+# Match DiffTest --difftest-exclude Vec,Fp while retaining RVV and FP execution.
 # CONFIG_DIFFTEST_CHECK_VRF is not set
 # CONFIG_DIFFTEST_CHECK_VCSR is not set
+# CONFIG_DIFFTEST_CHECK_FRF is not set
+# CONFIG_DIFFTEST_CHECK_FCSR is not set
