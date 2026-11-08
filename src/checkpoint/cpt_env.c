@@ -15,6 +15,7 @@
 
 #include <generated/autoconf.h>
 #include <stddef.h>
+#include <checkpoint/cpt_env.h>
 
 char *output_base_dir = NULL;
 char *config_name = NULL;
@@ -24,7 +25,9 @@ int cpt_id = -1;
 char *cpt_file = NULL;
 char *restorer = NULL;
 #ifdef CONFIG_SHARE
-// SHARE does not expose the monitor option for checkpoint compression format.
-// Keep checkpoint generation on GZ to avoid pulling ZSTD into ref-so builds.
-char compress_file_format = 0;
+#ifdef CONFIG_ZSTD_COMPRESS
+char compress_file_format = ZSTD_FORMAT;
+#else
+char compress_file_format = GZ_FORMAT;
+#endif
 #endif
