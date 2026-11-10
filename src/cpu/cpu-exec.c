@@ -465,6 +465,14 @@ static void execute(int n) {
 
   // main loop
   while (true) {
+#ifdef CONFIG_TDATA1_ICOUNT
+    // Undecoded entries get their precise BB index in tcache_decode(). Their
+    // pre-fetch check runs in isa_fetch_decode(), before any fetch can fault.
+    if (s->EHelper != &&exec_nemu_decode && trigger_icount_active(cpu.TM)) {
+      save_globals(s);
+      trigger_icount_check(cpu.TM);
+    }
+#endif
 #ifdef CONFIG_PERF_OPT_SHARE
     cpu.amo = false;
     cpu.pbmt = 0;
@@ -538,6 +546,7 @@ static void execute(int n) {
     }
 
     def_finish();
+    IFDEF(CONFIG_TDATA1_ICOUNT, trigger_icount_retire(cpu.TM));
     // Here is per inst action.
     // Most of executed instruction (except some priv instructions) will goto here.
     // Don't put Log here to improve performance
@@ -556,6 +565,7 @@ static void execute(int n) {
   }
 
 end_of_loop:
+  IFDEF(CONFIG_TDATA1_ICOUNT, trigger_icount_retire(cpu.TM));
   // Here is per loop action and some priv instruction action.
   // If end_of_bb and n_remain <= 0, it will goto here.
   // Most of priv instruction (using rtl_priv_jr() or rtl_priv_next()) will goto here.
@@ -774,6 +784,13 @@ static void execute(int n) {
     cpu.amo = false;
     cpu.pbmt = 0;
 
+#ifdef CONFIG_TDATA1_ICOUNT
+    if (unlikely(trigger_icount_active(cpu.TM))) {
+      s.pc = cpu.pc;
+      trigger_icount_check(cpu.TM);
+    }
+#endif
+
     if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {
       tcache_handle_flush();
       // In the non-PERF_OPT path, a tcache flush request is edge-triggered.
@@ -808,6 +825,7 @@ static void execute(int n) {
 #endif
 
     s.EHelper(&s);
+    IFDEF(CONFIG_TDATA1_ICOUNT, trigger_icount_retire(cpu.TM));
 
     IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY, instr_stat_count(s.instr_stat_category));
     IFDEF(CONFIG_INSTR_CNT_BY_INSTR, g_nr_guest_instr += 1);
@@ -999,10 +1017,6 @@ void cpu_exec(uint64_t n) {
       word_t intr = MUXDEF(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT, isa_query_intr(), INTR_EMPTY);
       if (intr != INTR_EMPTY) {
         Loge("NEMU raise intr");
-        #ifdef CONFIG_TDATA1_ICOUNT
-          trig_action_t icount_action = check_triggers_icount(cpu.TM);
-          trigger_handler(TRIG_TYPE_ICOUNT, icount_action, 0);
-        #endif // CONFIG_TDATA1_ICOUNT
         cpu.pc = raise_intr(intr, cpu.pc);
 
         // Settle instruction counting for not end BB.
