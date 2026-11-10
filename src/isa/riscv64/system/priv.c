@@ -88,13 +88,16 @@ void init_csr() {
 
 #ifdef CONFIG_RV_SDTRIG
 void init_trigger() {
-  cpu.TM = (TriggerModule*) malloc(sizeof (TriggerModule));
+  cpu.TM = (TriggerModule*) calloc(1, sizeof (TriggerModule));
   for (int i = 0; i < CONFIG_TRIGGER_NUM; i++){
     cpu.TM->triggers[i].tdata1.val = 0;
     cpu.TM->triggers[i].tdata1.common.type = TRIG_TYPE_DISABLE;
   }
   cpu.TM->mcontrol6_active_count = 0;
   cpu.TM->mcontrol6_state_dirty = false;
+  cpu.TM->trap_action = TRIG_ACTION_NONE;
+  trigger_action = TRIG_ACTION_NONE;
+  triggered_tval = 0;
   tselect->val = 0;
   tinfo->val = 0
     IFDEF(CONFIG_TDATA1_MCONTROL, | (1 << TRIG_TYPE_MCONTROL))
@@ -102,6 +105,7 @@ void init_trigger() {
     IFDEF(CONFIG_TDATA1_ITRIGGER, | (1 << TRIG_TYPE_ITRIG))
     IFDEF(CONFIG_TDATA1_ETRIGGER, | (1 << TRIG_TYPE_ETRIG))
     IFDEF(CONFIG_TDATA1_MCONTROL6, | (1 << TRIG_TYPE_MCONTROL6));
+  tinfo->version = 1;
 }
 #endif // CONFIG_RV_SDTRIG
 
@@ -2812,6 +2816,9 @@ static void csr_write(uint32_t csrid, word_t src) {
       // not write to dest
       tdata1_t* tdata1_reg = &cpu.TM->triggers[tselect->val].tdata1.common;
       tdata1_t tdata1_wdata = *(tdata1_t*)&src;
+      if (!(tinfo->val & (1ULL << tdata1_wdata.type))) {
+        tdata1_wdata.type = TRIG_TYPE_DISABLE;
+      }
       switch (tdata1_wdata.type)
       {
       case TRIG_TYPE_NONE: // write type 0 to disable this trigger

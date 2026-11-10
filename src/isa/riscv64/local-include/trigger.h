@@ -168,6 +168,9 @@ typedef struct TriggerModule {
   Trigger triggers[CONFIG_TRIGGER_NUM + 1];
   uint8_t mcontrol6_active_count;
   bool mcontrol6_state_dirty;
+  // Action delivered at the next instruction boundary, after the original trap.
+  trig_action_t trap_action;
+  bool breakpoint_no_address;
 } TriggerModule;
 
 extern trig_action_t trigger_action;
@@ -198,6 +201,9 @@ void icount_checked_write(trig_icount_t* icount, word_t* wdata);
 bool trigger_reentrancy_check(); 
 void trigger_handler(const trig_type_t type, const trig_action_t action, word_t tval);
 void trigger_mark_state_dirty(TriggerModule* TM);
+trig_action_t check_triggers_trap(TriggerModule* TM, word_t cause);
+void trigger_schedule_trap(TriggerModule* TM, trig_action_t action);
+void trigger_take_trap_action(TriggerModule* TM);
 
 static inline word_t get_tdata1(TriggerModule* TM) {return TM->triggers[tselect->val].tdata1.val;}
 static inline word_t get_tdata2(TriggerModule* TM) {return TM->triggers[tselect->val].tdata2.val;}

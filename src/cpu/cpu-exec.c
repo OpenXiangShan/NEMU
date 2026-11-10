@@ -833,6 +833,14 @@ static void execute(int n) {
       n_remain -= 1; // manually do this, as it will be skipped after break.
       break;
     }
+#ifdef CONFIG_RV_SDTRIG
+    // ECALL/EBREAK can enter a trap without longjmp. End this batch so the
+    // outer loop delivers its trigger before a cached handler can execute.
+    if (cpu.TM->trap_action != TRIG_ACTION_NONE) {
+      n_remain -= 1;
+      break;
+    }
+#endif
   }
   Loge("total insts: %'lu, execute remain: %'d", get_abs_instr_count(), n_remain);
 }
@@ -957,8 +965,6 @@ void cpu_exec(uint64_t n) {
     if (cause == NEMU_EXEC_EXCEPTION) {
       Loge("Handle NEMU_EXEC_EXCEPTION");
       cause = 0;
-      IFDEF(CONFIG_TDATA1_ETRIGGER, trig_action_t action = check_triggers_etrigger(cpu.TM, g_ex_cause));
-
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       cpu.amo = false; // clean up
       cpu.pbmt = 0;
@@ -985,9 +991,6 @@ void cpu_exec(uint64_t n) {
         tcache_handle_flush();
       #endif
 
-      // Trigger may raise EX_BP and perform longjmp.
-      IFDEF(CONFIG_TDATA1_ETRIGGER, trigger_handler(TRIG_TYPE_ETRIG, action, 0));
-
       // End main loop as difftest ref.
       IFDEF(CONFIG_SHARE, break);
 
@@ -1000,8 +1003,6 @@ void cpu_exec(uint64_t n) {
           trig_action_t icount_action = check_triggers_icount(cpu.TM);
           trigger_handler(TRIG_TYPE_ICOUNT, icount_action, 0);
         #endif // CONFIG_TDATA1_ICOUNT
-        IFDEF(CONFIG_TDATA1_ITRIGGER, trig_action_t itrigger_action = check_triggers_itrigger(cpu.TM, intr));
-
         cpu.pc = raise_intr(intr, cpu.pc);
 
         // Settle instruction counting for not end BB.
@@ -1018,11 +1019,13 @@ void cpu_exec(uint64_t n) {
           tcache_handle_flush();
         #endif
 
-        IFDEF(CONFIG_TDATA1_ITRIGGER, trigger_handler(TRIG_TYPE_ITRIG, itrigger_action, 0));
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
       }
     }
 
+#ifdef CONFIG_RV_SDTRIG
+    trigger_take_trap_action(cpu.TM);
+#endif
     n_batch = MIN_OF(n_remain_total, batch_limit);
     execute(n_batch);
 
