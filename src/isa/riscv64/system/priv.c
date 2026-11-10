@@ -2029,6 +2029,7 @@ static word_t csr_read(uint32_t csrid) {
 #endif // CONFIG_RV_SMRNMI
 
 #ifdef CONFIG_RV_SDTRIG
+    case CSR_TINFO: return get_tinfo();
     case CSR_TDATA1: return get_tdata1(cpu.TM);
     case CSR_TDATA2: return get_tdata2(cpu.TM);
     case CSR_MCONTEXT: return mcontext->val & MCONTEXT_MASK;
@@ -2815,10 +2816,13 @@ static void csr_write(uint32_t csrid, word_t src) {
     {
       // not write to dest
       tdata1_t* tdata1_reg = &cpu.TM->triggers[tselect->val].tdata1.common;
+      trig_type_t old_type = tdata1_reg->type;
       tdata1_t tdata1_wdata = *(tdata1_t*)&src;
-      if (!(tinfo->val & (1ULL << tdata1_wdata.type))) {
+      if (!(get_tinfo() & (1ULL << tdata1_wdata.type))) {
         tdata1_wdata.type = TRIG_TYPE_DISABLE;
       }
+      // Software owns the new state; this write must not decrement it.
+      if (tselect->val == 0) cpu.TM->icount_matched = false;
       switch (tdata1_wdata.type)
       {
       case TRIG_TYPE_NONE: // write type 0 to disable this trigger
@@ -2842,8 +2846,10 @@ static void csr_write(uint32_t csrid, word_t src) {
         // do nothing for not supported trigger type
         break;
       }
-      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
-      trigger_mark_state_dirty(cpu.TM);
+      if (old_type == TRIG_TYPE_MCONTROL6 || tdata1_reg->type == TRIG_TYPE_MCONTROL6) {
+        set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      }
+      if (old_type != tdata1_reg->type) trigger_mark_state_dirty(cpu.TM);
       break;
     }
     case CSR_TDATA2:
@@ -2852,7 +2858,9 @@ static void csr_write(uint32_t csrid, word_t src) {
       tdata2_t* tdata2_reg = &cpu.TM->triggers[tselect->val].tdata2;
       tdata2_t tdata2_wdata = *(tdata2_t*)&src;
       tdata2_reg->val = tdata2_wdata.val;
-      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      if (cpu.TM->triggers[tselect->val].tdata1.common.type == TRIG_TYPE_MCONTROL6) {
+        set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      }
       break;
     }
     case CSR_TDATA3:
@@ -2860,7 +2868,9 @@ static void csr_write(uint32_t csrid, word_t src) {
       tdata3_t* tdata3_reg = &cpu.TM->triggers[tselect->val].tdata3;
       tdata3_t tdata3_wdata = *(tdata3_t*)&src;
       tdata3_reg->val = legalize_tdata3(tdata3_wdata.val, tdata3_reg->val);
-      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      if (cpu.TM->triggers[tselect->val].tdata1.common.type == TRIG_TYPE_MCONTROL6) {
+        set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      }
       break;
     }
     case CSR_MCONTEXT:

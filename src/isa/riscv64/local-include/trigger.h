@@ -171,6 +171,9 @@ typedef struct TriggerModule {
   // Action delivered at the next instruction boundary, after the original trap.
   trig_action_t trap_action;
   bool breakpoint_no_address;
+  // Snapshot matching before execution changes privilege, context or xIE.
+  bool icount_inflight;
+  bool icount_matched;
 } TriggerModule;
 
 extern trig_action_t trigger_action;
@@ -194,12 +197,30 @@ trig_action_t check_triggers_itrigger(TriggerModule* TM, uint64_t cause);
 bool itrigger_match(Trigger* trig, uint64_t cause);
 void itrigger_checked_write(trig_itrigger_t* itrigger, word_t* wdata);
 
-trig_action_t check_triggers_icount(TriggerModule* TM);
+trig_action_t trigger_icount_begin_slow(TriggerModule* TM);
+void trigger_icount_retire_slow(TriggerModule* TM);
+void trigger_icount_trap(TriggerModule* TM);
 bool icount_match(Trigger* trig);
 void icount_checked_write(trig_icount_t* icount, word_t* wdata);
 
 bool trigger_reentrancy_check(); 
 void trigger_handler(const trig_type_t type, const trig_action_t action, word_t tval);
+
+static inline bool trigger_icount_active(const TriggerModule* TM) {
+  return TM->triggers[0].tdata1.common.type == TRIG_TYPE_ICOUNT && !TM->icount_inflight &&
+    (TM->triggers[0].tdata1.icount.count != 0 || TM->triggers[0].tdata1.icount.pending);
+}
+
+static inline void trigger_icount_check(TriggerModule* TM) {
+  if (unlikely(trigger_icount_active(TM))) {
+    trig_action_t action = trigger_icount_begin_slow(TM);
+    if (unlikely(action != TRIG_ACTION_NONE)) trigger_handler(TRIG_TYPE_ICOUNT, action, 0);
+  }
+}
+
+static inline void trigger_icount_retire(TriggerModule* TM) {
+  if (unlikely(TM->icount_inflight)) trigger_icount_retire_slow(TM);
+}
 void trigger_mark_state_dirty(TriggerModule* TM);
 trig_action_t check_triggers_trap(TriggerModule* TM, word_t cause);
 void trigger_schedule_trap(TriggerModule* TM, trig_action_t action);
@@ -208,6 +229,10 @@ void trigger_take_trap_action(TriggerModule* TM);
 static inline word_t get_tdata1(TriggerModule* TM) {return TM->triggers[tselect->val].tdata1.val;}
 static inline word_t get_tdata2(TriggerModule* TM) {return TM->triggers[tselect->val].tdata2.val;}
 static inline word_t get_tdata3(TriggerModule* TM) {return TM->triggers[tselect->val].tdata3.val;}
+static inline word_t get_tinfo(void) {
+  // Only slot zero implements the instruction counter.
+  return tinfo->val & (tselect->val == 0 ? ~(word_t)0 : ~((word_t)1 << TRIG_TYPE_ICOUNT));
+}
 
 // Used to avoid magic number
 #define TRIGGER_NO_VALUE (0)
