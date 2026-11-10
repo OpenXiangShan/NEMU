@@ -235,6 +235,13 @@ void mcontrol6_checked_write(trig_mcontrol6_t* mcontrol6, word_t* wdata, const T
   mcontrol6->chain = mcontrol6_check_chain_legal(TM, 2) && wdata_mcontrol6->chain;
 }
 
+static inline bool trigger_mode_match(bool m, bool s, bool u, bool vs, bool vu) {
+#ifdef CONFIG_RVH
+  if (cpu.v) return cpu.mode == MODE_S ? vs : cpu.mode == MODE_U && vu;
+#endif
+  return cpu.mode == MODE_M ? m : cpu.mode == MODE_S ? s : cpu.mode == MODE_U && u;
+}
+
 trig_action_t check_triggers_etrigger(TriggerModule* TM, uint64_t cause) {
 #ifdef CONFIG_RV_SDEXT
   // do nothing in debug mode
@@ -254,21 +261,12 @@ trig_action_t check_triggers_etrigger(TriggerModule* TM, uint64_t cause) {
 }
 
 bool etrigger_match(Trigger* trig, uint64_t cause) {
-  if (cause >= 64 || !MUXDEF(CONFIG_RV_SDTRIG_TDATA3, tdata3_match(trig), true)) {
+  if (cause >= 64 || !((trig->tdata2.val >> cause) & 1)) {
     return false;
   }
-  if (
-#ifdef CONFIG_RVH
-      (cpu.mode == MODE_S && cpu.v && trig->tdata1.etrigger.vs) ||
-      (cpu.mode == MODE_U && cpu.v && trig->tdata1.etrigger.vu) ||
-#endif // CONFIG_RVH
-      (cpu.mode == MODE_S && IFDEF(CONFIG_RVH, !cpu.v &&) trig->tdata1.etrigger.s) ||
-      (cpu.mode == MODE_U && IFDEF(CONFIG_RVH, !cpu.v &&) trig->tdata1.etrigger.u) ||
-      (cpu.mode == MODE_M && trig->tdata1.etrigger.m)
-  ) {
-    return (trig->tdata2.val >> cause) & 1;
-  }
-  return false;
+  return trigger_mode_match(trig->tdata1.etrigger.m, trig->tdata1.etrigger.s,
+      trig->tdata1.etrigger.u, trig->tdata1.etrigger.vs, trig->tdata1.etrigger.vu) &&
+    MUXDEF(CONFIG_RV_SDTRIG_TDATA3, tdata3_match(trig), true);
 }
 
 void etrigger_checked_write(trig_etrigger_t* etrigger, word_t* wdata) {
@@ -307,22 +305,14 @@ trig_action_t check_triggers_itrigger(TriggerModule* TM, uint64_t cause) {
 bool itrigger_match(Trigger* trig, uint64_t cause) {
   bool nmi = MUXDEF(CONFIG_RV_SMRNMI, cpu.hasNMI && (cause & INTR_BIT), false);
   cause &= ~INTR_BIT;
-  if ((!nmi && cause >= 64) ||
-      !MUXDEF(CONFIG_RV_SDTRIG_TDATA3, tdata3_match(trig), true)) {
+  bool cause_match = nmi ? trig->tdata1.itrigger.nmi :
+    cause < 64 && ((trig->tdata2.val >> cause) & 1);
+  if (!cause_match) {
     return false;
   }
-  if (
-#ifdef CONFIG_RVH
-      (cpu.mode == MODE_S && cpu.v && trig->tdata1.itrigger.vs) ||
-      (cpu.mode == MODE_U && cpu.v && trig->tdata1.itrigger.vu) ||
-#endif // CONFIG_RVH
-      (cpu.mode == MODE_S && IFDEF(CONFIG_RVH, !cpu.v &&) trig->tdata1.itrigger.s) ||
-      (cpu.mode == MODE_U && IFDEF(CONFIG_RVH, !cpu.v &&) trig->tdata1.itrigger.u) ||
-      (cpu.mode == MODE_M && trig->tdata1.itrigger.m)
-  ) {
-    return nmi ? trig->tdata1.itrigger.nmi : ((trig->tdata2.val >> cause) & 1);
-  }
-  return false;
+  return trigger_mode_match(trig->tdata1.itrigger.m, trig->tdata1.itrigger.s,
+      trig->tdata1.itrigger.u, trig->tdata1.itrigger.vs, trig->tdata1.itrigger.vu) &&
+    MUXDEF(CONFIG_RV_SDTRIG_TDATA3, tdata3_match(trig), true);
 }
 
 void itrigger_checked_write(trig_itrigger_t* itrigger, word_t* wdata) {
@@ -373,45 +363,53 @@ void trigger_take_trap_action(TriggerModule* TM) {
   longjmp_exception(EX_BP);
 }
 
-trig_action_t check_triggers_icount(TriggerModule* TM) {
-#ifdef CONFIG_RV_SDEXT
-  // do nothing in debug mode
-  if (cpu.debug_mode)
-    return TRIG_ACTION_NONE;
-#endif
-  if (!trigger_reentrancy_check()) return TRIG_ACTION_NONE;
-  for (int i = 0; i < CONFIG_TRIGGER_NUM; i++) {
-    if (TM->triggers[i].tdata1.common.type != TRIG_TYPE_ICOUNT) {
-      continue;
-    }
-    if (icount_match(&TM->triggers[i])) {
-      if (TM->triggers[i].tdata1.icount.pending) {
-        TM->triggers[i].tdata1.icount.pending = 0;
-        return TM->triggers[i].tdata1.icount.action;
-      }
-      if (TM->triggers[i].tdata1.icount.count >= 1) {
-        if (TM->triggers[i].tdata1.icount.count-- == 1) {
-          TM->triggers[i].tdata1.icount.pending = 1;
-        }
-      }
-    }
+trig_action_t trigger_icount_begin_slow(TriggerModule* TM) {
+  // A tcache miss decodes and retries the same instruction.
+  if (TM->icount_inflight) return TRIG_ACTION_NONE;
+  TM->icount_inflight = true;
+  TM->icount_matched = icount_match(&TM->triggers[0]);
+  trig_icount_t* icount = &TM->triggers[0].tdata1.icount;
+  if (TM->icount_matched && icount->pending) {
+    icount->pending = 0;
+    IFDEF(CONFIG_SHARE, csr_difftest_mark_trigger_dirty());
+    return TRIG_ACTION_BKPT_EXCPT;
   }
   return TRIG_ACTION_NONE;
 }
 
+void trigger_icount_retire_slow(TriggerModule* TM) {
+  trig_icount_t* icount = &TM->triggers[0].tdata1.icount;
+  if (TM->icount_inflight && TM->icount_matched && icount->count != 0) {
+    if (--icount->count == 0) icount->pending = 1;
+    IFDEF(CONFIG_SHARE, csr_difftest_mark_trigger_dirty());
+  }
+  TM->icount_inflight = false;
+  TM->icount_matched = false;
+}
+
+void trigger_icount_trap(TriggerModule* TM) {
+  // A synchronous trap completes the current instruction once. An interrupt
+  // is its own match event, before trap entry changes mode and disables xIE.
+  // Interrupts take precedence over action=0: never consume pending here.
+  if (!TM->icount_inflight) {
+    TM->icount_inflight = true;
+    TM->icount_matched = icount_match(&TM->triggers[0]);
+  }
+  trigger_icount_retire(TM);
+}
+
 bool icount_match(Trigger* trig) {
-  return
-#ifdef CONFIG_RVH
-    (cpu.mode == MODE_S && cpu.v && trig->tdata1.icount.vs) ||
-    (cpu.mode == MODE_U && cpu.v && trig->tdata1.icount.vu) ||
-#endif // CONFIG_RVH
-    (cpu.mode == MODE_S && IFDEF(CONFIG_RVH, !cpu.v &&) trig->tdata1.icount.s) ||
-    (cpu.mode == MODE_U && IFDEF(CONFIG_RVH, !cpu.v &&) trig->tdata1.icount.u) ||
-    (cpu.mode == MODE_M && trig->tdata1.icount.m);
+  if (trig->tdata1.common.type != TRIG_TYPE_ICOUNT ||
+      (trig->tdata1.icount.count == 0 && !trig->tdata1.icount.pending)) {
+    return false;
+  }
+  return trigger_mode_match(trig->tdata1.icount.m, trig->tdata1.icount.s,
+      trig->tdata1.icount.u, trig->tdata1.icount.vs, trig->tdata1.icount.vu) &&
+    trigger_reentrancy_check() && MUXDEF(CONFIG_RV_SDTRIG_TDATA3, tdata3_match(trig), true);
 }
 
 void icount_checked_write(trig_icount_t* icount, word_t* wdata) {
-  if (!tinfo->icount) {
+  if (!tinfo->icount || tselect->val != 0) {
     return ;
   }
   trig_icount_t* wdata_icount = (trig_icount_t*)wdata;
@@ -451,12 +449,13 @@ void trigger_handler(const trig_type_t type, const trig_action_t action, word_t 
           if (!trigger_reentrancy_check()) {
             break;
           }
-        case TRIG_TYPE_ICOUNT: {
+        {
           extern Decode *prev_s;
           prev_s->pc = cpu.pc;
         }
         case TRIG_TYPE_MCONTROL:
         case TRIG_TYPE_MCONTROL6:
+        case TRIG_TYPE_ICOUNT:
           cpu.TM->breakpoint_no_address = type != TRIG_TYPE_MCONTROL && type != TRIG_TYPE_MCONTROL6;
           trigger_action = action;
           triggered_tval = tval;
