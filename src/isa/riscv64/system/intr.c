@@ -28,6 +28,10 @@ void vp_set_dirty();
 
 #ifdef CONFIG_RVH
 word_t gen_gva(word_t NO, bool is_hls, bool is_mem_access_virtual) {
+#ifdef CONFIG_RV_SDTRIG
+  // i/e/icount breakpoint actions carry no address in tval.
+  if (NO == EX_BP && cpu.TM->breakpoint_no_address) return 0;
+#endif
   return ((NO == EX_IAM || NO == EX_IAF || NO == EX_IPF) && cpu.v) ||
          (NO == EX_BP && (cpu.v || is_hls)) ||
          ((NO == EX_LAM || NO == EX_LAF || NO == EX_SAM || NO == EX_SAF || NO == EX_LPF || NO == EX_SPF || NO == EX_HWE) && (is_hls || cpu.v || is_mem_access_virtual)) ||
@@ -37,14 +41,16 @@ word_t gen_gva(word_t NO, bool is_hls, bool is_mem_access_virtual) {
 bool intr_deleg_S(word_t exceptionNO) {
   bool isNMI = MUXDEF(CONFIG_RV_SMRNMI, cpu.hasNMI && (exceptionNO & INTR_BIT), false);
   word_t deleg = (exceptionNO & INTR_BIT ? mideleg->val : medeleg->val);
-  bool delegS = ((deleg & (1 << (exceptionNO & 0xff))) != 0) && (cpu.mode < MODE_M) && !isNMI;
+  word_t cause = exceptionNO & ~INTR_BIT;
+  bool delegS = cause < 64 && ((deleg >> cause) & 1) && (cpu.mode < MODE_M) && !isNMI;
   return delegS;
 }
 bool intr_deleg_VS(word_t exceptionNO){
   bool isNMI = MUXDEF(CONFIG_RV_SMRNMI, cpu.hasNMI && (exceptionNO & INTR_BIT), false);
   bool delegS = intr_deleg_S(exceptionNO);
   word_t deleg = (exceptionNO & INTR_BIT ? get_hideleg() : hedeleg->val);
-  bool delegVS = cpu.v && ((deleg & (1 << (exceptionNO & 0xff))) != 0) && (cpu.mode < MODE_M) && !isNMI;
+  word_t cause = exceptionNO & ~INTR_BIT;
+  bool delegVS = cpu.v && cause < 64 && ((deleg >> cause) & 1) && (cpu.mode < MODE_M) && !isNMI;
   return delegS && delegVS;
 }
 
@@ -52,7 +58,8 @@ bool intr_deleg_VS(word_t exceptionNO){
 bool intr_deleg_S(word_t exceptionNO) {
   bool isNMI = MUXDEF(CONFIG_RV_SMRNMI, cpu.hasNMI && (exceptionNO & INTR_BIT), false);
   word_t deleg = (exceptionNO & INTR_BIT ? mideleg->val : medeleg->val);
-  bool delegS = ((deleg & (1 << (exceptionNO & 0xf))) != 0) && (cpu.mode < MODE_M) && !isNMI;
+  word_t cause = exceptionNO & ~INTR_BIT;
+  bool delegS = cause < 64 && ((deleg >> cause) & 1) && (cpu.mode < MODE_M) && !isNMI;
   return delegS;
 }
 #endif
@@ -75,6 +82,10 @@ static word_t get_trap_pc(word_t xtvec, word_t xcause) {
 
 word_t raise_intr(word_t NO, vaddr_t epc) {
   IFDEF(CONFIG_SHARE, csr_difftest_mark_dirty());
+#ifdef CONFIG_RV_SDTRIG
+  trig_action_t trap_action = TRIG_ACTION_NONE;
+  cpu.TM->trap_action = TRIG_ACTION_NONE;
+#endif
 #ifdef CONFIG_RVV
   // A vector-store fault can leave vstart at the faulting element.
   if (cpu.isVstoreActive) {
@@ -179,6 +190,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #else
     vscause->val = NO & INTR_BIT ? ((NO & (~INTR_BIT)) - 1) | INTR_BIT : NO;
 #endif // CONFIG_RV_IMSIC
+    IFDEF(CONFIG_RV_SDTRIG, trap_action = check_triggers_trap(cpu.TM, vscause->val));
     vsepc->val = epc;
     vsstatus->spp = cpu.mode;
     vsstatus->spie = vsstatus->sie;
@@ -224,6 +236,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     trap_pc = get_trap_pc(vstvec->val, vscause->val);
   }
   else if(delegS && !s_EX_DT){
+    IFDEF(CONFIG_RV_SDTRIG, trap_action = check_triggers_trap(cpu.TM, NO));
     hstatus->gva = gen_gva(NO, hld_st_temp, false);
     hstatus->spv = cpu.v;
     if(cpu.v){
@@ -233,6 +246,7 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 #else
   bool vs_EX_DT = false;
   if (delegS && !s_EX_DT) {
+    IFDEF(CONFIG_RV_SDTRIG, trap_action = check_triggers_trap(cpu.TM, NO));
 #endif
     scause->val = NO;
     sepc->val = epc;
@@ -296,13 +310,14 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     cpu.mode = MODE_S;
     trap_pc = get_trap_pc(stvec->val, scause->val);
   } else if((delegM || vs_EX_DT || s_EX_DT) && !m_EX_DT){
+    IFDEF(CONFIG_RV_SDTRIG, trap_action = check_triggers_trap(cpu.TM, (vs_EX_DT || s_EX_DT) ? EX_DT : NO));
 #ifdef CONFIG_RVH
     bool is_mem_access_virtual = IFDEF(CONFIG_RV_SMRNMI, mnstatus->nmie &&) mstatus->mprv && mstatus->mpv && (mstatus->mpp != MODE_M);
     mstatus->gva = gen_gva(NO, hld_st_temp, is_mem_access_virtual);
     mstatus->mpv = cpu.v;
     cpu.v = 0;
 #endif
-    mcause->val = NO;
+    mcause->val = (vs_EX_DT || s_EX_DT) ? EX_DT : NO;
     mepc->val = epc;
     mstatus->mpp = cpu.mode;
     mstatus->mpie = mstatus->mie;
@@ -368,9 +383,11 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   }
 #ifdef CONFIG_RV_SMRNMI
   else if ((m_EX_DT || isNMI) && mnstatus->nmie) {
+    IFDEF(CONFIG_RV_SDTRIG, trap_action = check_triggers_trap(cpu.TM, NO));
     mnstatus->mnpp = cpu.mode;
 #ifdef CONFIG_RVH
     mnstatus->mnpv = cpu.v;
+    cpu.v = false;
 #endif //CONFIG_RVH
     mnstatus->nmie = 0;
 #ifdef CONFIG_RV_ZICFILP
@@ -383,6 +400,8 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
     trap_pc = get_trap_pc(mtvec->val, mncause->val);
   }
 #endif //CONFIG_RV_SMRNMI
+  IFDEF(CONFIG_RV_SDTRIG, trigger_schedule_trap(cpu.TM, trap_action));
+  IFDEF(CONFIG_RV_SDTRIG, cpu.TM->breakpoint_no_address = false);
   update_mmu_state();
   clear_trapinfo();
   return trap_pc;
@@ -442,7 +461,17 @@ word_t isa_query_intr() {
 
   for (int i = 0; i < ARRLEN(priority); i++) {
     int irq = priority[i];
-    if (intr_vec & (1ULL << irq)) return irq | INTR_BIT;
+    if (intr_vec & (1ULL << irq)) {
+      word_t cause = irq | INTR_BIT;
+#ifdef CONFIG_RV_IMSIC
+      // Standalone interrupt polling must publish the same delegation hints
+      // that the DUT supplies through the difftest interrupt interface.
+      cpu.interrupt_delegate.interrupt_to_vs = intr_deleg_VS(cause);
+      cpu.interrupt_delegate.interrupt_to_hs = intr_deleg_S(cause) &&
+        !cpu.interrupt_delegate.interrupt_to_vs;
+#endif
+      return cause;
+    }
   }
   return INTR_EMPTY;
 }
