@@ -280,7 +280,15 @@ void set_pmem(bool pass_pmem_from_dut, uint8_t *_pmem)
 /* Memory accessing interfaces */
 
 bool check_paddr(paddr_t addr, int len, int type, int trap_type, int mode, vaddr_t vaddr) {
-  if (!isa_pmp_check_permission(addr, len, type, mode)) {
+  int pmp_type = type;
+#ifdef CONFIG_RV_CFI
+  if (cpu.shadow_stack_access) {
+    // PMP W implies R; PMA still checks the actual access, even for SSPOPCHK.
+    pmp_type = MEM_TYPE_WRITE;
+    trap_type = MEM_TYPE_WRITE;
+  }
+#endif
+  if (!isa_pmp_check_permission(addr, len, pmp_type, mode)) {
     if (trap_type == MEM_TYPE_WRITE || trap_type == MEM_TYPE_MATRIX_WRITE) {
       raise_access_fault(EX_SAF, vaddr);
     }else {
@@ -371,6 +379,16 @@ bool mpt_paddr_read(paddr_t addr, int len, word_t *data) {
 }
 #endif
 
+#ifdef CONFIG_RV_CFI
+static inline void zicfiss_check_shadow_stack_paddr(paddr_t addr, vaddr_t vaddr) {
+  // PBMT=IO overrides RAM's idempotency; PBMT=NC remains idempotent.
+  if (cpu.shadow_stack_access &&
+      (cpu.pbmt == 2 || is_in_mmio(addr) || !in_pmem(addr))) {
+    raise_access_fault(EX_SAF, vaddr);
+  }
+}
+#endif
+
 static inline bool paddr_read_check(paddr_t addr, int len, int type,
                                     int trap_type, int mode, vaddr_t vaddr,
                                     int cross_page_load) {
@@ -382,6 +400,7 @@ static inline bool paddr_read_check(paddr_t addr, int len, int type,
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_READ, cross_page_load);
   }
 
+  IFDEF(CONFIG_RV_CFI, zicfiss_check_shadow_stack_paddr(addr, vaddr));
   return check_paddr(addr, len, type, trap_type, mode, vaddr);
 }
 
@@ -713,6 +732,7 @@ void paddr_write(paddr_t addr, int len, word_t data, int mode, vaddr_t vaddr) {
     isa_mmio_misalign_data_addr_check(addr, vaddr, len, MEM_TYPE_WRITE, cross_page_store);
   }
 
+  IFDEF(CONFIG_RV_CFI, zicfiss_check_shadow_stack_paddr(addr, vaddr));
   if (!check_paddr(addr, len, MEM_TYPE_WRITE, MEM_TYPE_WRITE, mode, vaddr)) {
     return;
   }
