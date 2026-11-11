@@ -174,7 +174,7 @@ uint32_t vf_allowed_e16[] = {
   FREDMIN,
   FWREDOSUM,
   FWREDUSUM,
-  FSLIDE1UP, 
+  FSLIDE1UP,
   FSLIDE1DOWN,
 #endif
 
@@ -625,9 +625,9 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         get_vreg(id_src->reg, idx, s1, eew, emul, is_signed, 1);
         if(is_signed) rtl_sext(s, s1, s1, 1 << vtype->vsew);
         break;
-      case SRC_VX :   
+      case SRC_VX :
         rtl_lr(s, &(id_src->val), id_src1->reg, 4);
-        rtl_mv(s, s1, &id_src->val); 
+        rtl_mv(s, s1, &id_src->val);
         if(opcode != RGATHER && opcode != RGATHEREI16 && opcode != SLIDEUP && opcode != SLIDEDOWN) {
           switch (vtype->vsew) {
             case 0 : *s1 = *s1 & 0xff; break;
@@ -664,7 +664,7 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
           }
           else
             rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
-        }       
+        }
         break;
     }
 
@@ -696,11 +696,11 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
       case MINU: rtl_minu(s, s1, s0, s1); break;
       case MAXU: rtl_maxu(s, s1, s0, s1); break;
       case VEXT: rtl_mv(s, s1, s0); break;
-      case ADC : 
+      case ADC :
         rtl_add(s, s1, s0, s1);
         rtl_li(s, s2, mask);
         rtl_add(s, s1, s1, s2); break;
-      case SBC : 
+      case SBC :
         rtl_sub(s, s1, s0, s1);
         rtl_li(s, s2, mask);
         rtl_sub(s, s1, s1, s2); break;
@@ -740,11 +740,11 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
             rtl_sext(s, s0, s0, 1 << vtype->vsew);
         }
         rtl_sar(s, s1, s0, s1); break;
-      case MULHU : 
+      case MULHU :
         *s1 = (uint64_t)(((__uint128_t)(*s0) * (__uint128_t)(*s1))>>(8 << vtype->vsew));
         break;
       case MUL : rtl_mulu_lo(s, s1, s0, s1); break;
-      case MULSU : 
+      case MULSU :
         rtl_sext(s, s0, s0, 1 << vtype->vsew);
         rtl_mulu_lo(s, s1, s0, s1); break;
       case MULHSU :
@@ -759,7 +759,7 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         rtl_sext(s, s1, s1, 1 << vtype->vsew);
         *s1 = (uint64_t)(((__int128_t)(sword_t)(*s0) * (__int128_t)(sword_t)(*s1))>>(8 << vtype->vsew));
         break;
-      case MACC : 
+      case MACC :
         rtl_mulu_lo(s, s1, s0, s1);
         get_vreg(id_dest->reg, idx, s0, vtype->vsew+widening, vtype->vlmul, is_signed, 1);
         rtl_add(s, s1, s1, s0);
@@ -983,7 +983,7 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
     }
     update_vcsr();
     // store to vrf
-    if(dest_mask == 1) 
+    if(dest_mask == 1)
       set_mask(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul);
     else
       set_vreg(id_dest->reg, idx, *s1, vtype->vsew+widening, vtype->vlmul, 1);
@@ -1017,7 +1017,10 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
  */
 void permutaion_instr(int opcode, Decode *s) {
   check_vstart_exception(s);
-  if(check_vstart_ignore(s)) return;
+  if(check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
   int vlmax = get_vlmax(vtype->vsew, vtype->vlmul);
   for(word_t idx = vstart->val; idx < vl->val; idx ++) {
     // mask
@@ -1075,9 +1078,9 @@ void permutaion_instr(int opcode, Decode *s) {
         }
         get_vreg(id_src->reg, idx, s1, eew, emul, 0, 1);
         break;
-      case SRC_VX :   
+      case SRC_VX :
         rtl_lr(s, &(id_src->val), id_src1->reg, 4);
-        rtl_mv(s, s1, &id_src->val); 
+        rtl_mv(s, s1, &id_src->val);
         if(opcode != RGATHER && opcode != RGATHEREI16 && opcode != SLIDEUP && opcode != SLIDEDOWN) {
           switch (vtype->vsew) {
             case 0 : *s1 = *s1 & 0xff; break;
@@ -1088,7 +1091,7 @@ void permutaion_instr(int opcode, Decode *s) {
         }
         break;
       case SRC_VI :
-        rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);       
+        rtl_li(s, s1, s->isa.instr.v_opimm.v_imm5);
         break;
     }
 
@@ -1234,7 +1237,7 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
         case vdWidening  : FPCALL_TYPE = FPCALL_W8; break;
         case vdNarrow    : FPCALL_TYPE = FPCALL_W16; break;
       }
-      break;   
+      break;
 #else
     case 0 : Loge("f8 not supported"); longjmp_exception(EX_II); break;
 #endif
@@ -1258,7 +1261,7 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
       }
       break;
 #endif
-    case 2 : 
+    case 2 :
       switch (widening) {
         case vsdWidening : FPCALL_TYPE = FPCALL_W32_to_64; break;
         case vsWidening  : FPCALL_TYPE = FPCALL_SRC2_W32_to_64; break;
@@ -1321,10 +1324,10 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
 
     // operand - s1 / rs1 / imm
     switch (s->src_vmode) {
-      case SRC_VV : 
+      case SRC_VV :
         get_vreg(id_src->reg, idx, s1, vtype->vsew, vtype->vlmul, 0, 0);
         break;
-      case SRC_VF :   
+      case SRC_VF :
         rtl_mv(s, s1, &fpreg_l(id_src1->reg)); // f[rs1]
         check_isFpCanonicalNAN(s1, fp_box_type);
         switch (vtype->vsew) {
@@ -1343,7 +1346,7 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
       case FNMSAC :
       case FMADD :
       case FNMADD :
-      case FMSUB : 
+      case FMSUB :
       case FNMSUB :
       case FWMACCBF16 :
         if (widening == vsdWidening) get_vreg(id_dest->reg, idx, s2, vtype->vsew+1, vtype->vlmul, 0, 1);
@@ -1429,7 +1432,7 @@ void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest
         break;
     }
 
-    if(dest_mask == 1) 
+    if(dest_mask == 1)
       set_mask(id_dest->reg, idx, *s1, vtype->vsew, vtype->vlmul);
     else if (widening == vsdWidening || widening == vdWidening || widening == vsWidening)
       set_vreg(id_dest->reg, idx, *s1, vtype->vsew+1, vtype->vlmul, 1);
@@ -1475,7 +1478,10 @@ void mask_instr(int opcode, Decode *s) {
     longjmp_exception(EX_II);
   }
   check_vstart_exception(s);
-  if(check_vstart_ignore(s)) return;
+  if(check_vstart_ignore(s)) {
+    vp_set_dirty();
+    return;
+  }
   for(word_t idx = vstart->val; idx < vl->val; idx++) {
     // operand - vs2
     *s0 = get_mask(id_src2->reg, idx); // unproper usage of s0
@@ -1556,7 +1562,7 @@ void reduction_instr(int opcode, int is_signed, int wide, Decode *s) {
       case REDMAX : rtl_max(s, s1, s0, s1); break;
       case REDMINU: rtl_minu(s, s1, s0, s1); break;
       case REDMAXU: rtl_maxu(s, s1, s0, s1); break;
-      //  case MIN : 
+      //  case MIN :
       // MINU is hard to achieve parallel
     }
 
@@ -1600,7 +1606,7 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
 #else
     case 1 : Loge("ZVFH extension is not enabled, please make menuconfig!"); longjmp_exception(EX_II); break;
 #endif
-    case 2 : 
+    case 2 :
       switch (widening) {
         case vsWidening : FPCALL_TYPE = FPCALL_SRC1_W32_to_64; break;
         case noWidening : FPCALL_TYPE = FPCALL_W32; break;
@@ -1632,7 +1638,7 @@ void float_reduction_instr(int opcode, int widening, Decode *s) {
       case FREDOSUM : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_ADD, FPCALL_TYPE)); break;
       case FREDMIN : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_MIN, FPCALL_TYPE)); break;
       case FREDMAX : rtl_hostcall(s, HOSTCALL_VFP, s1, s0, s1, FPCALL_CMD(FPCALL_MAX, FPCALL_TYPE)); break;
-      //  case MIN : 
+      //  case MIN :
       // MINU is hard to achieve parallel
     }
 
@@ -1800,10 +1806,10 @@ void float_reduction_computing(Decode *s) {
     case 5 :
     case 6 :
     case 7 :
-    case 0 : 
+    case 0 :
       float_reduction_step2(0, s);
       break;
-    case 1 : 
+    case 1 :
       float_reduction_step1(0, 1, s);
       float_reduction_step2(0, s);
       break;
