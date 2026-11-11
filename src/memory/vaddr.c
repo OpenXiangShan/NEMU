@@ -236,6 +236,16 @@ static void vaddr_mmu_write_matrix(struct Decode *s, vaddr_t base, vaddr_t strid
 
 #endif // ENABLE_HOSTTLB
 
+static void check_next_page_canonical(vaddr_t addr, int len, int type) {
+  /* 2/4/8-byte cross-page access: check the second page. 16-byte and
+     wider, AMO, and vector unit-stride stores are not checked here. */
+  if (len > 8 || cpu.amo) return;
+#ifdef CONFIG_RVV
+  if (cpu.isVecUnitStore) return;
+#endif
+  isa_mmu_check((addr & ~PAGE_MASK) + PAGE_SIZE, 1, type);
+}
+
 static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int trap_type, int mmu_mode) {
   int type = trap_type;
 #ifdef CONFIG_RVH
@@ -259,6 +269,7 @@ static inline word_t vaddr_read_internal(void *s, vaddr_t addr, int len, int tra
   }
 
   if (is_cross_page) {
+    check_next_page_canonical(addr, len, trap_type);
     return vaddr_read_cross_page(addr, len, type, trap_type, mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE);
   }
   if (mmu_mode == MMU_DIRECT) {
@@ -362,6 +373,7 @@ void vaddr_write(struct Decode *s, vaddr_t addr, int len, word_t data, int mmu_m
   }
 
   if (is_cross_page) {
+    check_next_page_canonical(addr, len, MEM_TYPE_WRITE);
     vaddr_write_cross_page(addr, len ,data, mmu_mode == MMU_DYNAMIC || mmu_mode == MMU_TRANSLATE);
     return;
   }
