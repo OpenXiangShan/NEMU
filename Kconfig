@@ -190,7 +190,7 @@ config AME_MMACC_VECTORIZE
     implementation.
 
 config AME_MLDST_VECTORIZE
-  depends on RV_AME && !SHARE
+  depends on RV_AME
   bool "Enable AME matrix load/store optimization"
   default n
   help
