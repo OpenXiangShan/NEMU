@@ -167,6 +167,19 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   bool vs_EX_DT = MUXDEF(CONFIG_RV_SSDBLTRP,
     delegVS && vsstatus->sdt && menvcfg->dte && henvcfg->dte, false);
   m_EX_DT = MUXDEF(CONFIG_RV_SMDBLTRP, delegM && mstatus->mdt, false);
+#ifdef CONFIG_RV_SMDBLTRP
+  if (m_EX_DT && !mnstatus->nmie) {
+#ifdef CONFIG_SHARE
+    cpu.critical_error = true;
+#else
+    printf("\33[1;31mHIT CRITICAL ERROR\33[0m: double trap with mnstatus.nmie=0 (Smdbltrp), cause NO: %ld, epc: " FMT_WORD "\n", NO, epc);
+    nemu_state.state = NEMU_END;
+    nemu_state.halt_pc = epc;
+    nemu_state.halt_ret = 0;
+#endif
+    return 0;
+  }
+#endif
   if ((delegVS && !vs_EX_DT) || (virtualInterruptIsHvictlInject && !isNMI)){
 #ifdef CONFIG_RV_IMSIC
     int vs_guest_no = NO & 0xff;
