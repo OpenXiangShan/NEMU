@@ -2064,6 +2064,7 @@ extern mseccfg_t* const mseccfg;
 /** General **/
 void csr_prepare();
 void csr_difftest_mark_dirty(void);
+void csr_difftest_mark_trigger_dirty(void);
 
 word_t gen_status_sd(word_t status);
 word_t get_mip();

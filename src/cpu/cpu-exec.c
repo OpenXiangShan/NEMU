@@ -465,6 +465,14 @@ static void execute(int n) {
 
   // main loop
   while (true) {
+#ifdef CONFIG_TDATA1_ICOUNT
+    // Undecoded entries get their precise BB index in tcache_decode(). Their
+    // pre-fetch check runs in isa_fetch_decode(), before any fetch can fault.
+    if (s->EHelper != &&exec_nemu_decode && trigger_icount_active(cpu.TM)) {
+      save_globals(s);
+      trigger_icount_check(cpu.TM);
+    }
+#endif
 #ifdef CONFIG_PERF_OPT_SHARE
     cpu.amo = false;
     cpu.pbmt = 0;
@@ -538,6 +546,7 @@ static void execute(int n) {
     }
 
     def_finish();
+    IFDEF(CONFIG_TDATA1_ICOUNT, trigger_icount_retire(cpu.TM));
     // Here is per inst action.
     // Most of executed instruction (except some priv instructions) will goto here.
     // Don't put Log here to improve performance
@@ -556,6 +565,7 @@ static void execute(int n) {
   }
 
 end_of_loop:
+  IFDEF(CONFIG_TDATA1_ICOUNT, trigger_icount_retire(cpu.TM));
   // Here is per loop action and some priv instruction action.
   // If end_of_bb and n_remain <= 0, it will goto here.
   // Most of priv instruction (using rtl_priv_jr() or rtl_priv_next()) will goto here.
@@ -774,6 +784,13 @@ static void execute(int n) {
     cpu.amo = false;
     cpu.pbmt = 0;
 
+#ifdef CONFIG_TDATA1_ICOUNT
+    if (unlikely(trigger_icount_active(cpu.TM))) {
+      s.pc = cpu.pc;
+      trigger_icount_check(cpu.TM);
+    }
+#endif
+
     if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {
       tcache_handle_flush();
       // In the non-PERF_OPT path, a tcache flush request is edge-triggered.
@@ -808,6 +825,7 @@ static void execute(int n) {
 #endif
 
     s.EHelper(&s);
+    IFDEF(CONFIG_TDATA1_ICOUNT, trigger_icount_retire(cpu.TM));
 
     IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY, instr_stat_count(s.instr_stat_category));
     IFDEF(CONFIG_INSTR_CNT_BY_INSTR, g_nr_guest_instr += 1);
@@ -833,6 +851,14 @@ static void execute(int n) {
       n_remain -= 1; // manually do this, as it will be skipped after break.
       break;
     }
+#ifdef CONFIG_RV_SDTRIG
+    // ECALL/EBREAK can enter a trap without longjmp. End this batch so the
+    // outer loop delivers its trigger before a cached handler can execute.
+    if (cpu.TM->trap_action != TRIG_ACTION_NONE) {
+      n_remain -= 1;
+      break;
+    }
+#endif
   }
   Loge("total insts: %'lu, execute remain: %'d", get_abs_instr_count(), n_remain);
 }
@@ -957,8 +983,6 @@ void cpu_exec(uint64_t n) {
     if (cause == NEMU_EXEC_EXCEPTION) {
       Loge("Handle NEMU_EXEC_EXCEPTION");
       cause = 0;
-      IFDEF(CONFIG_TDATA1_ETRIGGER, trig_action_t action = check_triggers_etrigger(cpu.TM, g_ex_cause));
-
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       cpu.amo = false; // clean up
       cpu.pbmt = 0;
@@ -985,9 +1009,6 @@ void cpu_exec(uint64_t n) {
         tcache_handle_flush();
       #endif
 
-      // Trigger may raise EX_BP and perform longjmp.
-      IFDEF(CONFIG_TDATA1_ETRIGGER, trigger_handler(TRIG_TYPE_ETRIG, action, 0));
-
       // End main loop as difftest ref.
       IFDEF(CONFIG_SHARE, break);
 
@@ -996,12 +1017,6 @@ void cpu_exec(uint64_t n) {
       word_t intr = MUXDEF(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT, isa_query_intr(), INTR_EMPTY);
       if (intr != INTR_EMPTY) {
         Loge("NEMU raise intr");
-        #ifdef CONFIG_TDATA1_ICOUNT
-          trig_action_t icount_action = check_triggers_icount(cpu.TM);
-          trigger_handler(TRIG_TYPE_ICOUNT, icount_action, 0);
-        #endif // CONFIG_TDATA1_ICOUNT
-        IFDEF(CONFIG_TDATA1_ITRIGGER, trig_action_t itrigger_action = check_triggers_itrigger(cpu.TM, intr));
-
         cpu.pc = raise_intr(intr, cpu.pc);
 
         // Settle instruction counting for not end BB.
@@ -1018,11 +1033,13 @@ void cpu_exec(uint64_t n) {
           tcache_handle_flush();
         #endif
 
-        IFDEF(CONFIG_TDATA1_ITRIGGER, trigger_handler(TRIG_TYPE_ITRIG, itrigger_action, 0));
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
       }
     }
 
+#ifdef CONFIG_RV_SDTRIG
+    trigger_take_trap_action(cpu.TM);
+#endif
     n_batch = MIN_OF(n_remain_total, batch_limit);
     execute(n_batch);
 
