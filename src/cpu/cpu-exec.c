@@ -956,6 +956,12 @@ void cpu_exec(uint64_t n) {
       #endif // LIGHTQS
     #endif // CONFIG_SHARE
 
+    if (cause != 0 && cause != NEMU_EXEC_EXCEPTION && cause != NEMU_EXEC_END && cause != NEMU_EXEC_AGAIN) {
+      // A nested exception context may longjmp straight back to the outermost
+      // execute context with the raw exception cause.
+      g_ex_cause = cause;
+      cause = NEMU_EXEC_EXCEPTION;
+    }
     if (cause == NEMU_EXEC_EXCEPTION) {
       Loge("Handle NEMU_EXEC_EXCEPTION");
       cause = 0;
