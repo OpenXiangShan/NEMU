@@ -123,7 +123,9 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   }
 #endif
 #ifdef CONFIG_RV_SMRNMI
-  if (!mnstatus->nmie){
+  // NMIE=0 masks all interrupts (Smrnmi).  Exceptions are not masked.
+  bool is_intr = (NO & INTR_BIT) != 0;
+  if (!mnstatus->nmie && is_intr) {
 #ifdef CONFIG_SHARE
     IFDEF(CONFIG_RV_SMDBLTRP, cpu.critical_error = true);// this will compare in difftest
 #else
