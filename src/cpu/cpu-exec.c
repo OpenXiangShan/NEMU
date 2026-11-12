@@ -198,7 +198,7 @@ void monitor_statistic() {
   fflush(stdout);
 }
 
-static word_t g_ex_cause = 0;
+volatile word_t g_ex_cause = 0;
 static int g_sys_state_flag = 0;
 
 void set_sys_state_flag(int flag) { g_sys_state_flag |= flag; }
@@ -243,13 +243,15 @@ _Noreturn void longjmp_context(int cause) {
   longjmp(context_stack[context_idx], cause);
 }
 
-_Noreturn void longjmp_exception(int ex_cause) {
+__attribute__((noinline)) _Noreturn void longjmp_exception(int ex_cause) {
+  // Always record the cause, even when unwinding through a nested context.
+  // Otherwise a nested exception that propagates out leaves g_ex_cause stale.
+  g_ex_cause = ex_cause;
   if (context_idx == 0) {
     // context_idx == 0 means only the execute loop context saved.
   #ifdef CONFIG_GUIDED_EXEC
     cpu.guided_exec = false;
   #endif
-    g_ex_cause = ex_cause;
     Loge("longjmp_context(NEMU_EXEC_EXCEPTION)");
     longjmp_context(NEMU_EXEC_EXCEPTION);
   } else {
@@ -954,6 +956,12 @@ void cpu_exec(uint64_t n) {
       #endif // LIGHTQS
     #endif // CONFIG_SHARE
 
+    if (cause != 0 && cause != NEMU_EXEC_EXCEPTION && cause != NEMU_EXEC_END && cause != NEMU_EXEC_AGAIN) {
+      // A nested exception context may longjmp straight back to the outermost
+      // execute context with the raw exception cause.
+      g_ex_cause = cause;
+      cause = NEMU_EXEC_EXCEPTION;
+    }
     if (cause == NEMU_EXEC_EXCEPTION) {
       Loge("Handle NEMU_EXEC_EXCEPTION");
       cause = 0;
