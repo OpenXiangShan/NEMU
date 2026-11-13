@@ -37,13 +37,14 @@
 #define CUSTOM_CSR_MCOREPWR   0xbc0
 #define CUSTOM_CSR_MFLUSHPWR  0xbc1
 #define CUSTOM_CSR_MBMC       0xbC2
+#define CUSTOM_CSR_MMPT       0x382
 #define CUSTOM_CSR_SBPCTL_WMASK     0x7f
 
-#define CUSTOM_CSR_SPFCTL_WMASK     0x3fffff
+#define CUSTOM_CSR_SPFCTL_WMASK     0x7ffffffffULL
 #define CUSTOM_CSR_SLVPREDCTL_WMASK 0x1ff
 #define CUSTOM_CSR_SMBLOCKCTL_WMASK 0x1ffffffffULL
 #define CUSTOM_CSR_SRNCTL_WMASK     0x5
-#define CUSTOM_CSR_MCOREPWR_WMASK   0x1
+#define CUSTOM_CSR_MCOREPWR_WMASK   0x3
 #define CUSTOM_CSR_MFLUSHPWR_WMASK  0x1
 
 /**
@@ -1105,6 +1106,7 @@ CSR_STRUCT_END(mcontext)
 
 CSR_STRUCT_START(mcorepwr)
   uint64_t powerdown  : 1; // [0] core want to power down when core is in WFI state
+  uint64_t commit_stuck_check_enable : 1; // [1] Enable commit stuck check
 CSR_STRUCT_END(mcorepwr)
 
 CSR_STRUCT_START(mflushpwr)
@@ -1292,7 +1294,8 @@ CSR_STRUCT_START(mbmc)
   uint64_t CMODE:   1;
   uint64_t BCLEAR:  1;
   uint64_t BME  :   1;
-  uint64_t RSV  :   3;
+  uint64_t KEYIDEN: 1;
+  uint64_t RSV  :   2;
   uint64_t BMA  :  58;
 CSR_STRUCT_END(mbmc)
 #endif
@@ -1302,7 +1305,8 @@ CSR_STRUCT_START(mmpt)
   uint64_t PPN: 44; // [43:0]
   uint64_t WPRI0: 8;//[51:44]
   uint64_t SDID: 6;//[57:52]
-  uint64_t WPRI1: 2;//[59:58]
+  uint64_t WPRI1: 1;//[58]
+  uint64_t opt_out_in_node: 1; // [59] Skip non-leaf node checks
   uint64_t MODE: 4; // [63:60]
 CSR_STRUCT_END(mmpt)
 #endif
@@ -1352,6 +1356,10 @@ CSR_STRUCT_START(spfctl)
   uint64_t l2_pf_pbop_enable        : 1; // [19] (Train L1, Prefetch L2) PBOP
   uint64_t l2_pf_vbop_enable        : 1; // [20] (Train L1, Prefetch L2) VBOP
   uint64_t l2_pf_tp_enable          : 1; // [21] (Train L1, Prefetch L2) TP
+  uint64_t l2_pf_delay_latency      : 10; // [31:22] L2 prefetch training delay
+  uint64_t l1d_pf_berti_enable      : 1; // [32] L1D Berti prefetcher enable
+  uint64_t l1d_pf_stream_enable     : 1; // [33] L1D Stream prefetcher enable
+  uint64_t l2_pf_cdp_enable         : 1; // [34] L2 CDP prefetcher enable
 CSR_STRUCT_END(spfctl)
 
 CSR_STRUCT_START(slvpredctl)
