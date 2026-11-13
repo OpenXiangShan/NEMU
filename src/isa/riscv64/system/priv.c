@@ -102,6 +102,7 @@ void init_trigger() {
     IFDEF(CONFIG_TDATA1_ITRIGGER, | (1 << TRIG_TYPE_ITRIG))
     IFDEF(CONFIG_TDATA1_ETRIGGER, | (1 << TRIG_TYPE_ETRIG))
     IFDEF(CONFIG_TDATA1_MCONTROL6, | (1 << TRIG_TYPE_MCONTROL6));
+  tinfo->version = 1;
 }
 #endif // CONFIG_RV_SDTRIG
 
@@ -164,6 +165,10 @@ void init_custom_csr() {
   spfctl->l2_pf_pbop_enable = 1;
   spfctl->l2_pf_vbop_enable = 1;
   spfctl->l2_pf_tp_enable = 1;
+  spfctl->l2_pf_delay_latency = 0;
+  spfctl->l1d_pf_berti_enable = 1;
+  spfctl->l1d_pf_stream_enable = 1;
+  spfctl->l2_pf_cdp_enable = 1;
 
   slvpredctl->lvpred_disable = 0;
   slvpredctl->no_spec_load = 0;
@@ -187,6 +192,7 @@ void init_custom_csr() {
 #endif // CONFIG_RV_SVINVAL
 
   mcorepwr->powerdown = 0;
+  mcorepwr->commit_stuck_check_enable = 0;
 
   mflushpwr->flushl2 = 0;
   mflushpwr->l2flushed = 0;
@@ -598,6 +604,8 @@ static inline word_t* csr_decode(uint32_t addr) {
 #define HIE_WMASK     HSI_MASK
 #define HGEIE_MASK    ((1ULL << (1 + MUXDEF(CONFIG_RV_IMSIC, CONFIG_GEILEN, 0))) - 2) // bit 0 is read-only zero
 #define HGEIP_MASK    HGEIE_MASK
+#define HVICTL_WMASK  0x4fff03ffULL
+#define HVIPRIO1_WMASK 0xffffff00ff00ff00ULL
 #define HIDELEG_MASK  (VSI_MASK | MUXDEF(CONFIG_RV_SHLCOFIDELEG, MIP_LCOFIP, 0))
 #define HEDELEG_MASK  ((1 << EX_IAM) | \
                        (1 << EX_IAF) | \
@@ -1914,6 +1922,10 @@ static word_t csr_read(uint32_t csrid) {
 #ifdef CONFIG_RV_AIA
     case CSR_HVIEN: return hvien->val & HVIEN_MASK;
 #endif
+#ifdef CONFIG_RV_IMSIC
+    case CSR_HVICTL: return hvictl->val & HVICTL_WMASK;
+    case CSR_HVIPRIO1: return hviprio1->val & HVIPRIO1_WMASK;
+#endif
     case CSR_HENVCFG:
     {
       uint64_t henvcfg_out = henvcfg->val;
@@ -2453,6 +2465,10 @@ static void csr_write(uint32_t csrid, word_t src) {
 #ifdef CONFIG_RV_AIA
     case CSR_HVIEN: hvien->val = mask_bitset(hvien->val, HVIEN_MASK, src); break;
 #endif // CONFIG_RV_AIA
+#ifdef CONFIG_RV_IMSIC
+    case CSR_HVICTL: *dest = src & HVICTL_WMASK; break;
+    case CSR_HVIPRIO1: *dest = src & HVIPRIO1_WMASK; break;
+#endif
 
     case CSR_HENVCFG:
       henvcfg->val = mask_bitset(henvcfg->val, HENVCFG_WMASK & (~MENVCFG_WMASK_CBIE) & (~HENVCFG_WMASK_PMM), src);
@@ -2879,14 +2895,30 @@ static void csr_write(uint32_t csrid, word_t src) {
       bool BME_dest = mbmc->val & MBMC_BME;
       uint64_t mbmc_mask;
       if (BME_dest == 1) {
-        mbmc_mask = 0x1;
+        mbmc_mask = 0x9; // CMODE and KEYIDEN remain writable when BME is locked.
       } else {
-        mbmc_mask = 0xffffffffffffffc5ULL;
+        mbmc_mask = 0xffffffffffffffcdULL;
       }
       mbmc->val = mask_bitset(mbmc->val, mbmc_mask, src);
       break;
     }
 #endif
+
+#ifdef CONFIG_RV_MPT_CHECK
+    case CUSTOM_CSR_MMPT:
+    {
+      mmpt_t new_val = (mmpt_t)src;
+      mmpt->PPN = new_val.PPN & BITMASK(CONFIG_PADDRBITS - PAGE_SHIFT);
+      mmpt->SDID = new_val.SDID;
+      mmpt->opt_out_in_node = new_val.opt_out_in_node;
+      mmpt->WPRI0 = 0;
+      mmpt->WPRI1 = 0;
+      if (new_val.MODE <= 2) { // Bare, Smmpt43 and Smmpt52
+        mmpt->MODE = new_val.MODE;
+      }
+      break;
+    }
+#endif // CONFIG_RV_MPT_CHECK
 
 #ifdef CONFIG_RV_IMSIC
     case CSR_MTOPI: return;
