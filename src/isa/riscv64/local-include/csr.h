@@ -42,7 +42,7 @@
 #define CUSTOM_CSR_SPFCTL_WMASK     0x3fffff
 #define CUSTOM_CSR_SLVPREDCTL_WMASK 0x1ff
 #define CUSTOM_CSR_SMBLOCKCTL_WMASK 0x1ffffffffULL
-#define CUSTOM_CSR_SRNCTL_WMASK     0x5
+#define CUSTOM_CSR_SRNCTL_WMASK     0x15
 #define CUSTOM_CSR_MCOREPWR_WMASK   0x1
 #define CUSTOM_CSR_MFLUSHPWR_WMASK  0x1
 
@@ -1321,9 +1321,11 @@ CSR_STRUCT_END(scountovf)
 // to fix xiangshan that:
 // rnctl: move elimination,
 CSR_STRUCT_START(srnctl)
-  uint64_t fusion_enable : 1;  // [0]
-  uint64_t               : 1;  // [1]
-  uint64_t wfi_enable    : 1;  // [2]
+  uint64_t fusion_enable                       : 1;  // [0]
+  uint64_t                                     : 1;  // [1]
+  uint64_t wfi_enable                          : 1;  // [2]
+  uint64_t                                     : 1;  // [3]
+  uint64_t high_density_rob_compression_enable : 1;  // [4]
 CSR_STRUCT_END(srnctl)
 #endif
 
