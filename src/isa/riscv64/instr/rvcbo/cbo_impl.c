@@ -53,6 +53,15 @@ static void paddr_check(paddr_t paddr, vaddr_t vaddr, int type) {
   }
 }
 
+// CMO/LR-SC interaction: an operation that touches the reservation set
+// invalidates the local reservation, as required by the RISC-V LR/SC rules.
+static void invalidate_lr_on_cmo(paddr_t paddr) {
+  const uint64_t mask = (1UL << CONFIG_RESERVATION_SET_WIDTH) - 1;
+  if (cpu.lr_valid && (((cpu.lr_addr ^ paddr) & ~mask) == 0)) {
+    cpu.lr_valid = 0;
+  }
+}
+
 static void trigger_check(vaddr_t vaddr){
 #ifdef CONFIG_TDATA1_MCONTROL6
   vaddr_t block_addr = vaddr & ~CACHE_BLOCK_MASK;
@@ -104,6 +113,7 @@ void cbo_zero(Decode *s){
   rtlreg_t* addr_p = dsrc1;
 
   not_translate_check(*addr_p, MEM_TYPE_WRITE);
+  invalidate_lr_on_cmo(*addr_p);
 
   rtlreg_t block_addr = *addr_p & ~CACHE_BLOCK_MASK;
   for (uint64_t i = 0; i < CACHE_BLOCK_OPS; i++) {
@@ -123,6 +133,7 @@ void cbo_inval(Decode *s){
     rtlreg_t* addr_p = dsrc1;
 
     not_translate_check(*addr_p, MEM_TYPE_READ);
+    invalidate_lr_on_cmo(*addr_p);
 #ifdef CONFIG_AME_MEM_ACCESS_CHECK
     if (inval_as_flush()) {
       svstore_queue_update_cbo(*addr_p & ~CACHE_BLOCK_MASK, CACHE_BLOCK_SIZE);
@@ -145,6 +156,7 @@ void cbo_flush(Decode *s){
     rtlreg_t *addr_p = dsrc1;
 
     not_translate_check(*addr_p, MEM_TYPE_READ);
+    invalidate_lr_on_cmo(*addr_p);
     IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, svstore_queue_update_cbo(*addr_p & ~CACHE_BLOCK_MASK, CACHE_BLOCK_SIZE));
 
     // do nothing
@@ -163,6 +175,7 @@ void cbo_clean(Decode *s){
     rtlreg_t *addr_p = dsrc1;
 
     not_translate_check(*addr_p, MEM_TYPE_READ);
+    invalidate_lr_on_cmo(*addr_p);
     IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, svstore_queue_update_cbo(*addr_p & ~CACHE_BLOCK_MASK, CACHE_BLOCK_SIZE));
 
     // do nothing
@@ -178,6 +191,7 @@ void cbo_zero_mmu(Decode *s){
   rtlreg_t *addr_p = dsrc1;
 
   paddr_t base_addr_p = translate_and_check(*addr_p, MEM_TYPE_WRITE);
+  invalidate_lr_on_cmo(base_addr_p);
 
   rtlreg_t block_addr = base_addr_p & ~CACHE_BLOCK_MASK;
   for (uint64_t i = 0; i < CACHE_BLOCK_OPS; i++) {
@@ -197,7 +211,8 @@ void cbo_inval_mmu(Decode *s){
 
     rtlreg_t *addr_p = dsrc1;
 
-    __attribute__((unused)) paddr_t paddr = translate_and_check(*addr_p, MEM_TYPE_READ);
+    paddr_t paddr = translate_and_check(*addr_p, MEM_TYPE_READ);
+    invalidate_lr_on_cmo(paddr);
 #ifdef CONFIG_AME_MEM_ACCESS_CHECK
     if (inval_as_flush()) {
       svstore_queue_update_cbo(paddr & ~CACHE_BLOCK_MASK, CACHE_BLOCK_SIZE);
@@ -218,7 +233,8 @@ void cbo_flush_mmu(Decode *s){
   } else {
     rtlreg_t *addr_p = dsrc1;
 
-    __attribute__((unused)) paddr_t paddr = translate_and_check(*addr_p, MEM_TYPE_READ);
+    paddr_t paddr = translate_and_check(*addr_p, MEM_TYPE_READ);
+    invalidate_lr_on_cmo(paddr);
     IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, svstore_queue_update_cbo(paddr & ~CACHE_BLOCK_MASK, CACHE_BLOCK_SIZE));
 
     // do nothing
@@ -237,7 +253,8 @@ void cbo_clean_mmu(Decode *s){
 
     rtlreg_t *addr_p = dsrc1;
 
-    __attribute__((unused)) paddr_t paddr = translate_and_check(*addr_p, MEM_TYPE_READ);
+    paddr_t paddr = translate_and_check(*addr_p, MEM_TYPE_READ);
+    invalidate_lr_on_cmo(paddr);
     IFDEF(CONFIG_AME_MEM_ACCESS_CHECK, svstore_queue_update_cbo(paddr & ~CACHE_BLOCK_MASK, CACHE_BLOCK_SIZE));
 
     // do nothing
