@@ -213,13 +213,19 @@ void mmu_tlb_flush(vaddr_t vaddr) {
 #ifdef CONFIG_RVH
 void mmu_tlb_flush_host(vaddr_t vaddr) {
   hosttlb_flush(vaddr);
-  isa_mmu_tlb_flush();
+  isa_mmu_tlb_flush_host();
   if (vaddr == 0)
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }
 
-void mmu_tlb_flush_guest(vaddr_t vaddr) {
-  isa_mmu_tlb_flush();
+void mmu_tlb_flush_guest_vvma(vaddr_t vaddr) {
+  isa_mmu_tlb_flush_guest_vvma();
+  if (vaddr == 0)
+    set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+}
+
+void mmu_tlb_flush_guest_gvma(vaddr_t vaddr) {
+  isa_mmu_tlb_flush_guest_gvma();
   if (vaddr == 0)
     set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 }

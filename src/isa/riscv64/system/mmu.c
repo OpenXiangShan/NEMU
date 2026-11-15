@@ -810,40 +810,74 @@ bool isa_hosttlb_check(int type) {
 #endif
 
 #ifdef CONFIG_RVH
-// Cache the final VS-stage + G-stage translation instead of walking both page
-// tables on every guest access. MPRV accesses remain on the slow path;
-// hypervisor loads/stores use a distinct translation context.
+// Cache final translations and page faults, which remain valid until the
+// corresponding translation stage is fenced.
 #define RVH_FINAL_TLB_SIZE 4096
+#define RVH_TLB_STAGE_HOST 0x1
+#define RVH_TLB_STAGE_VVMA 0x2
+#define RVH_TLB_STAGE_GVMA 0x4
 
 typedef struct {
   vaddr_t vpn;
   paddr_t ppn;
-  uint64_t generation;
+  uint64_t host_generation;
+  uint64_t vvma_generation;
+  uint64_t gvma_generation;
+  uint64_t satp;
+  uint64_t vsatp;
+  uint64_t hgatp;
+  trap_info_t trap_info;
+  uint16_t context;
   uint8_t type;
   uint8_t pbmt;
+  uint8_t stage_mask;
+  bool fault;
+  int fault_cause;
 #ifdef CONFIG_RV_MBMC
   uint8_t pt_level;
 #endif
 } rvh_final_tlb_entry_t;
 
 static rvh_final_tlb_entry_t rvh_final_tlb[RVH_FINAL_TLB_SIZE];
-static uint64_t rvh_final_tlb_generation = 1;
-static uint64_t rvh_final_tlb_satp = UINT64_MAX;
-static uint64_t rvh_final_tlb_vsatp = UINT64_MAX;
-static uint64_t rvh_final_tlb_hgatp = UINT64_MAX;
-static uint16_t rvh_final_tlb_context = UINT16_MAX;
+static uint64_t rvh_final_tlb_host_generation = 1;
+static uint64_t rvh_final_tlb_vvma_generation = 1;
+static uint64_t rvh_final_tlb_gvma_generation = 1;
+
+static void rvh_final_tlb_flush_scopes(uint8_t scopes) {
+  if (scopes & RVH_TLB_STAGE_HOST) rvh_final_tlb_host_generation++;
+  if (scopes & RVH_TLB_STAGE_VVMA) rvh_final_tlb_vvma_generation++;
+  if (scopes & RVH_TLB_STAGE_GVMA) rvh_final_tlb_gvma_generation++;
+  if (unlikely(rvh_final_tlb_host_generation == 0 ||
+      rvh_final_tlb_vvma_generation == 0 ||
+      rvh_final_tlb_gvma_generation == 0)) {
+    memset(rvh_final_tlb, 0, sizeof(rvh_final_tlb));
+    rvh_final_tlb_host_generation = 1;
+    rvh_final_tlb_vvma_generation = 1;
+    rvh_final_tlb_gvma_generation = 1;
+  }
+}
 
 void isa_mmu_tlb_flush(void) {
-  if (unlikely(++rvh_final_tlb_generation == 0)) {
-    memset(rvh_final_tlb, 0, sizeof(rvh_final_tlb));
-    rvh_final_tlb_generation = 1;
-  }
+  rvh_final_tlb_flush_scopes(RVH_TLB_STAGE_HOST | RVH_TLB_STAGE_VVMA |
+      RVH_TLB_STAGE_GVMA);
+}
+
+void isa_mmu_tlb_flush_host(void) {
+  rvh_final_tlb_flush_scopes(RVH_TLB_STAGE_HOST);
+}
+
+void isa_mmu_tlb_flush_guest_vvma(void) {
+  rvh_final_tlb_flush_scopes(RVH_TLB_STAGE_VVMA);
+}
+
+void isa_mmu_tlb_flush_guest_gvma(void) {
+  rvh_final_tlb_flush_scopes(RVH_TLB_STAGE_GVMA);
 }
 
 static inline bool rvh_final_tlb_cacheable(int type) {
   // Reuse the final translation cache for nonvirtual FAST S/U accesses.
   bool host_fast = ref_is_fast() && !cpu.v && !hld_st;
-  return (cpu.v || hld_st || host_fast) && !cpu.amo &&
+  return (cpu.v || hld_st || host_fast) && !cpu.amo && !cpu.guided_exec &&
       (type == MEM_TYPE_IFETCH || !get_mprv());
 }
 
@@ -860,24 +894,32 @@ static inline uint16_t rvh_final_tlb_current_context(void) {
       (hld_st << 9) |
       (hlvx << 10) |
       (hstatus->spvp << 11) |
-      (mstatus->sum << 12));
+      (mstatus->sum << 12) |
+      (cpu.v << 13) |
+      (dynamic_config.ignore_illegal_mem_access << 14));
 }
 
-static inline void rvh_final_tlb_sync_context(void) {
-  uint16_t context = rvh_final_tlb_current_context();
-  uint64_t current_satp = (!cpu.v && !hld_st) ? satp->val : UINT64_MAX;
-  uint64_t current_vsatp = (cpu.v || hld_st) ? vsatp->val : UINT64_MAX;
-  uint64_t current_hgatp = (cpu.v || hld_st) ? hgatp->val : UINT64_MAX;
-  if (unlikely(rvh_final_tlb_satp != current_satp ||
-      rvh_final_tlb_vsatp != current_vsatp ||
-      rvh_final_tlb_hgatp != current_hgatp ||
-      rvh_final_tlb_context != context)) {
-    isa_mmu_tlb_flush();
-    rvh_final_tlb_satp = current_satp;
-    rvh_final_tlb_vsatp = current_vsatp;
-    rvh_final_tlb_hgatp = current_hgatp;
-    rvh_final_tlb_context = context;
+static inline uint8_t rvh_final_tlb_current_stages(void) {
+  if (cpu.v || hld_st) {
+    uint8_t stages = 0;
+    if (vsatp->mode != SATP_MODE_BARE) stages |= RVH_TLB_STAGE_VVMA;
+    if (hgatp->mode != HGATP_MODE_BARE) stages |= RVH_TLB_STAGE_GVMA;
+    return stages;
   }
+  return cpu.mode == MODE_M || satp->mode == SATP_MODE_BARE ? 0 :
+      RVH_TLB_STAGE_HOST;
+}
+
+static inline uint64_t rvh_final_tlb_current_satp(void) {
+  return (!cpu.v && !hld_st) ? satp->val : UINT64_MAX;
+}
+
+static inline uint64_t rvh_final_tlb_current_vsatp(void) {
+  return (cpu.v || hld_st) ? vsatp->val : UINT64_MAX;
+}
+
+static inline uint64_t rvh_final_tlb_current_hgatp(void) {
+  return (cpu.v || hld_st) ? hgatp->val : UINT64_MAX;
 }
 
 static inline rvh_final_tlb_entry_t *rvh_final_tlb_entry(vaddr_t vaddr, int type) {
@@ -892,15 +934,30 @@ static inline bool rvh_final_tlb_lookup(vaddr_t vaddr, int len, int type, paddr_
     return false;
   }
 
-  rvh_final_tlb_sync_context();
   rvh_final_tlb_entry_t *entry = rvh_final_tlb_entry(vaddr, type);
-  if (likely(entry->generation == rvh_final_tlb_generation &&
-      entry->vpn == (vaddr >> PAGE_SHIFT) &&
-      entry->type == type)) {
+  uint8_t stages = rvh_final_tlb_current_stages();
+  bool valid = entry->vpn == (vaddr >> PAGE_SHIFT) &&
+      entry->type == type && entry->stage_mask == stages &&
+      (!entry->fault || entry->trap_info.tval == vaddr) &&
+      entry->context == rvh_final_tlb_current_context() &&
+      entry->satp == rvh_final_tlb_current_satp() &&
+      entry->vsatp == rvh_final_tlb_current_vsatp() &&
+      entry->hgatp == rvh_final_tlb_current_hgatp() &&
+      (!(stages & RVH_TLB_STAGE_HOST) ||
+          entry->host_generation == rvh_final_tlb_host_generation) &&
+      (!(stages & RVH_TLB_STAGE_VVMA) ||
+          entry->vvma_generation == rvh_final_tlb_vvma_generation) &&
+      (!(stages & RVH_TLB_STAGE_GVMA) ||
+          entry->gvma_generation == rvh_final_tlb_gvma_generation);
+  if (likely(valid)) {
     cpu.pbmt = entry->pbmt;
 #ifdef CONFIG_RV_MBMC
     pt_level = entry->pt_level;
 #endif
+    if (entry->fault) {
+      cpu.trapInfo = entry->trap_info;
+      longjmp_exception(entry->fault_cause);
+    }
     *result = entry->ppn;
     return true;
   }
@@ -919,10 +976,52 @@ static inline void rvh_final_tlb_insert(vaddr_t vaddr, int len, int type, paddr_
   entry->ppn = result & ~PAGE_MASK;
   entry->type = type;
   entry->pbmt = cpu.pbmt;
+  entry->stage_mask = rvh_final_tlb_current_stages();
+  entry->context = rvh_final_tlb_current_context();
+  entry->satp = rvh_final_tlb_current_satp();
+  entry->vsatp = rvh_final_tlb_current_vsatp();
+  entry->hgatp = rvh_final_tlb_current_hgatp();
+  entry->host_generation = rvh_final_tlb_host_generation;
+  entry->vvma_generation = rvh_final_tlb_vvma_generation;
+  entry->gvma_generation = rvh_final_tlb_gvma_generation;
+  entry->fault = false;
 #ifdef CONFIG_RV_MBMC
   entry->pt_level = pt_level;
 #endif
-  entry->generation = rvh_final_tlb_generation;
+}
+
+static inline bool rvh_final_tlb_page_fault(int cause) {
+  return cause == EX_IPF || cause == EX_LPF || cause == EX_SPF ||
+      cause == EX_IGPF || cause == EX_LGPF || cause == EX_SGPF;
+}
+
+static inline void rvh_final_tlb_insert_fault(vaddr_t vaddr, int len, int type,
+    int cause) {
+  if (!rvh_final_tlb_cacheable(type) ||
+      unlikely((vaddr & PAGE_MASK) + (word_t)len > PAGE_SIZE) ||
+      !rvh_final_tlb_page_fault(cause) ||
+      rvh_final_tlb_current_stages() == 0) {
+    return;
+  }
+
+  rvh_final_tlb_entry_t *entry = rvh_final_tlb_entry(vaddr, type);
+  entry->vpn = vaddr >> PAGE_SHIFT;
+  entry->type = type;
+  entry->pbmt = cpu.pbmt;
+  entry->stage_mask = rvh_final_tlb_current_stages();
+  entry->context = rvh_final_tlb_current_context();
+  entry->satp = rvh_final_tlb_current_satp();
+  entry->vsatp = rvh_final_tlb_current_vsatp();
+  entry->hgatp = rvh_final_tlb_current_hgatp();
+  entry->host_generation = rvh_final_tlb_host_generation;
+  entry->vvma_generation = rvh_final_tlb_vvma_generation;
+  entry->gvma_generation = rvh_final_tlb_gvma_generation;
+  entry->trap_info = cpu.trapInfo;
+  entry->fault = true;
+  entry->fault_cause = cause;
+#ifdef CONFIG_RV_MBMC
+  entry->pt_level = pt_level;
+#endif
 }
 #endif
 
@@ -1116,7 +1215,20 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
 #ifdef CONFIG_RVH
   bool tlb_hit = rvh_final_tlb_lookup(vaddr, len, type, &ptw_result);
   if (!tlb_hit) {
-    ptw_result = ptw(vaddr, type);
+    if (!rvh_final_tlb_cacheable(type) ||
+        unlikely((vaddr & PAGE_MASK) + (word_t)len > PAGE_SIZE)) {
+      ptw_result = ptw(vaddr, type);
+    } else {
+      int exception;
+      PUSH_CONTEXT(&exception);
+      if (exception != 0) {
+        pop_context();
+        rvh_final_tlb_insert_fault(vaddr, len, type, exception);
+        longjmp_exception(exception);
+      }
+      ptw_result = ptw(vaddr, type);
+      pop_context();
+    }
   }
 #else
   ptw_result = ptw(vaddr, type);
