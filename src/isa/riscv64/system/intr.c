@@ -76,6 +76,13 @@ static word_t get_trap_pc(word_t xtvec, word_t xcause) {
 word_t raise_intr(word_t NO, vaddr_t epc) {
   IFDEF(CONFIG_SHARE, csr_difftest_mark_dirty());
 #ifdef CONFIG_RVV
+  // A faulting vector load bypasses the helper's normal Dirty update.
+  bool is_vload_fault = NO == EX_LAM || NO == EX_LAF || NO == EX_LPF ||
+                        NO == EX_BP || NO == EX_HWE ||
+                        MUXDEF(CONFIG_RVH, NO == EX_LGPF, false);
+  if (cpu.isVldst && !cpu.isVstoreActive && is_vload_fault && vstart->val != 0) {
+    vp_set_dirty();
+  }
   // A vector-store fault can leave vstart at the faulting element.
   if (cpu.isVstoreActive) {
     if (vstart->val != 0) vp_set_dirty();
