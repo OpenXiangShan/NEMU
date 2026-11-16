@@ -779,7 +779,7 @@ void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int d
         rtl_sext(s, s0, s0, 1 << vtype->vsew);
         rtl_sext(s, s1, s1, 1 << vtype->vsew);
         if(*s1 == 0) rtl_mv(s, s1, s0);
-        else if(*s1 == 0x8000000000000000LL && *s1 == (word_t)-1) //may be error
+        else if(*s0 == 0x8000000000000000LL && *s1 == (word_t)-1) //may be error
           rtl_li(s, s1, 0);
         else rtl_divs_r(s, s1, s0, s1);
         break;
