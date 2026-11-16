@@ -411,6 +411,13 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
 word_t isa_query_intr() {
   word_t enabled_intr = mie->val;
 #ifdef CONFIG_RV_IMSIC
+#if defined(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT) && !defined(CONFIG_SHARE)
+  // A local timer can become pending without a CSR write or DUT AIA event.
+  // Refresh TOPI before its zero fast path so standalone Linux sees it.
+  update_mtopi();
+  update_stopi();
+  update_vstopi();
+#endif
   bool pending = (mtopi->val != 0) || (stopi->val != 0) || (vstopi->val != 0);
 #endif
   if (MUXDEF(CONFIG_RV_IMSIC, !pending, !enabled_intr) ||
