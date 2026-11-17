@@ -65,17 +65,17 @@ bool isa_hosttlb_check(int type);
 #endif
 #ifdef CONFIG_RVH
 void isa_mmu_tlb_flush(void);
-void isa_mmu_tlb_flush_host(void);
-void isa_mmu_tlb_flush_guest_vvma(void);
-void isa_mmu_tlb_flush_guest_gvma(void);
+void isa_mmu_tlb_flush_host(int asid);
+void isa_mmu_tlb_flush_guest_vvma(int vmid, int asid);
+void isa_mmu_tlb_flush_guest_gvma(int vmid);
 #else
 static inline void isa_mmu_tlb_flush(void) {
 }
-static inline void isa_mmu_tlb_flush_host(void) {
+static inline void isa_mmu_tlb_flush_host(int asid) {
 }
-static inline void isa_mmu_tlb_flush_guest_vvma(void) {
+static inline void isa_mmu_tlb_flush_guest_vvma(int vmid, int asid) {
 }
-static inline void isa_mmu_tlb_flush_guest_gvma(void) {
+static inline void isa_mmu_tlb_flush_guest_gvma(int vmid) {
 }
 #endif
 bool isa_pmp_check_permission(paddr_t addr, int len, int type, int mode);

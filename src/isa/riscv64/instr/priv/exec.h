@@ -70,7 +70,7 @@ def_EHelper(wrs_sto) {
 #endif // CONFIG_RV_ZAWRS
 
 def_EHelper(sfence_vma) {
-  riscv64_priv_sfence_vma(*dsrc1, *ddest);
+  riscv64_priv_sfence_vma(*dsrc1, *dsrc2, s->isa.instr.r.rs2 == 0);
   rtl_priv_next(s);
 }
 
@@ -83,12 +83,12 @@ def_EHelper(mfence) {
 
 #ifdef CONFIG_RVH
 def_EHelper(hfence_vvma) {
-  riscv64_priv_hfence_vvma(*dsrc1, *ddest);
+  riscv64_priv_hfence_vvma(*dsrc1, *dsrc2, s->isa.instr.r.rs2 == 0);
   rtl_priv_next(s);
 }
 
 def_EHelper(hfence_gvma) {
-  riscv64_priv_hfence_gvma(*dsrc1, *ddest);
+  riscv64_priv_hfence_gvma(*dsrc1, *dsrc2, s->isa.instr.r.rs2 == 0);
   rtl_priv_next(s);
 }
 #endif // CONFIG_RVH
@@ -105,18 +105,18 @@ def_EHelper(sfence_inval_ir) {
 }
 
 def_EHelper(sinval_vma) {
-  riscv64_priv_sfence_vma(*dsrc1, *ddest);
+  riscv64_priv_sfence_vma(*dsrc1, *dsrc2, s->isa.instr.r.rs2 == 0);
   rtl_priv_next(s);
 }
 
 #ifdef CONFIG_RVH
 def_EHelper(hinval_vvma) {
-  riscv64_priv_hfence_vvma(*dsrc1, *ddest);
+  riscv64_priv_hfence_vvma(*dsrc1, *dsrc2, s->isa.instr.r.rs2 == 0);
   rtl_priv_next(s);
 }
 
 def_EHelper(hinval_gvma) {
-  riscv64_priv_hfence_gvma(*dsrc1, *ddest);
+  riscv64_priv_hfence_gvma(*dsrc1, *dsrc2, s->isa.instr.r.rs2 == 0);
   rtl_priv_next(s);
 }
 #endif // CONFIG_RVH
