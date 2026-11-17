@@ -1,5 +1,6 @@
 #include "isa.h"
 #include "cpu/cpu.h"
+#include "cpu/difftest.h"
 #include "../local-include/trigger.h"
 #include "../local-include/csr.h"
 #include "../local-include/intr.h"
@@ -456,6 +457,11 @@ void trigger_handler(const trig_type_t type, const trig_action_t action, word_t 
         case TRIG_TYPE_MCONTROL:
         case TRIG_TYPE_MCONTROL6:
         case TRIG_TYPE_ICOUNT:
+#if defined(CONFIG_DIFFTEST_REF_SPIKE) && !defined(CONFIG_SHARE)
+          // Spike returns at this zero-retirement trigger boundary. Consume
+          // that event before the handler's first instruction is compared.
+          if (type == TRIG_TYPE_ICOUNT || type == TRIG_TYPE_MCONTROL6) difftest_skip_dut(1, 0);
+#endif
           cpu.TM->breakpoint_no_address = type != TRIG_TYPE_MCONTROL && type != TRIG_TYPE_MCONTROL6;
           trigger_action = action;
           triggered_tval = tval;
