@@ -151,20 +151,20 @@ void riscv64_priv_wrs_nto();
 /// @param vaddr the address to flush
 /// @param asid the address space identifier
 /// @return no return value
-void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid);
+void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid, bool all_asids);
 
 #ifdef CONFIG_RVH
 /// @brief Do RISC-V 64 privileged instruction: hfence.vvma
 /// @param vaddr the address to flush
 /// @param asid the address space identifier
 /// @return no return value
-void riscv64_priv_hfence_vvma(vaddr_t vaddr, word_t asid);
+void riscv64_priv_hfence_vvma(vaddr_t vaddr, word_t asid, bool all_asids);
 
 /// @brief Do RISC-V 64 privileged instruction: hfence.gvma
 /// @param vaddr the address to flush
 /// @param vmid the virtual machine identifier
 /// @return no return value
-void riscv64_priv_hfence_gvma(vaddr_t vaddr, word_t vmid);
+void riscv64_priv_hfence_gvma(vaddr_t vaddr, word_t vmid, bool all_vmids);
 #endif // CONFIG_RVH
 
 #ifdef CONFIG_RV_MPT_CHECK

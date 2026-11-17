@@ -864,16 +864,34 @@ void isa_mmu_tlb_flush(void) {
       RVH_TLB_STAGE_GVMA);
 }
 
-void isa_mmu_tlb_flush_host(void) {
-  rvh_final_tlb_flush_scopes(RVH_TLB_STAGE_HOST);
+// Negative identifiers select all. VA/GPA selection is deliberately deferred.
+static void rvh_final_tlb_flush_scope(uint8_t scopes, int vmid, int asid) {
+  if (vmid < 0 && asid < 0) {
+    rvh_final_tlb_flush_scopes(scopes);
+    return;
+  }
+  for (int i = 0; i < RVH_FINAL_TLB_SIZE; i++) {
+    rvh_final_tlb_entry_t *entry = &rvh_final_tlb[i];
+    if ((entry->stage_mask & scopes) &&
+        (vmid < 0 || (entry->vmid & BITMASK(CONFIG_RV_VMID_LEN)) == vmid) &&
+        (asid < 0 || (entry->asid & BITMASK(CONFIG_RV_ASID_LEN)) == asid)) {
+      if (scopes & RVH_TLB_STAGE_HOST) entry->host_generation = 0;
+      if (scopes & RVH_TLB_STAGE_VVMA) entry->vvma_generation = 0;
+      if (scopes & RVH_TLB_STAGE_GVMA) entry->gvma_generation = 0;
+    }
+  }
 }
 
-void isa_mmu_tlb_flush_guest_vvma(void) {
-  rvh_final_tlb_flush_scopes(RVH_TLB_STAGE_VVMA);
+void isa_mmu_tlb_flush_host(int asid) {
+  rvh_final_tlb_flush_scope(RVH_TLB_STAGE_HOST, -1, asid);
 }
 
-void isa_mmu_tlb_flush_guest_gvma(void) {
-  rvh_final_tlb_flush_scopes(RVH_TLB_STAGE_GVMA);
+void isa_mmu_tlb_flush_guest_vvma(int vmid, int asid) {
+  rvh_final_tlb_flush_scope(RVH_TLB_STAGE_VVMA, vmid, asid);
+}
+
+void isa_mmu_tlb_flush_guest_gvma(int vmid) {
+  rvh_final_tlb_flush_scope(RVH_TLB_STAGE_GVMA, vmid, -1);
 }
 
 static inline bool rvh_final_tlb_cacheable(int type) {

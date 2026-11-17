@@ -3875,7 +3875,7 @@ void riscv64_priv_wrs_nto() {
 /// @param vaddr the address to flush
 /// @param asid the address space identifier
 /// @return no return value
-void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid) {
+void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid, bool all_asids) {
   // Described in 3.1.6.5 Virtualization Support in mstatus Register
   // When TVM=1, attempts to read or write the satp CSR or execute an SFENCE.VMA or SINVAL.VMA instruction
   // while executing in S-mode will raise an illegal instruction exception.
@@ -3894,9 +3894,10 @@ void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid) {
 #ifdef CONFIG_RVH
   // SFENCE.VMA orders only the currently active first-stage translation.
   if (cpu.v) {
-    mmu_tlb_flush_guest_vvma(vaddr);
+    mmu_tlb_flush_guest_vvma(vaddr, hgatp->vmid & BITMASK(CONFIG_RV_VMID_LEN),
+        all_asids ? -1 : (int)(asid & BITMASK(CONFIG_RV_ASID_LEN)));
   } else {
-    mmu_tlb_flush_host(vaddr);
+    mmu_tlb_flush_host(vaddr, all_asids ? -1 : (int)(asid & BITMASK(CONFIG_RV_ASID_LEN)));
   }
 #else
   mmu_tlb_flush(vaddr);
@@ -3908,20 +3909,21 @@ void riscv64_priv_sfence_vma(vaddr_t vaddr, word_t asid) {
 /// @param vaddr the address to flush
 /// @param asid the address space identifier
 /// @return no return value
-void riscv64_priv_hfence_vvma(vaddr_t vaddr, word_t asid) {
+void riscv64_priv_hfence_vvma(vaddr_t vaddr, word_t asid, bool all_asids) {
   if(cpu.v) longjmp_exception(EX_VI);
   if(!cpu.v && cpu.mode == MODE_U) longjmp_exception(EX_II);
-  mmu_tlb_flush_guest_vvma(vaddr);
+  mmu_tlb_flush_guest_vvma(vaddr, hgatp->vmid & BITMASK(CONFIG_RV_VMID_LEN),
+      all_asids ? -1 : (int)(asid & BITMASK(CONFIG_RV_ASID_LEN)));
 }
 
 /// @brief Do RISC-V 64 privileged instruction: hfence.gvma
 /// @param vaddr the address to flush
 /// @param vmid the virtual machine identifier
 /// @return no return value
-void riscv64_priv_hfence_gvma(vaddr_t vaddr, word_t vmid) {
+void riscv64_priv_hfence_gvma(vaddr_t vaddr, word_t vmid, bool all_vmids) {
   if(cpu.v) longjmp_exception(EX_VI);
   if(!cpu.v && (cpu.mode == MODE_U || (cpu.mode == MODE_S && mstatus->tvm))) longjmp_exception(EX_II);
-  mmu_tlb_flush_guest_gvma(vaddr);
+  mmu_tlb_flush_guest_gvma(vaddr, all_vmids ? -1 : (int)(vmid & BITMASK(CONFIG_RV_VMID_LEN)));
 }
 #endif // CONFIG_RVH
 
