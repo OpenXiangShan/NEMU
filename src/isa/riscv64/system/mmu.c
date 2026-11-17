@@ -828,6 +828,8 @@ typedef struct {
   uint64_t hgatp;
   trap_info_t trap_info;
   uint16_t context;
+  uint16_t vmid;
+  uint16_t asid;
   uint8_t type;
   uint8_t pbmt;
   uint8_t stage_mask;
@@ -910,6 +912,14 @@ static inline uint8_t rvh_final_tlb_current_stages(void) {
       RVH_TLB_STAGE_HOST;
 }
 
+static inline uint16_t rvh_final_tlb_current_vmid(void) {
+  return (cpu.v || hld_st) ? hgatp->vmid : 0;
+}
+
+static inline uint16_t rvh_final_tlb_current_asid(void) {
+  return (cpu.v || hld_st) ? vsatp->asid : satp->asid;
+}
+
 static inline uint64_t rvh_final_tlb_current_satp(void) {
   return (!cpu.v && !hld_st) ? satp->val : UINT64_MAX;
 }
@@ -924,7 +934,8 @@ static inline uint64_t rvh_final_tlb_current_hgatp(void) {
 
 static inline rvh_final_tlb_entry_t *rvh_final_tlb_entry(vaddr_t vaddr, int type) {
   uint64_t vpn = vaddr >> PAGE_SHIFT;
-  uint64_t hash = vpn ^ (uint64_t)type;
+  uint64_t hash = vpn ^ (uint64_t)type ^ rvh_final_tlb_current_vmid() ^
+      ((uint64_t)rvh_final_tlb_current_asid() << 1);
   return &rvh_final_tlb[hash & (RVH_FINAL_TLB_SIZE - 1)];
 }
 
@@ -938,6 +949,8 @@ static inline bool rvh_final_tlb_lookup(vaddr_t vaddr, int len, int type, paddr_
   uint8_t stages = rvh_final_tlb_current_stages();
   bool valid = entry->vpn == (vaddr >> PAGE_SHIFT) &&
       entry->type == type && entry->stage_mask == stages &&
+      entry->vmid == rvh_final_tlb_current_vmid() &&
+      entry->asid == rvh_final_tlb_current_asid() &&
       (!entry->fault || entry->trap_info.tval == vaddr) &&
       entry->context == rvh_final_tlb_current_context() &&
       entry->satp == rvh_final_tlb_current_satp() &&
@@ -978,6 +991,8 @@ static inline void rvh_final_tlb_insert(vaddr_t vaddr, int len, int type, paddr_
   entry->pbmt = cpu.pbmt;
   entry->stage_mask = rvh_final_tlb_current_stages();
   entry->context = rvh_final_tlb_current_context();
+  entry->vmid = rvh_final_tlb_current_vmid();
+  entry->asid = rvh_final_tlb_current_asid();
   entry->satp = rvh_final_tlb_current_satp();
   entry->vsatp = rvh_final_tlb_current_vsatp();
   entry->hgatp = rvh_final_tlb_current_hgatp();
@@ -1010,6 +1025,8 @@ static inline void rvh_final_tlb_insert_fault(vaddr_t vaddr, int len, int type,
   entry->pbmt = cpu.pbmt;
   entry->stage_mask = rvh_final_tlb_current_stages();
   entry->context = rvh_final_tlb_current_context();
+  entry->vmid = rvh_final_tlb_current_vmid();
+  entry->asid = rvh_final_tlb_current_asid();
   entry->satp = rvh_final_tlb_current_satp();
   entry->vsatp = rvh_final_tlb_current_vsatp();
   entry->hgatp = rvh_final_tlb_current_hgatp();
