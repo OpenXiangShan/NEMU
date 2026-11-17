@@ -405,6 +405,17 @@ word_t raise_intr(word_t NO, vaddr_t epc) {
   IFDEF(CONFIG_RV_SDTRIG, cpu.TM->breakpoint_no_address = false);
   update_mmu_state();
   clear_trapinfo();
+#if defined(CONFIG_DIFFTEST_REF_SPIKE) && !defined(CONFIG_SHARE) && defined(CONFIG_RV_SDTRIG)
+  // Spike delivers an itrigger/etrigger action together with the original
+  // trap. Settle both traps before comparing ECALL/EBREAK or a handler insn.
+  if (cpu.TM->trap_action != TRIG_ACTION_NONE) {
+    trigger_action = cpu.TM->trap_action;
+    cpu.TM->trap_action = TRIG_ACTION_NONE;
+    triggered_tval = 0;
+    cpu.TM->breakpoint_no_address = true;
+    return raise_intr(EX_BP, trap_pc);
+  }
+#endif
   return trap_pc;
 }
 
