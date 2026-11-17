@@ -18,6 +18,7 @@
 #include <cpu/cpu.h>
 #include <cpu/difftest.h>
 #include <memory/paddr.h>
+#include <memory/host-tlb.h>
 #include <stdlib.h>
 #include <math.h>
 #include "../local-include/csr.h"
@@ -2941,7 +2942,19 @@ static void csr_write(uint32_t csrid, word_t src) {
 #ifdef CONFIG_RV_MPT_CHECK
       || is_write(mmpt)
 #endif
-     ) { mmu_tlb_flush(0); } // when satp/mmpt is changed, flush tlb.
+     ) {
+#ifdef CONFIG_RVH
+#ifdef CONFIG_RV_MPT_CHECK
+    if (is_write(mmpt)) { isa_mmu_tlb_flush(); }
+#endif
+    // The final cache tags identifiers and MODE; changing a root is not a fence.
+    // HostTLB and decoded instructions have no address-space tags.
+    hosttlb_flush(0);
+    set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+#else
+    mmu_tlb_flush(0);
+#endif
+  }
   if (is_write(mstatus) || is_write(sstatus) || is_write(satp) ||
       is_write(mie) || is_write(sie) || is_write(mip) || is_write(sip)) {
     set_sys_state_flag(SYS_STATE_UPDATE);

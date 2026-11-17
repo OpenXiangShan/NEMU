@@ -944,16 +944,18 @@ static inline uint16_t rvh_final_tlb_current_asid(void) {
   return (cpu.v || hld_st) ? vsatp->asid : satp->asid;
 }
 
+// Identifiers are tagged separately; a root change does not imply a fence.
+// Retain the full MODE and the sentinel for inactive translation domains.
 static inline uint64_t rvh_final_tlb_current_satp(void) {
-  return (!cpu.v && !hld_st) ? satp->val : UINT64_MAX;
+  return (!cpu.v && !hld_st) ? satp->mode : UINT64_MAX;
 }
 
 static inline uint64_t rvh_final_tlb_current_vsatp(void) {
-  return (cpu.v || hld_st) ? vsatp->val : UINT64_MAX;
+  return (cpu.v || hld_st) ? vsatp->mode : UINT64_MAX;
 }
 
 static inline uint64_t rvh_final_tlb_current_hgatp(void) {
-  return (cpu.v || hld_st) ? hgatp->val : UINT64_MAX;
+  return (cpu.v || hld_st) ? hgatp->mode : UINT64_MAX;
 }
 
 static inline rvh_final_tlb_entry_t *rvh_final_tlb_entry(vaddr_t vaddr, int type, bool global) {
