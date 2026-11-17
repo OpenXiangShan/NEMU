@@ -587,7 +587,9 @@ static word_t pte_read(paddr_t addr, int type, int mode, vaddr_t vaddr) {
 }
 #endif // CONFIG_MULTICORE_DIFF
 
-static paddr_t ptw(vaddr_t vaddr, int type) {
+static paddr_t ptw(vaddr_t vaddr, int type, bool *global) {
+  bool first_stage_global = false;
+  *global = false;
   Logtr("Page walking for 0x%lx, CPU mode: %lx", vaddr, cpu.mode);
   word_t pg_base = PGBASE(satp->ppn);
   int max_level;
@@ -679,6 +681,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     } else if (ISNDEF(CONFIG_RV_SVNAPOT) && pte.n) {
       goto bad;
     }
+    first_stage_global |= pte.g;
     if (pte.r || pte.x) { // is leaf
       break;
     } else { // not leaf
@@ -752,6 +755,7 @@ static paddr_t ptw(vaddr_t vaddr, int type) {
     }
   }
 #endif // CONFIG_SHARE
+  *global = first_stage_global;
   return pg_base | MEM_RET_OK;
 
 bad:
@@ -834,6 +838,7 @@ typedef struct {
   uint8_t pbmt;
   uint8_t stage_mask;
   bool fault;
+  bool global;
   int fault_cause;
 #ifdef CONFIG_RV_MBMC
   uint8_t pt_level;
@@ -865,6 +870,7 @@ void isa_mmu_tlb_flush(void) {
 }
 
 // Negative identifiers select all. VA/GPA selection is deliberately deferred.
+// ASID-specific fences preserve globals; all-ASID and G-stage fences clear them.
 static void rvh_final_tlb_flush_scope(uint8_t scopes, int vmid, int asid) {
   if (vmid < 0 && asid < 0) {
     rvh_final_tlb_flush_scopes(scopes);
@@ -874,7 +880,7 @@ static void rvh_final_tlb_flush_scope(uint8_t scopes, int vmid, int asid) {
     rvh_final_tlb_entry_t *entry = &rvh_final_tlb[i];
     if ((entry->stage_mask & scopes) &&
         (vmid < 0 || (entry->vmid & BITMASK(CONFIG_RV_VMID_LEN)) == vmid) &&
-        (asid < 0 || (entry->asid & BITMASK(CONFIG_RV_ASID_LEN)) == asid)) {
+        (asid < 0 || (!entry->global && (entry->asid & BITMASK(CONFIG_RV_ASID_LEN)) == asid))) {
       if (scopes & RVH_TLB_STAGE_HOST) entry->host_generation = 0;
       if (scopes & RVH_TLB_STAGE_VVMA) entry->vvma_generation = 0;
       if (scopes & RVH_TLB_STAGE_GVMA) entry->gvma_generation = 0;
@@ -950,25 +956,19 @@ static inline uint64_t rvh_final_tlb_current_hgatp(void) {
   return (cpu.v || hld_st) ? hgatp->val : UINT64_MAX;
 }
 
-static inline rvh_final_tlb_entry_t *rvh_final_tlb_entry(vaddr_t vaddr, int type) {
+static inline rvh_final_tlb_entry_t *rvh_final_tlb_entry(vaddr_t vaddr, int type, bool global) {
   uint64_t vpn = vaddr >> PAGE_SHIFT;
   uint64_t hash = vpn ^ (uint64_t)type ^ rvh_final_tlb_current_vmid() ^
-      ((uint64_t)rvh_final_tlb_current_asid() << 1);
+      (global ? 0 : ((uint64_t)rvh_final_tlb_current_asid() << 1));
   return &rvh_final_tlb[hash & (RVH_FINAL_TLB_SIZE - 1)];
 }
 
-static inline bool rvh_final_tlb_lookup(vaddr_t vaddr, int len, int type, paddr_t *result) {
-  if (!rvh_final_tlb_cacheable(type) ||
-      unlikely((vaddr & PAGE_MASK) + (word_t)len > PAGE_SIZE)) {
-    return false;
-  }
-
-  rvh_final_tlb_entry_t *entry = rvh_final_tlb_entry(vaddr, type);
+static inline bool rvh_final_tlb_matches(rvh_final_tlb_entry_t *entry, vaddr_t vaddr, int type) {
   uint8_t stages = rvh_final_tlb_current_stages();
-  bool valid = entry->vpn == (vaddr >> PAGE_SHIFT) &&
+  return entry->vpn == (vaddr >> PAGE_SHIFT) &&
       entry->type == type && entry->stage_mask == stages &&
       entry->vmid == rvh_final_tlb_current_vmid() &&
-      entry->asid == rvh_final_tlb_current_asid() &&
+      (entry->global || entry->asid == rvh_final_tlb_current_asid()) &&
       (!entry->fault || entry->trap_info.tval == vaddr) &&
       entry->context == rvh_final_tlb_current_context() &&
       entry->satp == rvh_final_tlb_current_satp() &&
@@ -979,30 +979,41 @@ static inline bool rvh_final_tlb_lookup(vaddr_t vaddr, int len, int type, paddr_
       (!(stages & RVH_TLB_STAGE_VVMA) ||
           entry->vvma_generation == rvh_final_tlb_vvma_generation) &&
       (!(stages & RVH_TLB_STAGE_GVMA) ||
-          entry->gvma_generation == rvh_final_tlb_gvma_generation);
-  if (likely(valid)) {
-    cpu.pbmt = entry->pbmt;
-#ifdef CONFIG_RV_MBMC
-    pt_level = entry->pt_level;
-#endif
-    if (entry->fault) {
-      cpu.trapInfo = entry->trap_info;
-      longjmp_exception(entry->fault_cause);
-    }
-    *result = entry->ppn;
-    return true;
-  }
-  return false;
+           entry->gvma_generation == rvh_final_tlb_gvma_generation);
 }
 
-static inline void rvh_final_tlb_insert(vaddr_t vaddr, int len, int type, paddr_t result) {
+static inline bool rvh_final_tlb_lookup(vaddr_t vaddr, int len, int type, paddr_t *result) {
+  if (!rvh_final_tlb_cacheable(type) ||
+      unlikely((vaddr & PAGE_MASK) + (word_t)len > PAGE_SIZE)) {
+    return false;
+  }
+
+  rvh_final_tlb_entry_t *entry = rvh_final_tlb_entry(vaddr, type, false);
+  if (!rvh_final_tlb_matches(entry, vaddr, type)) {
+    // Globals use an ASID-independent slot in the same direct-mapped array.
+    entry = rvh_final_tlb_entry(vaddr, type, true);
+    if (!entry->global || !rvh_final_tlb_matches(entry, vaddr, type)) return false;
+  }
+  cpu.pbmt = entry->pbmt;
+#ifdef CONFIG_RV_MBMC
+  pt_level = entry->pt_level;
+#endif
+  if (entry->fault) {
+    cpu.trapInfo = entry->trap_info;
+    longjmp_exception(entry->fault_cause);
+  }
+  *result = entry->ppn;
+  return true;
+}
+
+static inline void rvh_final_tlb_insert(vaddr_t vaddr, int len, int type, paddr_t result, bool global) {
   if (!rvh_final_tlb_cacheable(type) ||
       unlikely((vaddr & PAGE_MASK) + (word_t)len > PAGE_SIZE) ||
       unlikely((result & PAGE_MASK) != MEM_RET_OK)) {
     return;
   }
 
-  rvh_final_tlb_entry_t *entry = rvh_final_tlb_entry(vaddr, type);
+  rvh_final_tlb_entry_t *entry = rvh_final_tlb_entry(vaddr, type, global);
   entry->vpn = vaddr >> PAGE_SHIFT;
   entry->ppn = result & ~PAGE_MASK;
   entry->type = type;
@@ -1011,6 +1022,7 @@ static inline void rvh_final_tlb_insert(vaddr_t vaddr, int len, int type, paddr_
   entry->context = rvh_final_tlb_current_context();
   entry->vmid = rvh_final_tlb_current_vmid();
   entry->asid = rvh_final_tlb_current_asid();
+  entry->global = global;
   entry->satp = rvh_final_tlb_current_satp();
   entry->vsatp = rvh_final_tlb_current_vsatp();
   entry->hgatp = rvh_final_tlb_current_hgatp();
@@ -1037,7 +1049,7 @@ static inline void rvh_final_tlb_insert_fault(vaddr_t vaddr, int len, int type,
     return;
   }
 
-  rvh_final_tlb_entry_t *entry = rvh_final_tlb_entry(vaddr, type);
+  rvh_final_tlb_entry_t *entry = rvh_final_tlb_entry(vaddr, type, false);
   entry->vpn = vaddr >> PAGE_SHIFT;
   entry->type = type;
   entry->pbmt = cpu.pbmt;
@@ -1045,6 +1057,8 @@ static inline void rvh_final_tlb_insert_fault(vaddr_t vaddr, int len, int type,
   entry->context = rvh_final_tlb_current_context();
   entry->vmid = rvh_final_tlb_current_vmid();
   entry->asid = rvh_final_tlb_current_asid();
+  // A failed walk cannot establish that the translation is global.
+  entry->global = false;
   entry->satp = rvh_final_tlb_current_satp();
   entry->vsatp = rvh_final_tlb_current_vsatp();
   entry->hgatp = rvh_final_tlb_current_hgatp();
@@ -1247,12 +1261,13 @@ void isa_amo_misalign_data_addr_check(vaddr_t vaddr, int len, int type) {
 
 paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
   paddr_t ptw_result;
+  bool global = false;
 #ifdef CONFIG_RVH
   bool tlb_hit = rvh_final_tlb_lookup(vaddr, len, type, &ptw_result);
   if (!tlb_hit) {
     if (!rvh_final_tlb_cacheable(type) ||
         unlikely((vaddr & PAGE_MASK) + (word_t)len > PAGE_SIZE)) {
-      ptw_result = ptw(vaddr, type);
+      ptw_result = ptw(vaddr, type, &global);
     } else {
       int exception;
       PUSH_CONTEXT(&exception);
@@ -1261,12 +1276,12 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
         rvh_final_tlb_insert_fault(vaddr, len, type, exception);
         longjmp_exception(exception);
       }
-      ptw_result = ptw(vaddr, type);
+      ptw_result = ptw(vaddr, type, &global);
       pop_context();
     }
   }
 #else
-  ptw_result = ptw(vaddr, type);
+  ptw_result = ptw(vaddr, type, &global);
 #endif
 #ifdef FORCE_RAISE_PF
   if (unlikely(cpu.guided_exec && cpu.execution_guide.force_raise_exception)) {
@@ -1281,7 +1296,7 @@ paddr_t isa_mmu_translate(vaddr_t vaddr, int len, int type) {
 #endif // FORCE_RAISE_PF
 #ifdef CONFIG_RVH
   if (!tlb_hit) {
-    rvh_final_tlb_insert(vaddr, len, type, ptw_result);
+    rvh_final_tlb_insert(vaddr, len, type, ptw_result, global);
   }
 #endif
   return ptw_result;
