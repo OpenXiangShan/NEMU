@@ -3950,7 +3950,10 @@ void isa_hostcall(uint32_t id, rtlreg_t *dest, const rtlreg_t *src1,
       ret = *src1 + 4;
       break;
 #else
-    case HOSTCALL_TRAP: ret = raise_intr(imm, *src1); break;
+    case HOSTCALL_TRAP:
+      ret = raise_intr(imm, *src1);
+      set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      break;
 #endif
     default: panic("Unsupported hostcall ID = %d", id);
   }
