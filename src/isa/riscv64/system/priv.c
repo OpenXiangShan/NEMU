@@ -184,6 +184,7 @@ void init_custom_csr() {
 #ifdef CONFIG_RV_SVINVAL
   srnctl->fusion_enable = 1;
   srnctl->wfi_enable = 1;
+  srnctl->high_density_rob_compression_enable = 1;
 #endif // CONFIG_RV_SVINVAL
 
   mcorepwr->powerdown = 0;
