@@ -45,13 +45,21 @@ void ramcmp() {
 // For processor difftest only
 
 static bool csr_difftest_dirty = true;
+static bool csr_trigger_dirty = false;
 
 void csr_difftest_mark_dirty(void) {
   csr_difftest_dirty = true;
 }
 
+void csr_difftest_mark_trigger_dirty(void) {
+#ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
+  if (tselect->val == 0) csr_trigger_dirty = true;
+#endif
+}
+
 static void csr_difftest_mark_clean(void) {
   csr_difftest_dirty = false;
+  csr_trigger_dirty = false;
 }
 
 void csr_prepare() {
@@ -123,7 +131,7 @@ void csr_prepare() {
 #ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
   cpu.tselect  = tselect->val;
   cpu.tdata1   = get_tdata1(cpu.TM);
-  cpu.tinfo    = tinfo->val;
+  cpu.tinfo    = get_tinfo();
 #endif // CONFIG_DIFFTEST_CHECK_SDTRIG
 
 #ifdef CONFIG_DIFFTEST_CHECK_FCSR
@@ -135,6 +143,11 @@ void csr_prepare() {
 static inline void csr_prepare_if_dirty() {
   if (csr_difftest_dirty) {
     csr_prepare();
+  } else if (csr_trigger_dirty) {
+#ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
+    cpu.tdata1 = get_tdata1(cpu.TM);
+#endif
+    csr_trigger_dirty = false;
   }
 }
 
@@ -216,9 +229,13 @@ void csr_writeback() {
 
 #ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
   tselect->val  = cpu.tselect;
+  uint64_t old_type = cpu.TM->triggers[tselect->val].tdata1.common.type;
   cpu.TM->triggers[tselect->val].tdata1.val = cpu.tdata1; // update alias tdata1 to trigger module
-  trigger_mark_state_dirty(cpu.TM);
-  tinfo->val    = cpu.tinfo;
+  if (old_type != cpu.TM->triggers[tselect->val].tdata1.common.type) trigger_mark_state_dirty(cpu.TM);
+  // A restored CSR/mode snapshot may change cached execute-trigger matching.
+  set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+  // tinfo is read-only and varies by slot; do not replace the capability
+  // bitmap with the selected slot's difftest mirror.
 #endif // CONFIG_DIFFTEST_CHECK_SDTRIG
 
 #ifdef CONFIG_DIFFTEST_CHECK_FCSR
@@ -355,16 +372,8 @@ void isa_difftest_raise_intr(word_t NO) {
 #endif // CONFIG_LIGHTQS
   //ramcmp();
   csr_difftest_mark_dirty();
-#ifdef CONFIG_TDATA1_ICOUNT
-  trig_action_t icount_action = check_triggers_icount(cpu.TM);
-  trigger_handler(TRIG_TYPE_ICOUNT, icount_action, 0);
-#endif // CONFIG_TDATA1_ICOUNT
-  IFDEF(CONFIG_TDATA1_ITRIGGER, trig_action_t itrigger_action = check_triggers_itrigger(cpu.TM, NO));
-
   cpu.pc = raise_intr(NO, cpu.pc);
   set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
-
-  IFDEF(CONFIG_TDATA1_ITRIGGER, trigger_handler(TRIG_TYPE_ITRIG, itrigger_action, 0));
 
 #ifdef CONFIG_LIGHTQS
   // after processing, take another snapshot

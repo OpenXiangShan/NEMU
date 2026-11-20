@@ -311,12 +311,20 @@ void fill_memory(const char* img_file, const char* flash_image, const char* cpt_
 
     fclose(restore_fp);
 
-#ifdef CONFIG_HAS_FLASH
+#if defined(CONFIG_HAS_FLASH) && !(defined(CONFIG_DIFFTEST_REF_SPIKE) && defined(CONFIG_USE_XS_ARCH_CSRS))
     long loaded_size = load_img(cpt_image, "Gcpt restorer from cmdline", flash_start, restore_size);
 #else
+    // XS Spike DiffTest shares the reset flash ROM, which enables NMIE and
+    // clears MDT in both models. Legacy checkpoint restorers execute in RAM.
+    // Their CSR restore lists omit mnstatus, mnepc and mncause. Even if added,
+    // software cannot clear NMIE by writing zero, so this boot path does not
+    // provide exact restoration of a checkpoint taken with NMIE=0.
     long loaded_size = load_img(cpt_image, "Gcpt restorer from cmdline", bbl_start, restore_size);
 #endif
     Assert(loaded_size >= 0, "Failed to load Gcpt restorer '%s'", cpt_image);
+    if (ISDEF(CONFIG_DIFFTEST_REF_SPIKE) && ISDEF(CONFIG_USE_XS_ARCH_CSRS) && loaded_size > *img_size) {
+      *img_size = loaded_size;
+    }
   }
 
   patch_bootloader_rng_seed(bbl_start);
