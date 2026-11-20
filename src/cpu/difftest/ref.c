@@ -74,6 +74,14 @@ void nemu_memcpy_helper(paddr_t nemu_addr, void *dut_buf, size_t n, bool directi
   else cpy_func(dut_buf, guest_to_host(nemu_addr), n);
 }
 
+bool difftest_supports_mem_cow(void) {
+#ifdef CONFIG_USE_MMAP
+  return true;
+#else
+  return false;
+#endif
+}
+
 void difftest_get_backed_memory(void *backed_pmem, size_t n) {
 #if CONFIG_ENABLE_MEM_DEDUP || CONFIG_USE_MMAP
   assert(backed_pmem != NULL);
