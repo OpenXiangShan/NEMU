@@ -56,6 +56,14 @@ bool is_zstd_file(const char *filename){
 
   close(fd);
 
-  const uint8_t zstd_magic[4] = {0x28, 0xB5, 0x2F, 0xFD};
-  return memcmp(buf, zstd_magic, 4) == 0;
+  const uint8_t frame_magic[4] = {0x28, 0xB5, 0x2F, 0xFD};
+  if (memcmp(buf, frame_magic, sizeof(buf)) == 0) {
+    return true;
+  }
+
+  // A stream can start with any of the 16 skippable-frame magic values.
+  const uint8_t skippable_magic[4] = {0x50, 0x2A, 0x4D, 0x18};
+  const uint8_t skippable_magic_mask = 0xF0;
+  buf[0] &= skippable_magic_mask;
+  return memcmp(buf, skippable_magic, sizeof(buf)) == 0;
 }
