@@ -458,6 +458,13 @@ void vector_vwv_check(Decode *s, bool is_vs1) {
   }
   if (is_vs1) {
     require_aligned(id_src->reg, vflmul);
+    // Narrowing ops read vs2 at EEW=2*SEW (group size 2*LMUL) and vs1 at
+    // EEW=SEW (group size LMUL). Overlapping those groups means the same
+    // physical register is read with two different EEWs, which is reserved
+    // (vreg_source_eew_rsv).
+    if (is_overlapped(id_src2->reg, (int)(vflmul * 2), id_src->reg, (int)vflmul)) {
+      longjmp_exception(EX_II);
+    }
   }
 }
 
