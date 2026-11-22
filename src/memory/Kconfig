@@ -85,10 +85,11 @@ config MEM_RANDOM
 
 config ZSTD_COMPRESS
   depends on MODE_SYSTEM && !SHARE
-  bool "Enable ZSTD checkpoint compression"
-  default n
+  bool "Enable Zstd image loading and checkpoint compression"
+  default y
   help
-    Must have zstd installed.
+    Load Zstd-compressed raw and ELF images and write Zstd checkpoints.
+    Requires libzstd.
 
 config ENABLE_CONFIG_MMIO_SPACE
   bool "Configure the MMIO space"
