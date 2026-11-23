@@ -190,17 +190,18 @@ def_EHelper(mmacc) {
   uint8_t event_s2 = get_mma_op_amuctrl(s2mcfg.type_code);
   uint8_t event_d = get_mma_op_amuctrl(dmcfg.type_code);
   bool is_float_mmacc = mmacc_type == MMACC_TYPE_FLOAT;
+  uint8_t event_rm = is_float_mmacc ? mfrm->val : mxrm->val;
 #endif
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mma_emplace(
-    td, mxrm->val, msaten->val, is_float_mmacc, ts1, ts2,
+    td, event_rm, msaten->val, is_float_mmacc, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val,
     event_s1, event_s2, event_d
   );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
   cutest_mma_emplace(
-    td, mxrm->val, msaten->val, is_float_mmacc, ts1, ts2,
+    td, event_rm, msaten->val, is_float_mmacc, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val,
     event_s1, event_s2, event_d
   );
