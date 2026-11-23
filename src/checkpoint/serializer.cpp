@@ -313,7 +313,7 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
 
     // compress flash device memory
     if (store_cpt_in_flash) {
-      flash_compress_size = ZSTD_compress(flash_compress_buffer, flash_compress_buffer_size, flash_addr, FLASH_SIZE, 1);
+      flash_compress_size = ZSTD_compress(flash_compress_buffer, flash_compress_buffer_size, flash_addr, FLASH_SIZE, 9);
       assert(flash_compress_size <= flash_compress_buffer_size && flash_compress_size != 0);
       Log("compress flash success, compress size %ld", flash_compress_size);
 
@@ -322,7 +322,7 @@ void Serializer::serializePMem(uint64_t inst_count, uint8_t *pmem_addr, uint8_t 
     }
 #endif
 
-    size_t memory_compress_size = ZSTD_compress(memory_compress_buffer, memory_compress_buffer_size, pmem_addr, PMEM_SIZE, 1);
+    size_t memory_compress_size = ZSTD_compress(memory_compress_buffer, memory_compress_buffer_size, pmem_addr, PMEM_SIZE, 9);
     assert(memory_compress_size <= memory_compress_buffer_size && memory_compress_size != 0);
     Log("pmem compress success, compress size %ld", memory_compress_size);
 
