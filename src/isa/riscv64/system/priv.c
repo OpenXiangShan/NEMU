@@ -2850,6 +2850,12 @@ static void csr_write(uint32_t csrid, word_t src) {
         set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
       }
       if (old_type != tdata1_reg->type) trigger_mark_state_dirty(cpu.TM);
+#if defined(CONFIG_TDATA1_ICOUNT) && (defined(CONFIG_PERF_OPT) || defined(CONFIG_PERF_OPT_SHARE))
+      // Settle the current BB before switching the cached helper table.
+      if (tselect->val == 0 && (old_type == TRIG_TYPE_ICOUNT || tdata1_reg->type == TRIG_TYPE_ICOUNT)) {
+        set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
+      }
+#endif
       break;
     }
     case CSR_TDATA2:

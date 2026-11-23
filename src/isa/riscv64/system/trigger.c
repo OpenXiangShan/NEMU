@@ -342,7 +342,7 @@ trig_action_t check_triggers_trap(TriggerModule* TM, word_t cause) {
 void trigger_schedule_trap(TriggerModule* TM, trig_action_t action) {
   // Source-mode protection was checked before trap entry. Also check the
   // handler's mode after entry, since its xIE may have just been cleared.
-  TM->trap_action = trigger_reentrancy_check() ? action : TRIG_ACTION_NONE;
+  TM->trap_action = action != TRIG_ACTION_NONE && trigger_reentrancy_check() ? action : TRIG_ACTION_NONE;
 }
 
 void trigger_take_trap_action(TriggerModule* TM) {
@@ -389,6 +389,7 @@ void trigger_icount_retire_slow(TriggerModule* TM) {
 }
 
 void trigger_icount_trap(TriggerModule* TM) {
+  if (!TM->icount_inflight && !trigger_icount_active(TM)) return;
   // A synchronous trap completes the current instruction once. An interrupt
   // is its own match event, before trap entry changes mode and disables xIE.
   // Interrupts take precedence over action=0: never consume pending here.

@@ -257,6 +257,8 @@ Decode* tcache_handle_flush(vaddr_t snpc) {
 Decode* tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector) {
   tcache_flush();
   g_exec_nemu_decode = exec_nemu_decode;
+  bb_now = bb_now_record = NULL;
+  tcache_state = TCACHE_RUNNING;
   return tcache_bb_new(reset_vector);
 }
 
