@@ -28,6 +28,7 @@
 #include <ext/cutest.h>
 #include "mcommon.h"
 #include "mcompute_impl.h"
+#include "mxfp.h"
 #include "rtl/fp.h"
 
 // #define PRINT_AMUCTRLIO
@@ -60,6 +61,24 @@ uint8_t get_pack(mcfg_t cfg) {
 
 // Return 0 for int mma, 1 for float mma, -1 for invalid combination
 int8_t check_comb(mcfg_t s1cfg, mcfg_t s2cfg, mcfg_t dcfg) {
+  const bool s1_mx = s1cfg.table_set == 1 &&
+    (s1cfg.type_code == MTYPECODE_MXFP4 ||
+     s1cfg.type_code == MTYPECODE_FP8E5M2 ||
+     s1cfg.type_code == MTYPECODE_FP8E4M3);
+  const bool s2_mx = s2cfg.table_set == 1 &&
+    (s2cfg.type_code == MTYPECODE_MXFP4 ||
+     s2cfg.type_code == MTYPECODE_FP8E5M2 ||
+     s2cfg.type_code == MTYPECODE_FP8E4M3);
+  if (s1_mx || s2_mx) {
+    if (s1_mx && s2_mx &&
+        s1cfg.type_code == s2cfg.type_code &&
+        dcfg.table_set == 0 &&
+        dcfg.type_code == MTYPECODE_FP32) {
+      return 1;
+    }
+    return -1;
+  }
+
   uint32_t s1_mask = 1u << s1cfg.type_code;
   uint32_t s2_mask = 1u << s2cfg.type_code;
   uint32_t d_mask = 1u << dcfg.type_code;
@@ -124,13 +143,43 @@ def_EHelper(mmacc) {
     // Invalid type combination
     longjmp_exception(EX_II);
   }
+  const bool mx_mma = is_mx_mcfg(s1mcfg) && is_mx_mcfg(s2mcfg);
+  if (mx_mma) {
+    require_mx_transport();
+    // Only the frozen RNE contract is implemented. Never silently execute a
+    // different mfrm, or substitute host arithmetic when SoftFloat is absent.
+#ifndef CONFIG_FPU_SOFT
+    longjmp_exception(EX_II);
+#endif
+    if (mfrm->val != 0) longjmp_exception(EX_II);
+    const int blocks = (tile_k + AME_MX_BLOCK_SIZE - 1) / AME_MX_BLOCK_SIZE;
+    const int a_scale_reg = ts1 & 0x3;
+    const int b_scale_reg = 4 + (ts2 & 0x3);
+    if (!cpu.mscale_valid[a_scale_reg] || !cpu.mscale_valid[b_scale_reg] ||
+        mtilem->val > ROWNUM || mtilen->val > ROWNUM ||
+        mtilek->val > (s1mcfg.type_code == MTYPECODE_MXFP4 ? 2 * TRENUM8 : TRENUM8) ||
+        blocks <= 0 || blocks > AME_MAX_SCALE_BLOCKS ||
+        tile_m > cpu.mscale_rows[a_scale_reg] ||
+        tile_n > cpu.mscale_rows[b_scale_reg] ||
+        blocks > cpu.mscale_blocks[a_scale_reg] ||
+        blocks > cpu.mscale_blocks[b_scale_reg]) {
+      longjmp_exception(EX_II);
+    }
+  }
 #if defined(CONFIG_DIFFTEST_AMU_CTRL) || defined(CONFIG_SHARE_CTRL) || defined(PRINT_AMUCTRLIO)
   uint8_t m_s_sz = s1size;
   uint8_t m_d_sz = dsize;
 #endif
+#if defined(CONFIG_DIFFTEST_AMU_CTRL) || defined(CONFIG_SHARE_CTRL)
+  const uint8_t mx_payload = s1mcfg.type_code == MTYPECODE_MXFP4 ? 7 :
+    (s1mcfg.type_code == MTYPECODE_FP8E4M3 ? 4 : 0);
+  const uint8_t mx_mode = mx_compute_type(s1mcfg);
+#endif
   bool s1_signed = is_signed_int_mtype(s1mcfg.type_code);
   bool s2_signed = is_signed_int_mtype(s2mcfg.type_code);
 #ifndef CONFIG_SHARE_REF
+  const bool mx_fp4 = mx_mma && s1mcfg.type_code == MTYPECODE_MXFP4;
+  const bool mx_e5m2 = mx_mma && s1mcfg.type_code == MTYPECODE_FP8E5M2;
   // When NEMU is not used as a reference model, execute MMA here directly.
   if (comb == 0) /* int mma */ {
     int64_t int_max = INT64_MAX >> (64 - 8 * (1 << dsize));
@@ -156,7 +205,36 @@ def_EHelper(mmacc) {
         }
       }
     }
-  } else /* comb == 1, float mma */ {
+  } else if (mx_mma) {
+    const int a_scale_reg = ts1 & 0x3;
+    const int b_scale_reg = 4 + (ts2 & 0x3);
+    uint8_t flags = 0;
+    for (int i = 0; i < tile_m; i++) {
+      for (int j = 0; j < tile_n; j++) {
+        get_mreg(td, i, j, &tmp_reg[0], dsize, false);
+        uint32_t acc = (uint32_t) tmp_reg[0];
+        for (int base = 0; base < tile_k; base += AME_MX_BLOCK_SIZE) {
+          const int block = base / AME_MX_BLOCK_SIZE;
+          const int lanes = tile_k - base < AME_MX_BLOCK_SIZE ?
+            tile_k - base : AME_MX_BLOCK_SIZE;
+          uint8_t a[AME_MX_BLOCK_SIZE], b[AME_MX_BLOCK_SIZE];
+          for (int k = 0; k < lanes; k++) {
+            a[k] = mx_fp4 ? get_packed_mreg4(ts1, i, base + k) :
+              (uint8_t) mtreg_l8(ts1, i, base + k);
+            b[k] = mx_fp4 ? get_packed_mreg4(ts2, j, base + k) :
+              (uint8_t) mtreg_l8(ts2, j, base + k);
+          }
+          const uint8_t a_scale = cpu.mscale[a_scale_reg][i][block];
+          const uint8_t b_scale = cpu.mscale[b_scale_reg][j][block];
+          acc = mxfp_accumulate_block(acc, a, b, lanes, a_scale, b_scale,
+            mx_fp4, mx_e5m2, &flags);
+        }
+        set_mreg(td, i, j, acc, dsize);
+      }
+    }
+    mfflags->val |= flags;
+    mcsr->mfflags = mfflags->val;
+  } else /* comb == 1, standard float mma */ {
     word_t FPCALL_TYPE = FPCALL_W64;
     switch (s1size) {
       case 0:
@@ -200,14 +278,16 @@ def_EHelper(mmacc) {
   }
 #endif // CONFIG_SHARE_REF
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
-  amu_ctrl_queue_mma_emplace(td, mxrm->val, msaten->val, comb, ts1, ts2,
+  amu_ctrl_queue_mma_emplace(td, mx_mma ? mfrm->val : mxrm->val, msaten->val, comb, ts1, ts2,
                       mtilem->val, mtilen->val, mtilek->val,
-                      (s1_signed << 2) | m_s_sz, (s2_signed << 2) | m_s_sz, m_d_sz);
+                      mx_mma ? mx_payload : (s1_signed << 2) | m_s_sz,
+                      mx_mma ? mx_payload : (s2_signed << 2) | m_s_sz, m_d_sz, mx_mode);
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL
   cutest_mma_emplace(td, msaten->val, comb, ts1, ts2,
               mtilem->val, mtilen->val, mtilek->val,
-              4 | m_s_sz, 4 | m_s_sz, m_d_sz);
+              mx_mma ? mx_payload : 4 | m_s_sz,
+              mx_mma ? mx_payload : 4 | m_s_sz, m_d_sz, mx_mode);
 #endif // CONFIG_SHARE_CTRL
 #ifdef PRINT_AMUCTRLIO
   fprintf(stderr,

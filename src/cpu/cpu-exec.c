@@ -24,6 +24,7 @@
 #include <isa-all-instr.h>
 #include <locale.h>
 #include <setjmp.h>
+#include <stdlib.h> // AME handlers are expanded inside execute() in PERF_OPT.
 #include <unistd.h>
 #include <generated/autoconf.h>
 #include <profiling/profiling_control.h>

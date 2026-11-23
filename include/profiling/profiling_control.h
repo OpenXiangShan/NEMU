@@ -33,5 +33,6 @@ extern bool workload_loaded;
 extern bool donot_skip_boot;
 
 void start_profiling();
+void stop_profiling();
 
 #endif // __PROFILING_CONTROL_H__

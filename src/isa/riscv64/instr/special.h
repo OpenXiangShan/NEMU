@@ -46,6 +46,9 @@ def_EHelper(nemu_trap) {
       start_profiling();
       difftest_skip_ref();
     }
+  } else if (cpu.gpr[10]._64 == 0x102) {
+      stop_profiling();
+      difftest_skip_ref();
   } else {
       rtl_hostcall(s, HOSTCALL_EXIT,NULL, &cpu.gpr[10]._64, NULL, 0); // gpr[10] is $a0
       longjmp_context(NEMU_EXEC_END);

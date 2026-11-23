@@ -24,6 +24,10 @@
 #include "mcommon.h"
 
 void require_matrix();
+bool is_mx_mcfg(mcfg_t cfg);
+uint8_t mx_compute_type(mcfg_t cfg);
+void require_mx_transport(void);
+uint8_t get_packed_mreg4(int reg, int row, int k);
 
 #endif // __RISCV64_MCOMPUTE_IMPL_H__
 #endif // CONFIG_RV_AME

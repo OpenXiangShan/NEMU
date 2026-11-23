@@ -45,6 +45,9 @@
 
 #define MSYNC       CONFIG_RV_AME_MSYNC
 
+#define AME_MX_BLOCK_SIZE 32
+#define AME_MAX_SCALE_BLOCKS ((2 * TRENUM8 + AME_MX_BLOCK_SIZE - 1) / AME_MX_BLOCK_SIZE)
+
 enum MTYPECODE_TAB0 {
   MTYPECODE_INT4 = 0,
   MTYPECODE_UINT4,
@@ -61,6 +64,12 @@ enum MTYPECODE_TAB0 {
   MTYPECODE_FP32,
   MTYPECODE_FP2PACK4,
   MTYPECODE_FP2PACK5
+};
+
+enum MTYPECODE_TAB1 {
+  MTYPECODE_TAB1_MXFP4 = MTYPECODE_MXFP4,
+  MTYPECODE_TAB1_MXFP8E5M2 = MTYPECODE_FP8E5M2,
+  MTYPECODE_TAB1_MXFP8E4M3 = MTYPECODE_FP8E4M3,
 };
 
 typedef union {
@@ -130,6 +139,8 @@ static inline int check_mtok_idx(int idx) {
 
 void set_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t src_data, uint64_t msew);
 void get_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t msew, bool is_signed);
+void set_mtreg_nibble(int num, int row, int idx, uint8_t value);
+uint8_t get_mtreg_nibble(int num, int row, int idx);
 
 #endif //__RISCV64_MREG_H__
 

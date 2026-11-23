@@ -10,7 +10,7 @@ extern Decode *prev_s;
 void cutest_mma_emplace(uint8_t md, bool sat, bool isfp,
                                 uint8_t ms1, uint8_t ms2, uint16_t mtilem,
                                 uint16_t mtilen, uint16_t mtilek, uint8_t types1,
-                                uint8_t types2, uint8_t typed) {
+                                uint8_t types2, uint8_t typed, uint8_t computeType) {
   amu_ctrl_event_t event = {0};
   event.valid = true;
   event.op = 0;
@@ -25,6 +25,12 @@ void cutest_mma_emplace(uint8_t md, bool sat, bool isfp,
   event.types1 = types1;
   event.types2 = types2;
   event.typed = typed;
+  event.computeType = computeType;
+  event.pc = prev_s->pc;
+  amu_ctrl_callback_(event);
+}
+
+void cutest_scale_emplace(amu_ctrl_event_t event) {
   event.pc = prev_s->pc;
   amu_ctrl_callback_(event);
 }

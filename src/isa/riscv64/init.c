@@ -15,6 +15,7 @@
 ***************************************************************************************/
 
 #include <isa.h>
+#include <ext/amuctrl.h>
 #include <memory/paddr.h>
 #include <memory/sparseram.h>
 #include "local-include/csr.h"
@@ -188,6 +189,7 @@ void init_isa() {
 
 #ifdef CONFIG_RV_AME
   // matrix
+  amu_snapshot_reset();
   tlenb->val = TLEN / 8;
   trlenb->val = TRLEN / 8;
   alenb->val = ALEN / 8;
@@ -202,6 +204,19 @@ void init_isa() {
   mfflags->val = 0;
   mfrm->val = 0;
   msaten->val = 0;
+  cpu.mscale_epoch = 0;
+  for (int i = 0; i < 8; i++) {
+    cpu.mscale_valid[i] = 0;
+    cpu.mscale_rows[i] = 0;
+    cpu.mscale_blocks[i] = 0;
+    cpu.mscale_generation[i] = 0;
+    cpu.mscale_source_stride[i] = 0;
+    for (int row = 0; row < ROWNUM; row++) {
+      for (int block = 0; block < AME_MAX_SCALE_BLOCKS; block++) {
+        cpu.mscale[i][row][block] = 0;
+      }
+    }
+  }
 #endif // CONFIG_RV_AME
 
   // mcycle and minstret record :

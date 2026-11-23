@@ -76,4 +76,18 @@ void get_mreg(int mtr_num, int mtr_row, int mtr_idx, rtlreg_t *dst, uint64_t mse
   }
 }
 
+void set_mtreg_nibble(int num, int row, int idx, uint8_t value) {
+  uint8_t *byte = &mtreg_l8(num, row, idx >> 1);
+  if (idx & 1) {
+    *byte = (*byte & 0x0f) | (uint8_t) ((value & 0x0f) << 4);
+  } else {
+    *byte = (*byte & 0xf0) | (value & 0x0f);
+  }
+}
+
+uint8_t get_mtreg_nibble(int num, int row, int idx) {
+  const uint8_t byte = mtreg_l8(num, row, idx >> 1);
+  return (idx & 1) ? (byte >> 4) : (byte & 0x0f);
+}
+
 #endif // CONFIG_RV_AME

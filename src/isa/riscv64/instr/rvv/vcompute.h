@@ -19,6 +19,14 @@
 #include "vcompute_impl.h"
 #include "vcommon.h"
 
+def_EHelper(xsai_mxfp4_encode_vv) {
+#ifdef CONFIG_RVV_MXFP4_ENCODE
+  mxfp4_encode_instr(s);
+#else
+  longjmp_exception(EX_II);
+#endif
+}
+
 def_EHelper(vadd) {
   ARITH(ADD, SIGNED)
 }

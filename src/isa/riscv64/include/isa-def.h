@@ -148,6 +148,10 @@ typedef struct {
 #ifdef CONFIG_RV_AME
   uint64_t mcsr, mxrm, msat, mfflags, mfrm, msaten;
   uint64_t tlenb, trlenb, alenb, mtilem, mtilen, mtilek, msync;
+  // Architectural MCFG registers already observed by DifftestMcfgState.
+  // Match RefProxy's matrix-CSR/MCFG/trigger order in the regcpy prefix;
+  // this is the actual register storage, not a second mutable mirror.
+  mcfg_t mcfg[8];
 #endif // CONFIG_RV_AME
 
 #ifdef CONFIG_DIFFTEST_CHECK_SDTRIG
@@ -221,7 +225,20 @@ typedef struct {
     uint8_t  _8[ARENUM8];
   } macc[4][ROWNUM];
 
-  mcfg_t mcfg[8];
+  uint8_t mscale[8][ROWNUM][AME_MAX_SCALE_BLOCKS];
+  uint8_t mscale_valid[8];
+  // Architectural coverage of the most recent successful scale load.
+  // Not CSRs, and deliberately outside the difftest regcpy prefix.
+  // Ignored whenever mscale_valid is clear (including init_isa reset).
+  uint16_t mscale_rows[8];
+  uint16_t mscale_blocks[8];
+  uint32_t mscale_generation[8];
+  uint64_t mscale_source_stride[8];
+  // Published with the scale bytes, outside the difftest register prefix.
+  // Only meaningful when mscale_valid is set; MINIT invalidates both.
+  uint8_t mscale_mode[8];
+  uint64_t mscale_epoch;
+
   uint64_t mtokr[MSYNC];
 #endif // CONFIG_RV_AME
 

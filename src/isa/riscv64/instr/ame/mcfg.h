@@ -31,9 +31,23 @@
 #include "../local-include/reg.h"
 #include <stdio.h>
 #include "mcompute_impl.h"
+#include <stdlib.h>
 
 def_EHelper(minit) {
+  if (cpu.mscale_epoch == UINT64_MAX) {
+    panic("MX scale epoch overflow");
+    abort();
+  }
   mstatus->ms = 1;
+  cpu.mscale_epoch++;
+  for (int i = 0; i < 8; i++) {
+    cpu.mscale_valid[i] = 0;
+    cpu.mscale_rows[i] = 0;
+    cpu.mscale_blocks[i] = 0;
+    cpu.mscale_generation[i] = 0;
+    cpu.mscale_source_stride[i] = 0;
+    cpu.mscale_mode[i] = 0;
+  }
 }
 
 def_EHelper(msettilem) {

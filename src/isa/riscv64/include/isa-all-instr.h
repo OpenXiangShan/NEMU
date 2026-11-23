@@ -166,7 +166,7 @@
   f(vfwsub) f(vfwredosum) f(vfwadd_w) f(vfwsub_w) \
   f(vfwmul) f(vfwmacc) f(vfwnmacc) f(vfwmsac) f(vfwnmsac) \
   f(vandn) f(vbrev_v) f(vbrev8_v) f(vrev8_v) f(vclz_v) f(vctz_v) \
-  f(vrol) f(vror) f(vwsll) f(vcpop_v)
+  f(vrol) f(vror) f(vwsll) f(vcpop_v) f(xsai_mxfp4_encode_vv)
 #else // CONFIG_RVV
 #define VECTOR_INSTR_TERNARY(f)
 #endif // CONFIG_RVV
@@ -201,7 +201,9 @@
   f(msat) f(msbt) f(msct) \
   f(mlawhole) f(mlbwhole) f(mlcwhole) \
   f(msawhole) f(msbwhole) f(mscwhole) \
-  f(mmacc)
+  f(mlascale) f(mlbscale) \
+  f(mmacc) \
+  f(mlacvt_f32_mx) f(mlbcvt_f32_mx)
 #else
 #define MATRIX_INSTR_NULLARY(f)
 #define MATRIX_INSTR_UNARY(f)

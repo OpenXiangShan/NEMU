@@ -80,6 +80,7 @@ void vp_set_dirty();
 void arithmetic_instr(int opcode, int is_signed, int widening, int narrow, int dest_mask, Decode *s);
 void permutaion_instr(int opcode, Decode *s);
 void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s);
+void mxfp4_encode_instr(Decode *s);
 void mask_instr(int opcode, Decode *s);
 void reduction_instr(int opcode, int is_signed, int wide, Decode *s);
 void float_reduction_instr(int opcode, int widening, Decode *s);
@@ -88,6 +89,7 @@ void float_reduction_step2(uint64_t src, Decode *s);
 void float_reduction_computing(Decode *s);
 void isa_fp_rm_check(uint32_t rm);
 uint32_t isa_fp_get_frm(void);
+void isa_fp_set_ex(uint32_t ex);
 
 #define ARITH(opcode, is_signed) arithmetic_instr(opcode, is_signed, 0, 0, 0, s);
 #define ARITH_WIDE(opcode, is_signed) arithmetic_instr(opcode, is_signed, 1, 0, 0, s);

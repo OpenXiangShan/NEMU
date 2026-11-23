@@ -22,7 +22,15 @@ void start_profiling() {
   Log("Start profiling. Setting inst count base to Current inst count %lu.", checkpoint_icount_base);
 }
 
+void stop_profiling() {
+  // The ROI end marker does not terminate the workload.  Stop both normal
+  // ROI sampling and --dont-skip-boot sampling before workload teardown.
+  workload_loaded = false;
+  donot_skip_boot = false;
+  Log("Stop profiling.");
+}
+
 #ifdef CONFIG_SHARE
 // empty definition on share
 void simpoint_profiling(uint64_t pc, bool is_control, uint64_t abs_instr_count) {}
-#endif 
+#endif

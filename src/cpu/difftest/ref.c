@@ -325,6 +325,33 @@ int difftest_amu_ctrl(void *cmp) {
 #endif // CONFIG_RV_AME
 }
 
+// Optional versioned extension, never passed blindly to an older reference .so.
+int difftest_amu_snapshot_negotiate(uint32_t version, uint32_t ctrl_size, uint32_t mma_size,
+                                   uint32_t event_prefix_size, uint32_t tile_bytes, uint32_t acc_bytes) {
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF) && defined(CONFIG_DIFFTEST_AMU_CTRL) && \
+    defined(CONFIG_FPU_SOFT) && !defined(CONFIG_SHARE_CTRL)
+  return amu_snapshot_negotiate(version, ctrl_size, mma_size, event_prefix_size, tile_bytes, acc_bytes);
+#else
+  return -2;
+#endif
+}
+
+int difftest_amu_ctrl_snapshot(void *cmp, void *snapshot) {
+#ifdef CONFIG_RV_AME
+  return check_amu_ctrl_snapshot((amu_ctrl_event_t *)cmp, (amu_ctrl_snapshot_t *)snapshot);
+#else
+  return -2;
+#endif
+}
+
+int difftest_amu_lazy_snapshot(void *ctrl, void *snapshot) {
+#ifdef CONFIG_RV_AME
+  return exec_amu_lazy_snapshot((const amu_ctrl_event_t *)ctrl, (amu_mma_snapshot_t *)snapshot);
+#else
+  return -2;
+#endif
+}
+
 int difftest_msync_event(void *cmp) {
   // Check if the queue head matches the given cmp.
   // If they don't match, save the queue head to cmp.

@@ -111,6 +111,16 @@ config RVV
   bool "RISC-V Vector Extension v1.0"
   default y
 
+config RVV_MXFP4_ENCODE
+  bool "Experimental supplied-scale F32 to MXFP4 vector lane encode"
+  depends on RVV && FPU_SOFT
+  default n
+  help
+    Enable the experimental custom3 supplied-scale e32 lane encoder.
+    This is independent of the matrix extension, computes no dynamic scale,
+    and returns unpacked low-four-bit codes through normal vector state.
+    Nonzero vstart and reserved frm are illegal, as in the current CPU.
+
 config CUSTOM_TENSOR
   depends on !FPU_NONE
   bool "RISC-V Tensor Extension (Internal Spec)"
@@ -119,6 +129,31 @@ config CUSTOM_TENSOR
 config RV_AME
   bool "RISC-V Matrix Extension (Internal Spec)"
   default n
+
+config RV_AME_MXFP_CONVERT_LOAD
+  bool "Experimental standalone supplied-scale FP32 to MX converting loads"
+  depends on RV_AME && FPU_SOFT
+  depends on (!SHARE && !SHARE_REF && !SHARE_CTRL && !DIFFTEST_AMU_CTRL) || (SHARE_REF && DIFFTEST_AMU_CTRL && !SHARE_CTRL)
+  default n
+  help
+    Enable MLACVT_F32_MX/MLBCVT_F32_MX for normal K64 A/B loads. Standalone
+    mode supports the original supplied-scale experiment. Shared reference
+    mode is limited to the runtime-admitted dynamic FP4 extension below; the
+    supplied scan remains illegal there and no controller transport or
+    late-fault recovery is added.
+
+config RV_AME_MXFP_DYNAMIC_QUANT
+  bool "Experimental dynamic-scale FP32 to MXFP4 converting loads"
+  depends on RV_AME_MXFP_CONVERT_LOAD && FPU_SOFT
+  depends on (!SHARE && !SHARE_REF && !SHARE_CTRL && !DIFFTEST_AMU_CTRL) || (SHARE_REF && DIFFTEST_AMU_CTRL && !SHARE_CTRL)
+  default n
+  help
+    Extend the converting-load experiment with its explicit dynamic FP4
+    selector. Only normal 8xK64 A/B loads are accepted. In shared reference
+    mode, execution also requires an admitted snapshot v2 session; TR
+    installation is deferred to the existing ordered exec seam. This does not
+    add a shared controller transport, second result queue, or precise SF
+    fault. The original supplied-scale path remains unchanged.
 
 config RV_AME_TLEN
   int "Matrix TLEN (total tile size in bits)"
