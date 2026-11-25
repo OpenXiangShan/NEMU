@@ -1,7 +1,7 @@
 spike:
   type: github-release
   repo: OpenXiangShan/riscv-isa-sim
-  version: v2026.08.r1
+  version: v2026.11.r1
   assets:
     - save_as: spike-xiangshan-ref.so
       asset_name: spike-{version}-xiangshan-ref.so

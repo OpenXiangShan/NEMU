@@ -129,10 +129,9 @@ def_THelper(main_64) {
 int isa_fetch_decode(Decode *s) {
   int idx = EXEC_ID_inv;
 
-#ifdef CONFIG_TDATA1_ICOUNT
-  trig_action_t icount_action = check_triggers_icount(cpu.TM);
-  trigger_handler(TRIG_TYPE_ICOUNT, icount_action, 0);
-#endif // CONFIG_TDATA1_ICOUNT
+#if defined(CONFIG_TDATA1_ICOUNT) && (defined(CONFIG_PERF_OPT) || defined(CONFIG_PERF_OPT_SHARE))
+  trigger_icount_check(cpu.TM);
+#endif
 #ifdef CONFIG_TDATA1_MCONTROL6
   if (trigger_mcontrol6_active(cpu.TM)) {
     trig_action_t mcontrol6_action = check_triggers_mcontrol6(cpu.TM, TRIG_OP_EXECUTE, s->pc, TRIGGER_NO_VALUE);

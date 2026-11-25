@@ -359,6 +359,8 @@ static inline void debug_difftest(Decode *_this, Decode *next) {
 
 #ifndef CONFIG_PERF_OPT_SHARE
 uint64_t per_bb_profile(Decode *prev_s, Decode *s) {
+  // Publish the completed control instruction before checkpoint/profile hooks.
+  IFDEF(CONFIG_TDATA1_ICOUNT, trigger_icount_retire(cpu.TM));
 
 
   // checkpoint_icount_base is set from nemu_trap.
@@ -439,17 +441,39 @@ static void execute(int n) {
   static const void *local_exec_table[TOTAL_INSTR] = {
       MAP(INSTR_LIST, FILL_EXEC_TABLE)
   };
-  static int init_flag = 0;
+  static bool initialized = false;
   Decode *s = prev_s;
-
-  if (likely(init_flag == 0)) {
-    g_exec_table = local_exec_table;
-    extern Decode *tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector);
-    s = tcache_init(&&exec_nemu_decode, cpu.pc);
-#if defined(CONFIG_MODE_SYSTEM) && (defined(CONFIG_PERF_OPT) || defined(CONFIG_PERF_OPT_SHARE))
-    hosttlb_init();
+#ifdef CONFIG_TDATA1_ICOUNT
+  static const void *icount_exec_table[TOTAL_INSTR] = {
+#define ICOUNT_TABLE(name) [concat(EXEC_ID_, name)] = &&concat(icount_exec_, name),
+    MAP(INSTR_LIST, ICOUNT_TABLE)
+#undef ICOUNT_TABLE
+  };
+  // Decode/cache-full retries can already own the current count snapshot.
+  static bool icount_resume;
+  icount_resume = cpu.TM->icount_inflight;
+  static bool previous_icount = false;
+  const bool icount_enabled = trigger_icount_active(cpu.TM) || cpu.TM->icount_inflight;
+  const bool mode_changed = previous_icount != icount_enabled;
+  previous_icount = icount_enabled;
+#else
+  const bool mode_changed = false;
 #endif
-    init_flag = 1;
+  if (unlikely(!initialized || mode_changed)) {
+    g_exec_table = local_exec_table;
+    const void *decode_helper = &&exec_nemu_decode;
+#ifdef CONFIG_TDATA1_ICOUNT
+    if (icount_enabled) {
+      g_exec_table = icount_exec_table;
+      decode_helper = &&icount_exec_nemu_decode;
+    }
+#endif
+    extern Decode *tcache_init(const void *exec_nemu_decode, vaddr_t reset_vector);
+    s = tcache_init(decode_helper, cpu.pc);
+#if defined(CONFIG_MODE_SYSTEM)
+    if (!initialized) hosttlb_init();
+#endif
+    initialized = true;
   }
 #ifdef CONFIG_PERF_OPT_SHARE
   else if (unlikely(s->pc != cpu.pc || (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE))) {
@@ -482,7 +506,11 @@ static void execute(int n) {
 #ifdef CONFIG_RV_ZICFILP
     // Let an undecoded tcache entry go through isa_fetch_decode() first so
     // instruction-fetch faults retain priority over the software check.
-    if (unlikely(cpu.elp == 1) && s->EHelper != &&exec_nemu_decode) {
+    if (unlikely(cpu.elp == 1) && s->EHelper != &&exec_nemu_decode
+#ifdef CONFIG_TDATA1_ICOUNT
+        && !icount_enabled
+#endif
+    ) {
       // isa_fetch_decode() has already fetched exactly the bytes belonging to
       // this instruction. Re-fetching four bytes here would incorrectly touch
       // the next page when the target is a 16-bit instruction at a page end.
@@ -542,6 +570,10 @@ static void execute(int n) {
     }
 
     def_finish();
+#if defined(CONFIG_TDATA1_ICOUNT) && (defined(CONFIG_SHARE) || defined(CONFIG_DIFFTEST))
+    // The caller and difftest observe the retired count at this boundary.
+    trigger_icount_retire(cpu.TM);
+#endif
     // Here is per inst action.
     // Most of executed instruction (except some priv instructions) will goto here.
     // Don't put Log here to improve performance
@@ -557,9 +589,42 @@ static void execute(int n) {
 #if defined(CONFIG_PERF_OPT_SHARE) && defined(CONFIG_INSTR_CNT_BY_INSTR)
     if (unlikely(n_remain <= 0)) return;
 #endif
+#ifdef CONFIG_TDATA1_ICOUNT
+    continue;
+    // Counting entries share the ordinary instruction bodies above.
+    // Only these small trampolines and their entry table are duplicated.
+    const void *icount_helper;
+#define ICOUNT_ENTRY(name) \
+  concat(icount_exec_, name): IFNDEF(CONFIG_CC_CLANG, __attribute__((cold))); \
+  icount_helper = &&concat(exec_, name); \
+  goto icount_begin;
+    MAP(INSTR_LIST, ICOUNT_ENTRY)
+#undef ICOUNT_ENTRY
+
+  icount_exec_nemu_decode:
+    if (!icount_resume) trigger_icount_retire(cpu.TM);
+    s = tcache_decode(s);
+    // A fresh decode checks before fetch. Preserve that snapshot when its
+    // instruction enters through the counting trampoline for the first time.
+    icount_resume = cpu.TM->icount_inflight;
+    continue;
+
+  icount_begin:
+    if (!icount_resume) trigger_icount_retire(cpu.TM);
+    icount_resume = false;
+    save_globals(s);
+    trigger_icount_check(cpu.TM);
+#ifdef CONFIG_RV_ZICFILP
+    if (unlikely(cpu.elp == 1) && (s->isa.instr.val & 0xFFF) != 0x17) {
+      riscv64_raise_software_check(LANDING_PAD_FAULT);
+    }
+#endif
+    goto *icount_helper;
+#endif
   }
 
 end_of_loop:
+  IFDEF(CONFIG_TDATA1_ICOUNT, trigger_icount_retire(cpu.TM));
   // Here is per loop action and some priv instruction action.
   // If end_of_bb and n_remain <= 0, it will goto here.
   // Most of priv instruction (using rtl_priv_jr() or rtl_priv_next()) will goto here.
@@ -778,6 +843,13 @@ static void execute(int n) {
     cpu.amo = false;
     cpu.pbmt = 0;
 
+#ifdef CONFIG_TDATA1_ICOUNT
+    if (unlikely(trigger_icount_active(cpu.TM))) {
+      s.pc = cpu.pc;
+      trigger_icount_check(cpu.TM);
+    }
+#endif
+
     if (g_sys_state_flag & SYS_STATE_FLUSH_TCACHE) {
       tcache_handle_flush();
       // In the non-PERF_OPT path, a tcache flush request is edge-triggered.
@@ -812,6 +884,7 @@ static void execute(int n) {
 #endif
 
     s.EHelper(&s);
+    IFDEF(CONFIG_TDATA1_ICOUNT, trigger_icount_retire(cpu.TM));
 
     IFDEF(CONFIG_INSTR_CNT_BY_CATEGORY, instr_stat_count(s.instr_stat_category));
     IFDEF(CONFIG_INSTR_CNT_BY_INSTR, g_nr_guest_instr += 1);
@@ -837,6 +910,14 @@ static void execute(int n) {
       n_remain -= 1; // manually do this, as it will be skipped after break.
       break;
     }
+#ifdef CONFIG_RV_SDTRIG
+    // ECALL/EBREAK can enter a trap without longjmp. End this batch so the
+    // outer loop delivers its trigger before a cached handler can execute.
+    if (cpu.TM->trap_action != TRIG_ACTION_NONE) {
+      n_remain -= 1;
+      break;
+    }
+#endif
   }
   Loge("total insts: %'lu, execute remain: %'d", get_abs_instr_count(), n_remain);
 }
@@ -961,8 +1042,6 @@ void cpu_exec(uint64_t n) {
     if (cause == NEMU_EXEC_EXCEPTION) {
       Loge("Handle NEMU_EXEC_EXCEPTION");
       cause = 0;
-      IFDEF(CONFIG_TDATA1_ETRIGGER, trig_action_t action = check_triggers_etrigger(cpu.TM, g_ex_cause));
-
       cpu.pc = raise_intr(g_ex_cause, prev_s->pc);
       cpu.amo = false; // clean up
       cpu.pbmt = 0;
@@ -989,9 +1068,6 @@ void cpu_exec(uint64_t n) {
         tcache_handle_flush();
       #endif
 
-      // Trigger may raise EX_BP and perform longjmp.
-      IFDEF(CONFIG_TDATA1_ETRIGGER, trigger_handler(TRIG_TYPE_ETRIG, action, 0));
-
       // End main loop as difftest ref.
       IFDEF(CONFIG_SHARE, break);
 
@@ -1000,12 +1076,6 @@ void cpu_exec(uint64_t n) {
       word_t intr = MUXDEF(CONFIG_CLINT_LOCAL_TIMER_INTERRUPT, isa_query_intr(), INTR_EMPTY);
       if (intr != INTR_EMPTY) {
         Loge("NEMU raise intr");
-        #ifdef CONFIG_TDATA1_ICOUNT
-          trig_action_t icount_action = check_triggers_icount(cpu.TM);
-          trigger_handler(TRIG_TYPE_ICOUNT, icount_action, 0);
-        #endif // CONFIG_TDATA1_ICOUNT
-        IFDEF(CONFIG_TDATA1_ITRIGGER, trig_action_t itrigger_action = check_triggers_itrigger(cpu.TM, intr));
-
         cpu.pc = raise_intr(intr, cpu.pc);
 
         // Settle instruction counting for not end BB.
@@ -1022,11 +1092,15 @@ void cpu_exec(uint64_t n) {
           tcache_handle_flush();
         #endif
 
-        IFDEF(CONFIG_TDATA1_ITRIGGER, trigger_handler(TRIG_TYPE_ITRIG, itrigger_action, 0));
         IFDEF(CONFIG_DIFFTEST, ref_difftest_raise_intr(intr));
       }
     }
 
+#ifdef CONFIG_RV_SDTRIG
+    if (unlikely(cpu.TM->trap_action != TRIG_ACTION_NONE)) {
+      trigger_take_trap_action(cpu.TM);
+    }
+#endif
     n_batch = MIN_OF(n_remain_total, batch_limit);
     execute(n_batch);
 
