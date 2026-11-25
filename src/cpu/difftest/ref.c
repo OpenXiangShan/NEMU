@@ -25,6 +25,10 @@
 #include <utils/hash.h>
 #include <cpu/cpu.h>
 #include <difftest.h>
+#ifdef CONFIG_USE_MMAP
+#include <stdlib.h>
+#include <sys/mman.h>
+#endif
 
 #ifdef CONFIG_ISA_riscv64
 void csr_difftest_mark_dirty(void);
@@ -92,10 +96,24 @@ void nemu_memcpy_helper(paddr_t nemu_addr, void *dut_buf, size_t n, bool directi
   else cpy_func(dut_buf, guest_to_host(nemu_addr), n);
 }
 
+bool difftest_supports_mem_cow(void) {
+#ifdef CONFIG_USE_MMAP
+  return true;
+#else
+  return false;
+#endif
+}
+
 void difftest_get_backed_memory(void *backed_pmem, size_t n) {
-#if CONFIG_ENABLE_MEM_DEDUP
-  // set pmem to backed_pmem, then nothing
-  assert(n == CONFIG_MSIZE);
+#if CONFIG_ENABLE_MEM_DEDUP || CONFIG_USE_MMAP
+  assert(backed_pmem != NULL);
+  assert(n == MEMORY_SIZE);
+#ifdef CONFIG_USE_MMAP
+  if (munmap(get_pmem(), MEMORY_SIZE) != 0) {
+    perror("release original REF memory");
+    abort();
+  }
+#endif
   set_pmem(true, backed_pmem);
   isa_mmu_tlb_flush();
   IFDEF(CONFIG_PERF_OPT_SHARE, hosttlb_flush(0));
