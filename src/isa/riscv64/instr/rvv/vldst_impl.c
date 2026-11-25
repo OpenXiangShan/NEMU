@@ -427,17 +427,28 @@ void vld(Decode *s, int mode, int mmu_mode) {
     }
   }
 
-  // Tail agnostic is not handled in fast path
-  if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta) && vl_val > ori_vstart) {   // set tail of vector register to 1
-    int vlmax =  mode == MODE_MASK ? VLEN / 8 : get_vlen_max(eew, vemul, 0);
-    for(int idx = vl_val; idx < vlmax; idx++) {
-      tmp_reg[1] = (uint64_t) -1;
-      for (fn = 0; fn < nf; fn++) {
-        set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
-        IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
+#if !defined(CONFIG_MULTICORE_DIFF)
+  if (mode == MODE_UNIT && s->v_nf == 0 && eew == 0 && vemul == 3) {
+    if (RVV_AGNOSTIC && vtype->vta && vl_val > ori_vstart) {
+      // For EEW=8, EMUL=8 the eight aligned vector registers are contiguous.
+      memset((uint8_t *)cpu.vr + vd * sizeof(cpu.vr[0]) + vl_val,
+             0xff, VLMAX_8 - vl_val);
+    }
+  } else {
+#endif
+    if (RVV_AGNOSTIC && (mode == MODE_MASK || vtype->vta) && vl_val > ori_vstart) {   // set tail of vector register to 1
+      int vlmax = mode == MODE_MASK ? VLEN / 8 : get_vlen_max(eew, vemul, 0);
+      for(int idx = vl_val; idx < vlmax; idx++) {
+        tmp_reg[1] = (uint64_t) -1;
+        for (fn = 0; fn < nf; fn++) {
+          set_vreg(vd + fn * emul, idx, tmp_reg[1], eew, 0, 0);
+          IFDEF(CONFIG_MULTICORE_DIFF, set_vec_dual_difftest_reg_idx(fn * emul, idx, tmp_reg[1], eew));
+        }
       }
     }
+#if !defined(CONFIG_MULTICORE_DIFF)
   }
+#endif
 
   vstart->val = 0;
   cpu.isVldst = false;
