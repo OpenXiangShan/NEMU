@@ -3751,8 +3751,8 @@ word_t riscv64_priv_mret() {
 #ifdef CONFIG_RVH
   cpu.v = (mstatus->mpp == MODE_M ? 0 : mstatus->mpv);
   mstatus->mpv = 0;
-  set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
 #endif // CONFIG_RVH
+  set_sys_state_flag(SYS_STATE_FLUSH_TCACHE);
   if (mstatus->mpp != MODE_M) { mstatus->mprv = 0; }
   cpu.mode = mstatus->mpp;
   mstatus->mpp = MODE_U;
