@@ -84,7 +84,7 @@ config MEM_RANDOM
     This may help to find undefined behaviors.
 
 config ZSTD_COMPRESS
-  depends on MODE_SYSTEM && !SHARE
+  depends on MODE_SYSTEM
   bool "Enable ZSTD checkpoint compression"
   default n
   help
