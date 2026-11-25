@@ -83,7 +83,7 @@ Decode *prev_s;
 
 #ifdef CONFIG_DEBUG
 static inline void debug_hook(vaddr_t pc, const char *asmbuf) {
-  Logti("%s", asmbuf);
+  Log("%s", asmbuf);
   if (g_print_step) {
     puts(asmbuf);
   }
