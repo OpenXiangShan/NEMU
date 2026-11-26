@@ -209,6 +209,16 @@ void init_isa() {
   mfflags->val = 0;
   mfrm->val = 0;
   msaten->val = 0;
+  cpu.mscale_epoch = 0;
+  for (int reg = 0; reg < 8; reg++) {
+    cpu.mscale_valid[reg] = 0;
+    cpu.mscale_rows[reg] = 0;
+    cpu.mscale_blocks[reg] = 0;
+    cpu.mscale_generation[reg] = 0;
+    cpu.mscale_source_stride[reg] = 0;
+    cpu.mscale_mode[reg] = 0;
+    memset(cpu.mscale[reg], 0, sizeof(cpu.mscale[reg]));
+  }
 #endif // CONFIG_RV_AME
 
   // mcycle and minstret record :

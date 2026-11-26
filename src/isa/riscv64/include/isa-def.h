@@ -230,6 +230,15 @@ typedef struct {
     uint8_t  _8[ARENUM8];
   } macc[4][ROWNUM];
 
+  uint8_t mscale[8][ROWNUM][AME_MAX_SCALE_BLOCKS];
+  uint8_t mscale_valid[8];
+  uint16_t mscale_rows[8];
+  uint16_t mscale_blocks[8];
+  uint32_t mscale_generation[8];
+  uint64_t mscale_source_stride[8];
+  uint8_t mscale_mode[8];
+  uint64_t mscale_epoch;
+
   uint64_t mtokr[MSYNC];
 #endif // CONFIG_RV_AME
 
