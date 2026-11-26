@@ -219,6 +219,16 @@ config RVV
   bool "RISC-V Vector Extension v1.0"
   default y
 
+config RVV_MXFP4_ENCODE
+  bool "Experimental supplied-scale F32 to MXFP4 vector lane encode"
+  depends on RVV && FPU_SOFT
+  default n
+  help
+    Enable the experimental custom3 supplied-scale e32 lane encoder.
+    This is independent of the matrix extension, computes no dynamic scale,
+    and returns unpacked low-four-bit codes through normal vector state.
+    Nonzero vstart and reserved frm are illegal.
+
 config CUSTOM_XVEXP2
   bool "RISC-V Xvexp2 Custom Vector Extension"
   depends on RVV

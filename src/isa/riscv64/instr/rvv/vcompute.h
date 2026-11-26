@@ -19,6 +19,14 @@
 #include "vcompute_impl.h"
 #include "vcommon.h"
 
+#ifdef CONFIG_RVV_MXFP4_ENCODE
+void mxfp4_encode_instr(Decode *s);
+
+def_EHelper(xsai_mxfp4_encode_vv) {
+  mxfp4_encode_instr(s);
+}
+#endif // CONFIG_RVV_MXFP4_ENCODE
+
 def_EHelper(vadd) {
   ARITH(ADD, SIGNED)
 }

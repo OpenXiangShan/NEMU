@@ -22,6 +22,9 @@
 #include <cpu/cpu.h>
 #include <rtl/fp.h>
 #include "vcommon.h"
+#ifdef CONFIG_RVV_MXFP4_ENCODE
+#include "../ame/mxfp.h"
+#endif // CONFIG_RVV_MXFP4_ENCODE
 
 #undef s0
 #undef s1
@@ -1161,6 +1164,46 @@ void permutaion_instr(int opcode, Decode *s) {
   vcsr_write(IDXVSTART, s0);
   vp_set_dirty();
 }
+
+#ifdef CONFIG_RVV_MXFP4_ENCODE
+void mxfp4_encode_instr(Decode *s) {
+  require_float();
+  vector_vvv_check(s, true);
+  isa_fp_rm_check(isa_fp_get_frm());
+  const int vsew = 2;
+  if (vtype->vsew != vsew) longjmp_exception(EX_II);
+  check_vstart_exception(s);
+  if (check_vstart_ignore(s)) {
+    fp_set_dirty();
+    vp_set_dirty();
+    return;
+  }
+
+  uint32_t flags = 0;
+  for (word_t idx = 0; idx < vl->val; ++idx) {
+    if (!s->vm && !get_mask(0, idx)) {
+      if (RVV_AGNOSTIC && vtype->vma)
+        set_vreg(id_dest->reg, idx, UINT32_MAX, vsew, vtype->vlmul, 1);
+      continue;
+    }
+    rtlreg_t scale, value;
+    get_vreg(id_src->reg, idx, &scale, vsew, vtype->vlmul, 0, 1);
+    get_vreg(id_src2->reg, idx, &value, vsew, vtype->vlmul, 0, 1);
+    bool invalid;
+    const uint32_t code = mxfp_encode_f32_lane(value, scale, &invalid);
+    set_vreg(id_dest->reg, idx, code, vsew, vtype->vlmul, 1);
+    if (invalid) flags |= FPCALL_EX_NV;
+  }
+  if (RVV_AGNOSTIC && vtype->vta) {
+    const word_t vlmax = get_vlen_max(vsew, vtype->vlmul, 0);
+    for (word_t idx = vl->val; idx < vlmax; ++idx)
+      set_vreg(id_dest->reg, idx, UINT32_MAX, vsew, vtype->vlmul, 1);
+  }
+  isa_fp_set_ex(flags);
+  vp_set_dirty();
+  vstart->val = 0;
+}
+#endif // CONFIG_RVV_MXFP4_ENCODE
 
 void floating_arithmetic_instr(int opcode, int is_signed, int widening, int dest_mask, Decode *s) {
   require_float();
