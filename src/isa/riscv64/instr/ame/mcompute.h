@@ -237,7 +237,11 @@ def_EHelper(mmacc) {
     ame_matrix_region_mark_write(td, tile_m, tile_n << dsize, s->pc);
   }
 #endif // CONFIG_AME_TILEREG_UB_CHECK
+#if defined(CONFIG_RV_AME_FP4) && defined(CONFIG_FPU_SOFT) && \
+    defined(CONFIG_SHARE_REF) && defined(CONFIG_DIFFTEST_AMU_CTRL) && \
+    !defined(CONFIG_SHARE_CTRL)
 mmacc_emit_event: ;
+#endif
 #if defined(CONFIG_DIFFTEST_AMU_CTRL) || defined(CONFIG_SHARE_CTRL) || defined(PRINT_AMUCTRLIO)
   uint8_t event_s1 = get_mma_op_amuctrl(s1mcfg.type_code);
   uint8_t event_s2 = get_mma_op_amuctrl(s2mcfg.type_code);

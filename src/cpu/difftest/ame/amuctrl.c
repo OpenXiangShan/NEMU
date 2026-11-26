@@ -169,6 +169,8 @@ int check_amu_ctrl_snapshot(amu_ctrl_event_t *cmp, amu_ctrl_snapshot_t *snapshot
   return check_amu_ctrl_impl(cmp, true);
 }
 
+#if defined(CONFIG_RV_AME_FP4) && defined(CONFIG_FPU_SOFT) && \
+    defined(CONFIG_DIFFTEST_AMU_CTRL) && !defined(CONFIG_SHARE_CTRL)
 static bool valid_mma_view(const amu_matrix_view_t *view, size_t rows,
                            size_t pitch, size_t *bytes) {
   if (!view || !view->bytes || !rows || !pitch || view->reserved ||
@@ -192,6 +194,7 @@ static bool disjoint_mma_views(const amu_matrix_view_t *views[4],
   }
   return true;
 }
+#endif
 
 int exec_amu_scaled_mma_snapshot(const amu_ctrl_event_t *event,
                                  const uint8_t *scale_a, size_t scale_a_size,
