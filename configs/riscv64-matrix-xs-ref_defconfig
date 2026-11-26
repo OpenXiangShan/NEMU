@@ -4,6 +4,7 @@
 # layer: riscv64/xs/kmh/v3/ref.config
 # layer: fragments/ext/ame-matrix.config
 
+CONFIG_RV_AME_FP4=y
 CONFIG_DIFFTEST_AMU_CTRL=y
 CONFIG_AME_MLDST_VECTORIZE=y
 CONFIG_PERF_OPT_SHARE=y

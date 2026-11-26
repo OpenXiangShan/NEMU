@@ -35,6 +35,7 @@
 #include "mcommon.h"
 #ifdef CONFIG_RV_AME_FP4
 #include "ame/raw-fp4.h"
+#include "ame/mstore.h"
 #endif
 
 #ifdef PRINT_AMUCTRLIO
@@ -102,7 +103,8 @@ void check_size(Decode *s, uint64_t rmax_mreg, uint64_t cmax_mreg,
 static bool validate_raw_fp4_access(mcfg_t cfg, uint64_t mreg_id,
                                     char m_name) {
 #ifdef CONFIG_RV_AME_FP4
-  bool raw_fp4 = is_raw_fp4(cfg);
+  bool raw_fp4 = is_raw_fp4(cfg) || (cfg.table_set == 0 && mreg_id < 4 &&
+                  (cfg.type_code == MTYPECODE_INT4 || cfg.type_code == MTYPECODE_UINT4));
   if (is_raw_fp4_type_code(cfg) && !raw_fp4) {
     longjmp_exception(EX_II);
   }
@@ -133,10 +135,10 @@ void exec_mld(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
 #ifdef CONFIG_RV_AME_FP4
   if (raw_fp4) {
     if (raw_fp4_matrix_access(s, base_addr, row_byte_stride, row, column,
-                              is_trans, false, td)) {
+                              is_trans, false, m_name, td)) {
       mp_set_dirty();
 #ifdef CONFIG_AME_TILEREG_UB_CHECK
-      // An odd FP4 row also zeroes its last byte's high nibble.
+      // UB tracking uses the byte containing the final written element.
       ame_matrix_region_mark_write(td, row, ((uint64_t)column + 1) / 2,
                                   s->pc);
 #endif // CONFIG_AME_TILEREG_UB_CHECK
@@ -176,7 +178,7 @@ void exec_mst(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
     ame_matrix_region_check_read(ts3, row, ((uint64_t)column + 1) / 2, s->pc);
 #endif // CONFIG_AME_TILEREG_UB_CHECK
     if (raw_fp4_matrix_access(s, base_addr, row_byte_stride, row, column,
-                              is_trans, true, ts3)) {
+                              is_trans, true, m_name, ts3)) {
 #ifdef CONFIG_AME_MEM_ACCESS_CHECK
       mstore_queue_emplace(base_addr, row_byte_stride, row, column,
                            MSEW_FP4, is_trans);
@@ -260,24 +262,24 @@ void mst(Decode *s, bool is_trans, char m_name) {
 
 void mld_whole(Decode *s, char m_name) {
   uint64_t td = s->dest.reg;
-  bool raw_fp4 = validate_raw_fp4_access(cpu.mcfg[td], td, m_name);
+  (void)validate_raw_fp4_access(cpu.mcfg[td], td, m_name);
   uint8_t dsize = m_name == 'c' ? 2 : 0;
   uint64_t row_byte_stride = m_name == 'c' ? ARENUM8 : TRENUM8;
 
   exec_mld(s, reg_l(s->src1.reg), row_byte_stride, td,
-    ROWNUM, m_name == 'c' ? ARENUM32 : (raw_fp4 ? TRENUM8 * 2 : TRENUM8),
-    dsize, false, m_name, raw_fp4);
+    ROWNUM, m_name == 'c' ? ARENUM32 : TRENUM8,
+    dsize, false, m_name, false);
 }
 
 void mst_whole(Decode *s, char m_name) {
   uint64_t ts3 = s->dest.reg;
-  bool raw_fp4 = validate_raw_fp4_access(cpu.mcfg[ts3], ts3, m_name);
+  (void)validate_raw_fp4_access(cpu.mcfg[ts3], ts3, m_name);
   uint8_t dsize = m_name == 'c' ? 2 : 0;
   uint64_t row_byte_stride = m_name == 'c' ? ARENUM8 : TRENUM8;
 
   exec_mst(s, reg_l(s->src1.reg), row_byte_stride, ts3,
-    ROWNUM, m_name == 'c' ? ARENUM32 : (raw_fp4 ? TRENUM8 * 2 : TRENUM8),
-    dsize, false, m_name, raw_fp4);
+    ROWNUM, m_name == 'c' ? ARENUM32 : TRENUM8,
+    dsize, false, m_name, false);
 }
 
 #endif // CONFIG_RV_AME

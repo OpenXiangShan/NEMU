@@ -3,6 +3,7 @@
 # layer: riscv64/xs/dut.config
 # layer: fragments/ext/ame-matrix.config
 
+CONFIG_RV_AME_FP4=y
 # CONFIG_CC_NATIVE_ARCH is not set
 CONFIG_CLINT_LOCAL_TIMER_INTERRUPT=y
 # CONFIG_DIFFTEST_STORE_COMMIT is not set

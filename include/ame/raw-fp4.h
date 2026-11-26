@@ -55,8 +55,10 @@ static inline uint8_t raw_fp4_set_nibble(uint8_t packed_byte, int logical_index,
 
 #if defined(CONFIG_RV_AME) && defined(CONFIG_RV_AME_FP4)
 struct Decode;
-bool raw_fp4_matrix_access(struct Decode *s, vaddr_t base, vaddr_t stride,
-                           int row, int column, bool transpose, bool store, int mreg_id);
+void raw_fp4_transfer_matrix(uint8_t *base, uint64_t stride, int rows, int columns,
+                             bool transpose, bool store, int reg);
+bool raw_fp4_matrix_access(struct Decode *s, vaddr_t base, vaddr_t stride, int row,
+                           int column, bool transpose, bool store, char m_name, int mreg_id);
 #endif
 
 #ifdef __cplusplus

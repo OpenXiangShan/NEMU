@@ -11,6 +11,13 @@
 enum { MSEW_FP4 = 7 };
 #endif
 
+static inline size_t matrix_row_bytes(size_t columns, int msew) {
+#ifdef CONFIG_RV_AME_FP4
+  if (msew == MSEW_FP4) return (columns + 1) / 2;
+#endif
+  return columns << msew;
+}
+
 typedef struct {
   uint64_t base_vaddr;
   uint64_t stride;

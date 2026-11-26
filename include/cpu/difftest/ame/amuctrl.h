@@ -14,8 +14,13 @@ typedef struct {
   size_t reg_row_bytes;
   size_t active_rows;
   size_t active_columns;
-  size_t element_bytes;
+  size_t element_bytes;  // Zero denotes two packed e4 elements per byte.
 } amu_write_region_t;
+
+static inline size_t amu_active_row_bytes(const amu_write_region_t *region) {
+  return region->element_bytes ? region->active_columns * region->element_bytes :
+                                 (region->active_columns + 1) / 2;
+}
 
 int check_amu_ctrl(amu_ctrl_event_t *cmp);
 amu_ctrl_event_t get_amu_ctrl_info();
@@ -23,7 +28,7 @@ int exec_amu(void *amu_ctrl, void *res);
 int exec_amu_hash(void *amu_ctrl, amu_hash_t *res);
 void exec_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3);
 
-// Each row's first active_columns * element_bytes bytes are covered; the rest is unwritten.
+// Packed rows with an odd element count cover only the final low nibble.
 // Require the covered bytes to fit in each row and storage for active_rows full rows.
 // An empty region returns the ISO CRC of the all-unwritten register without
 // reading its data. The register capacity remains part of the canonical stream.
