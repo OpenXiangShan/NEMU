@@ -60,6 +60,12 @@ float_mmacc_type_t get_float_mmacc_type(
 );
 
 mmacc_type_t get_mmacc_type(mcfg_t s1cfg, mcfg_t s2cfg, mcfg_t dcfg);
+uint8_t get_mxfp_mmacc_mode(mcfg_t s1cfg, mcfg_t s2cfg, mcfg_t dcfg);
+bool mxfp_mmacc_admissible(uint8_t mode, uint64_t md, uint64_t ms1, uint64_t ms2,
+  uint64_t tile_m, uint64_t tile_n, uint64_t tile_k, uint64_t rm);
+uint32_t mxfp_mmacc_element(uint8_t mode, uint32_t acc,
+  const uint8_t *a_row, const uint8_t *b_row, const uint8_t *a_scales,
+  const uint8_t *b_scales, unsigned tile_k, uint8_t *raised_flags);
 
 #ifndef CONFIG_FPU_NONE
 void ame_fp_matrix_begin(uint32_t rm);

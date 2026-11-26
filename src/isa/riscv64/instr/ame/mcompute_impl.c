@@ -19,6 +19,8 @@
 #ifdef CONFIG_RV_AME
 
 #include "mcompute_impl.h"
+#include "mxfp.h"
+#include <ame/raw-fp4.h>
 #include <cpu/cpu.h>
 #include <fenv.h>
 #include <float.h>
@@ -179,6 +181,65 @@ mmacc_type_t get_mmacc_type(mcfg_t s1cfg, mcfg_t s2cfg, mcfg_t dcfg) {
     return MMACC_TYPE_FLOAT;
   }
   return MMACC_TYPE_INVALID;
+}
+
+uint8_t get_mxfp_mmacc_mode(mcfg_t s1cfg, mcfg_t s2cfg, mcfg_t dcfg) {
+  if (s1cfg.table_set != 1 || s2cfg.table_set != 1 || dcfg.table_set != 0 ||
+      dcfg.type_code != MTYPECODE_FP32 || s1cfg.type_code != s2cfg.type_code) {
+    return 0;
+  }
+  switch (s1cfg.type_code) {
+    case MTYPECODE_FP8E4M3: return 7;
+    case MTYPECODE_FP8E5M2: return 8;
+    case MTYPECODE_MXFP4: return 10;
+    default: return 0;
+  }
+}
+
+bool mxfp_mmacc_admissible(uint8_t mode, uint64_t md, uint64_t ms1, uint64_t ms2,
+  uint64_t tile_m, uint64_t tile_n, uint64_t tile_k, uint64_t rm) {
+#ifdef CONFIG_FPU_SOFT
+  if ((mode != 7 && mode != 8 && mode != 10) || md < 4 || md >= 8 ||
+      ms1 >= 4 || ms2 >= 4 || rm != 0 ||
+      !tile_m || tile_m > ROWNUM || !tile_n || tile_n > ROWNUM || tile_n > ARENUM32 ||
+      !tile_k || tile_k > TRENUM8 * (mode == 10 ? 2 : 1)) {
+    return false;
+  }
+  const unsigned blocks = (tile_k + AME_MX_BLOCK_SIZE - 1) / AME_MX_BLOCK_SIZE;
+  const unsigned scale_a = ms1, scale_b = 4 + ms2;
+  return blocks <= AME_MAX_SCALE_BLOCKS &&
+    cpu.mscale_valid[scale_a] && cpu.mscale_valid[scale_b] &&
+    cpu.mscale_generation[scale_a] && cpu.mscale_generation[scale_b] &&
+    cpu.mscale_mode[scale_a] == mode && cpu.mscale_mode[scale_b] == mode &&
+    cpu.mscale_rows[scale_a] == tile_m && cpu.mscale_rows[scale_b] == tile_n &&
+    cpu.mscale_blocks[scale_a] == blocks && cpu.mscale_blocks[scale_b] == blocks &&
+    cpu.mscale_source_stride[scale_a] >= blocks && cpu.mscale_source_stride[scale_b] >= blocks;
+#else
+  return false;
+#endif
+}
+
+uint32_t mxfp_mmacc_element(uint8_t mode, uint32_t acc,
+  const uint8_t *a_row, const uint8_t *b_row, const uint8_t *a_scales,
+  const uint8_t *b_scales, unsigned tile_k, uint8_t *raised_flags) {
+  const bool fp4 = mode == 10;
+  const bool e5m2 = mode == 8;
+  for (unsigned base = 0; base < tile_k; base += AME_MX_BLOCK_SIZE) {
+    const unsigned block = base / AME_MX_BLOCK_SIZE;
+    const unsigned lanes = tile_k - base < AME_MX_BLOCK_SIZE ? tile_k - base : AME_MX_BLOCK_SIZE;
+    uint8_t a_lanes[AME_MX_BLOCK_SIZE], b_lanes[AME_MX_BLOCK_SIZE];
+    if (fp4) {
+      for (unsigned lane = 0; lane < lanes; ++lane) {
+        const unsigned index = base + lane;
+        a_lanes[lane] = raw_fp4_get_nibble(a_row[index / 2], index);
+        b_lanes[lane] = raw_fp4_get_nibble(b_row[index / 2], index);
+      }
+    }
+    acc = mxfp_accumulate_block(acc, fp4 ? a_lanes : a_row + base,
+      fp4 ? b_lanes : b_row + base, lanes, a_scales[block], b_scales[block],
+      fp4, e5m2, raised_flags);
+  }
+  return acc;
 }
 
 bool is_signed_int_mtype(uint64_t type_code) {

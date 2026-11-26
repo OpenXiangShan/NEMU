@@ -39,7 +39,6 @@
 def_EHelper(mmacc) {
   // Check MS
   require_matrix();
-  mp_set_dirty();
   uint64_t tile_m = mtilem->val;
   uint64_t tile_k = mtilek->val;
   uint64_t tile_n = mtilen->val;
@@ -49,6 +48,39 @@ def_EHelper(mmacc) {
   mcfg_t dmcfg = cpu.mcfg[td];
   mcfg_t s1mcfg = cpu.mcfg[ts1];
   mcfg_t s2mcfg = cpu.mcfg[ts2];
+  if (s1mcfg.table_set || s2mcfg.table_set || dmcfg.table_set) {
+#ifndef CONFIG_SHARE
+    const uint8_t mode = get_mxfp_mmacc_mode(s1mcfg, s2mcfg, dmcfg);
+    if (mxfp_mmacc_admissible(mode, td, ts1, ts2, tile_m, tile_n, tile_k, mfrm->val)) {
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+      const uint64_t pack = get_pack(s1mcfg);
+      const uint64_t ab_bytes = (tile_k + pack - 1) / pack;
+      const uint64_t c_bytes = tile_n * sizeof(uint32_t);
+      ame_matrix_region_check_read(ts1, tile_m, ab_bytes, s->pc);
+      ame_matrix_region_check_read(ts2, tile_n, ab_bytes, s->pc);
+      ame_matrix_region_check_read(td, tile_m, c_bytes, s->pc);
+#endif
+      mp_set_dirty();
+      uint8_t raised_flags = 0;
+      for (unsigned row = 0; row < tile_m; ++row) {
+        const uint8_t *a_row = get_mreg_row_addr(ts1, row);
+        for (unsigned col = 0; col < tile_n; ++col) {
+          const uint8_t *b_row = get_mreg_row_addr(ts2, col);
+          macc_l32(td, row, col) = mxfp_mmacc_element(mode, macc_l32(td, row, col),
+            a_row, b_row, cpu.mscale[ts1][row], cpu.mscale[4 + ts2][col], tile_k, &raised_flags);
+        }
+      }
+      mfflags->val |= raised_flags;
+      mcsr->mfflags = mfflags->val;
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+      ame_matrix_region_mark_write(td, tile_m, c_bytes, s->pc);
+#endif
+      goto mmacc_done;
+    }
+#endif
+    longjmp_exception(EX_II);
+  }
+  mp_set_dirty();
 #ifdef CONFIG_RV_AME_FP4
   if (is_raw_fp4_type_code(s1mcfg) || is_raw_fp4_type_code(s2mcfg) ||
       is_raw_fp4_type_code(dmcfg)) {
@@ -215,6 +247,10 @@ def_EHelper(mmacc) {
     mtilem->val, mtilen->val, mtilek->val,
     event_s1, event_s2, event_d);
 #endif // PRINT_AMUCTRLIO
+#ifndef CONFIG_SHARE
+mmacc_done:
+  ;
+#endif
 }
 
 def_EHelper(mzero) {
