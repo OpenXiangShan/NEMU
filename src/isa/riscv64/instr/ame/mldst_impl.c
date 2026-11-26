@@ -300,20 +300,25 @@ void mst_whole(Decode *s, char m_name) {
 #if defined(CONFIG_RV_AME_FP4) && defined(CONFIG_FPU_SOFT) && \
     defined(CONFIG_SHARE_REF) && defined(CONFIG_DIFFTEST_AMU_CTRL) && \
     !defined(CONFIG_SHARE_CTRL)
-static bool mld_convert_f32_mx_source_paddr(vaddr_t address, paddr_t *paddr) {
+static bool mld_mx_source_paddr(vaddr_t address, int access_bytes,
+                                paddr_t *paddr) {
+  if (access_bytes <= 0) return false;
   address = get_effective_address(address, MEM_TYPE_READ);
-  const int mmu_mode = isa_mmu_check(address, 4, MEM_TYPE_READ);
+  const int mmu_mode = isa_mmu_check(address, access_bytes, MEM_TYPE_READ);
   if (mmu_mode == MMU_DIRECT) {
     *paddr = address;
   } else {
-    const paddr_t page_base = isa_mmu_translate(address, 4, MEM_TYPE_READ);
+    const paddr_t page_base = isa_mmu_translate(address, access_bytes, MEM_TYPE_READ);
     if ((page_base & PAGE_MASK) != MEM_RET_OK) return false;
     *paddr = page_base | (address & PAGE_MASK);
   }
-  if (*paddr > UINT64_MAX - 3 || !in_pmem(*paddr) || !in_pmem(*paddr + 3)) {
+  const uint64_t last_byte = (uint64_t)access_bytes - 1;
+  if (*paddr > UINT64_MAX - last_byte || !in_pmem(*paddr) ||
+      !in_pmem(*paddr + last_byte)) {
     return false;
   }
-  return check_paddr(*paddr, 4, MEM_TYPE_READ, MEM_TYPE_READ, cpu.mode, address);
+  return check_paddr(*paddr, access_bytes, MEM_TYPE_READ, MEM_TYPE_READ,
+                     cpu.mode, address);
 }
 #endif
 
@@ -342,7 +347,7 @@ void mld_convert_f32_mx(Decode *s, bool is_b_side) {
     for (unsigned lane = 0; lane < 64; ++lane) {
       const uint64_t offset = (uint64_t)row * stride + lane * 4;
       paddr_t physical;
-      if (!mld_convert_f32_mx_source_paddr(base + offset, &physical)) {
+      if (!mld_mx_source_paddr(base + offset, 4, &physical)) {
         longjmp_exception(EX_II);
       }
       if (row == 0 && lane == 0) {
@@ -429,6 +434,87 @@ void mld_convert_f32_mx(Decode *s, bool is_b_side) {
 #ifdef CONFIG_AME_TILEREG_UB_CHECK
   ame_matrix_region_mark_write(td, 8, 32, s->pc);
 #endif
+#else
+  (void)s;
+  (void)is_b_side;
+  longjmp_exception(EX_II);
+#endif
+}
+
+void mld_scale(Decode *s, bool is_b_side) {
+#if defined(CONFIG_RV_AME_FP4) && defined(CONFIG_FPU_SOFT) && \
+    defined(CONFIG_SHARE_REF) && defined(CONFIG_DIFFTEST_AMU_CTRL) && \
+    !defined(CONFIG_SHARE_CTRL)
+  require_matrix();
+  const uint64_t scale_reg = s->dest.reg;
+  const word_t rows = is_b_side ? mtilen->val : mtilem->val;
+  const uint64_t base = reg_l(s->src1.reg);
+  const uint64_t stride = reg_l(s->src2.reg);
+  if (!amu_snapshot_ready() || scale_reg >= 4 || mtilek->val != 64 ||
+      rows != 8 || stride < 2 || stride > (UINT64_MAX - 1) / 7 ||
+      base > UINT64_MAX - (7 * stride + 1)) {
+    longjmp_exception(EX_II);
+  }
+
+  mcfg_t fp32_cfg = {0};
+  fp32_cfg.type_code = MTYPECODE_FP32;
+  const uint8_t mode = get_mxfp_mmacc_mode(cpu.mcfg[scale_reg],
+    cpu.mcfg[scale_reg], fp32_cfg);
+  const unsigned blocks = 2;
+  const unsigned scale_index = (is_b_side ? 4 : 0) + scale_reg;
+  if (mode != 10 || cpu.mscale_generation[scale_index] == UINT32_MAX) {
+    longjmp_exception(EX_II);
+  }
+
+  paddr_t physical_base = 0;
+  for (unsigned row = 0; row < rows; ++row) {
+    for (unsigned block = 0; block < blocks; ++block) {
+      const uint64_t offset = (uint64_t)row * stride + block;
+      paddr_t physical;
+      if (!mld_mx_source_paddr(base + offset, 1, &physical)) {
+        longjmp_exception(EX_II);
+      }
+      if (row == 0 && block == 0) {
+        physical_base = physical;
+      } else if (physical_base > UINT64_MAX - offset ||
+                 physical != physical_base + offset) {
+        longjmp_exception(EX_II);
+      }
+    }
+  }
+
+  uint8_t loaded[8][2];
+  for (unsigned row = 0; row < rows; ++row) {
+    for (unsigned block = 0; block < blocks; ++block) {
+      loaded[row][block] = (uint8_t)vaddr_read(s,
+        base + (uint64_t)row * stride + block, 1, MMU_DYNAMIC);
+    }
+  }
+
+  for (unsigned row = 0; row < rows; ++row) {
+    memcpy(cpu.mscale[scale_index][row], loaded[row], blocks);
+  }
+  cpu.mscale_valid[scale_index] = 1;
+  cpu.mscale_rows[scale_index] = rows;
+  cpu.mscale_blocks[scale_index] = blocks;
+  cpu.mscale_generation[scale_index]++;
+  cpu.mscale_source_stride[scale_index] = stride;
+  cpu.mscale_mode[scale_index] = mode;
+  mp_set_dirty();
+
+  amu_ctrl_event_t event = {0};
+  event.valid = 1;
+  event.op = 1;
+  event.md = scale_reg;
+  event.types2 = !is_b_side;
+  event.base = physical_base;
+  event.stride = stride;
+  event.mtilem = rows;
+  event.mtilen = blocks;
+  event.computeType = mode;
+  event.isScale = 1;
+  event.pc = s->pc;
+  amu_ctrl_queue_push(event);
 #else
   (void)s;
   (void)is_b_side;

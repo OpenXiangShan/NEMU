@@ -51,6 +51,14 @@ def_EHelper(mlacvt_f32_mx) {
 def_EHelper(mlbcvt_f32_mx) {
   mld_convert_f32_mx(s, true);
 }
+
+def_EHelper(mlascale) {
+  mld_scale(s, false);
+}
+
+def_EHelper(mlbscale) {
+  mld_scale(s, true);
+}
 #endif
 
 def_EHelper(mlc) {

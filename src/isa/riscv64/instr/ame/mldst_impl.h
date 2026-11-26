@@ -37,6 +37,7 @@ void mst(Decode *s, bool is_trans, char m_name);
 void mld_whole(Decode *s, char m_name);
 void mst_whole(Decode *s, char m_name);
 void mld_convert_f32_mx(Decode *s, bool is_b_side);
+void mld_scale(Decode *s, bool is_b_side);
 
 #endif // CONFIG_RV_AME
 
