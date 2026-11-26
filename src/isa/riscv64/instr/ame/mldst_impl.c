@@ -114,13 +114,19 @@ static bool validate_raw_fp4_access(mcfg_t cfg, uint64_t mreg_id,
                                     char m_name) {
 #ifdef CONFIG_RV_AME_FP4
   bool raw_fp4 = is_raw_fp4(cfg);
-  if (is_raw_fp4_type_code(cfg) && !raw_fp4) {
+  bool shared_mxfp4 = false;
+#if defined(CONFIG_FPU_SOFT) && defined(CONFIG_SHARE_REF) && \
+    defined(CONFIG_DIFFTEST_AMU_CTRL) && !defined(CONFIG_SHARE_CTRL)
+  shared_mxfp4 = cfg.table_set == 1 && cfg.type_code == MTYPECODE_MXFP4;
+#endif
+  if (is_raw_fp4_type_code(cfg) && !raw_fp4 && !shared_mxfp4) {
     longjmp_exception(EX_II);
   }
-  if (raw_fp4 && (mreg_id >= 4 || (m_name != 'a' && m_name != 'b'))) {
+  if ((raw_fp4 || shared_mxfp4) &&
+      (mreg_id >= 4 || (m_name != 'a' && m_name != 'b'))) {
     longjmp_exception(EX_II);
   }
-  return raw_fp4;
+  return raw_fp4 || shared_mxfp4;
 #else
   (void)cfg;
   (void)mreg_id;
@@ -144,7 +150,7 @@ void exec_mld(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
 #ifdef CONFIG_RV_AME_FP4
   if (raw_fp4) {
     if (raw_fp4_matrix_access(s, base_addr, row_byte_stride, row, column,
-                              is_trans, false, td)) {
+                              is_trans, false, td, m_name)) {
       mp_set_dirty();
 #ifdef CONFIG_AME_TILEREG_UB_CHECK
       // An odd FP4 row also zeroes its last byte's high nibble.
@@ -187,7 +193,7 @@ void exec_mst(Decode *s, uint64_t base_addr, uint64_t row_byte_stride,
     ame_matrix_region_check_read(ts3, row, ((uint64_t)column + 1) / 2, s->pc);
 #endif // CONFIG_AME_TILEREG_UB_CHECK
     if (raw_fp4_matrix_access(s, base_addr, row_byte_stride, row, column,
-                              is_trans, true, ts3)) {
+                              is_trans, true, ts3, m_name)) {
 #ifdef CONFIG_AME_MEM_ACCESS_CHECK
       mstore_queue_emplace(base_addr, row_byte_stride, row, column,
                            MSEW_FP4, is_trans);

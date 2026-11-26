@@ -19,6 +19,8 @@
 
 #include <common.h>
 
+#define AME_MXFP4_MLS_TYPED 7
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -56,7 +58,10 @@ static inline uint8_t raw_fp4_set_nibble(uint8_t packed_byte, int logical_index,
 #if defined(CONFIG_RV_AME) && defined(CONFIG_RV_AME_FP4)
 struct Decode;
 bool raw_fp4_matrix_access(struct Decode *s, vaddr_t base, vaddr_t stride,
-                           int row, int column, bool transpose, bool store, int mreg_id);
+                           int row, int column, bool transpose, bool store,
+                           int mreg_id, char m_name);
+bool raw_fp4_matrix_load_paddr(paddr_t base, paddr_t stride, int row,
+                               int column, bool transpose, int mreg_id);
 #endif
 
 #ifdef __cplusplus

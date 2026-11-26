@@ -5,6 +5,7 @@
 #endif // CONFIG_AME_MEM_ACCESS_CHECK
 #include <isa.h>
 #include <memory/paddr.h>
+#include <ame/raw-fp4.h>
 
 #if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 
@@ -190,7 +191,15 @@ static void exec_amu_load_store(void *amu_ctrl) {
     row = column;
     column = tmp;
   }
-  if (ls == 0) { // matrix load
+  if (msew == AME_MXFP4_MLS_TYPED) {
+#ifdef CONFIG_RV_AME_FP4
+    Assert(ls == 0 && !transpose && m_name != 'c' &&
+           raw_fp4_matrix_load_paddr(base, stride, row, column, false, ms),
+           "Invalid packed MXFP4 AMU load");
+#else
+    Assert(false, "Packed MXFP4 AMU load without FP4 support");
+#endif
+  } else if (ls == 0) { // matrix load
     pmem_read_matrix(base, stride, row, column, msew, transpose, m_name, ms);
   } else { // matrix store
     Assert(ls == 1, "AmuCtrl.ls should be 0 or 1!");
@@ -229,6 +238,15 @@ static bool get_amu_write_region(const amu_ctrl_event_t *event, amu_write_region
     region->active_rows = region->reg_size_bytes / region->reg_row_bytes;
     region->active_columns = region->reg_row_bytes / sizeof(uint64_t);
     region->element_bytes = sizeof(uint64_t);
+#ifdef CONFIG_RV_AME_FP4
+  } else if (event->op == 1 && event->sat == 0 && event->typed == AME_MXFP4_MLS_TYPED &&
+             !event->isfp && !event->types1 && event->md < 4 &&
+             ((event->types2 && event->mtilem == 8 && event->mtilen == 64) ||
+              (!event->types2 && event->mtilem == 64 && event->mtilen == 8))) {
+    region->active_rows = 8;
+    region->active_columns = 32;
+    region->element_bytes = 1;
+#endif
   } else if (event->op == 1 && event->sat == 0 && event->typed <= 3) {
     const bool is_b = !event->types1 && !event->types2;
     region->active_rows = is_b ? event->mtilen : event->mtilem;
