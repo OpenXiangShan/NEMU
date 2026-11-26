@@ -266,8 +266,10 @@ config RV_AME_FP4
   help
     Enable raw packed NVFP4 and MXFP4 load/store for A and B tile
     registers, including normal, transpose, and whole-register accesses.
-    Scaled MX matrix support is a narrow opt-in requiring SoftFloat and AMU
-    control difftest as well; this option alone does not enable computation.
+    Shared REF dynamic MXFP4 conversion loads additionally require SoftFloat,
+    SHARE_REF without SHARE_CTRL, AMU control difftest, and a negotiated
+    snapshot v2 session. Standalone scaled MX MMACC remains on its separate
+    non-shared execution path.
 
 config RV_AME_TLEN
   int "Matrix TLEN (total tile size in bits)"

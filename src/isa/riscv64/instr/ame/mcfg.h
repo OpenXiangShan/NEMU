@@ -17,6 +17,8 @@
 
 #ifdef CONFIG_RV_AME
 
+#include <string.h>
+
 #include "cpu/exec.h"
 #include "cpu/difftest/ame/amu_ctrl_queue_wrapper.h"
 #include <ctrl/ame/cutest.h>
@@ -37,6 +39,16 @@
 
 def_EHelper(minit) {
   mstatus->ms = 1;
+  cpu.mscale_epoch++;
+  for (unsigned reg = 0; reg < 8; ++reg) {
+    cpu.mscale_valid[reg] = 0;
+    cpu.mscale_rows[reg] = 0;
+    cpu.mscale_blocks[reg] = 0;
+    cpu.mscale_generation[reg] = 0;
+    cpu.mscale_source_stride[reg] = 0;
+    cpu.mscale_mode[reg] = 0;
+    memset(cpu.mscale[reg], 0, sizeof(cpu.mscale[reg]));
+  }
   IFDEF(CONFIG_SHARE, csr_difftest_mark_dirty());
 }
 

@@ -41,6 +41,18 @@ def_EHelper(mlb) {
   mld(s, false, 'b');
 }
 
+#if defined(CONFIG_RV_AME_FP4) && defined(CONFIG_FPU_SOFT) && \
+    defined(CONFIG_SHARE_REF) && defined(CONFIG_DIFFTEST_AMU_CTRL) && \
+    !defined(CONFIG_SHARE_CTRL)
+def_EHelper(mlacvt_f32_mx) {
+  mld_convert_f32_mx(s, false);
+}
+
+def_EHelper(mlbcvt_f32_mx) {
+  mld_convert_f32_mx(s, true);
+}
+#endif
+
 def_EHelper(mlc) {
   mld(s, false, 'c');
 }

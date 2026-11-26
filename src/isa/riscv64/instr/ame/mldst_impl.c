@@ -36,6 +36,17 @@
 #ifdef CONFIG_RV_AME_FP4
 #include "ame/raw-fp4.h"
 #endif
+#if defined(CONFIG_RV_AME_FP4) && defined(CONFIG_FPU_SOFT) && \
+    defined(CONFIG_SHARE_REF) && defined(CONFIG_DIFFTEST_AMU_CTRL) && \
+    !defined(CONFIG_SHARE_CTRL)
+#include <isa.h>
+#include <memory/paddr.h>
+#include <memory/vaddr.h>
+#include <cpu/difftest/ame/amu_ctrl_queue_wrapper.h>
+#include "mcompute_impl.h"
+#include "mxfp.h"
+#include <string.h>
+#endif
 
 #ifdef PRINT_AMUCTRLIO
 #include <stdio.h>
@@ -278,6 +289,145 @@ void mst_whole(Decode *s, char m_name) {
   exec_mst(s, reg_l(s->src1.reg), row_byte_stride, ts3,
     ROWNUM, m_name == 'c' ? ARENUM32 : (raw_fp4 ? TRENUM8 * 2 : TRENUM8),
     dsize, false, m_name, raw_fp4);
+}
+
+#if defined(CONFIG_RV_AME_FP4) && defined(CONFIG_FPU_SOFT) && \
+    defined(CONFIG_SHARE_REF) && defined(CONFIG_DIFFTEST_AMU_CTRL) && \
+    !defined(CONFIG_SHARE_CTRL)
+static bool mld_convert_f32_mx_source_paddr(vaddr_t address, paddr_t *paddr) {
+  address = get_effective_address(address, MEM_TYPE_READ);
+  const int mmu_mode = isa_mmu_check(address, 4, MEM_TYPE_READ);
+  if (mmu_mode == MMU_DIRECT) {
+    *paddr = address;
+  } else {
+    const paddr_t page_base = isa_mmu_translate(address, 4, MEM_TYPE_READ);
+    if ((page_base & PAGE_MASK) != MEM_RET_OK) return false;
+    *paddr = page_base | (address & PAGE_MASK);
+  }
+  if (*paddr > UINT64_MAX - 3 || !in_pmem(*paddr) || !in_pmem(*paddr + 3)) {
+    return false;
+  }
+  return check_paddr(*paddr, 4, MEM_TYPE_READ, MEM_TYPE_READ, cpu.mode, address);
+}
+#endif
+
+void mld_convert_f32_mx(Decode *s, bool is_b_side) {
+#if defined(CONFIG_RV_AME_FP4) && defined(CONFIG_FPU_SOFT) && \
+    defined(CONFIG_SHARE_REF) && defined(CONFIG_DIFFTEST_AMU_CTRL) && \
+    !defined(CONFIG_SHARE_CTRL)
+  require_matrix();
+  const uint64_t td = s->dest.reg;
+  if (td >= 4 || !amu_snapshot_ready()) longjmp_exception(EX_II);
+
+  const mcfg_t cfg = cpu.mcfg[td];
+  const word_t rows = is_b_side ? mtilen->val : mtilem->val;
+  const uint64_t base = reg_l(s->src1.reg);
+  const uint64_t stride = reg_l(s->src2.reg);
+  if (cfg.table_set != 1 || cfg.type_code != MTYPECODE_MXFP4 ||
+      mtilek->val != 64 || rows != 8 || stride < 256 || (stride & 3) ||
+      (base & 3) || stride > (UINT64_MAX - 255) / 7 ||
+      base > UINT64_MAX - (7 * stride + 255) ||
+      cpu.mscale_generation[(is_b_side ? 4 : 0) + td] == UINT32_MAX) {
+    longjmp_exception(EX_II);
+  }
+
+  paddr_t physical_base = 0;
+  for (unsigned row = 0; row < 8; ++row) {
+    for (unsigned lane = 0; lane < 64; ++lane) {
+      const uint64_t offset = (uint64_t)row * stride + lane * 4;
+      paddr_t physical;
+      if (!mld_convert_f32_mx_source_paddr(base + offset, &physical)) {
+        longjmp_exception(EX_II);
+      }
+      if (row == 0 && lane == 0) {
+        physical_base = physical;
+      } else if (physical_base > UINT64_MAX - offset ||
+                 physical != physical_base + offset) {
+        longjmp_exception(EX_II);
+      }
+    }
+  }
+
+  uint32_t source[8][64];
+  uint8_t scales[8][2];
+  bool scale_supported[8][2];
+  uint8_t encoded_payload[8][32] = {{0}};
+  for (unsigned row = 0; row < 8; ++row) {
+    for (unsigned lane = 0; lane < 64; ++lane) {
+      source[row][lane] = (uint32_t)vaddr_read(s,
+        base + (uint64_t)row * stride + lane * 4, 4, MMU_DYNAMIC);
+    }
+  }
+
+  for (unsigned row = 0; row < 8; ++row) {
+    for (unsigned block = 0; block < 2; ++block) {
+      scale_supported[row][block] =
+        mxfp_dynamic_scale_e(source[row] + block * 32, &scales[row][block]);
+    }
+  }
+
+  uint8_t flags = 0;
+  bool dynamic_success = true;
+  for (unsigned row = 0; row < 8; ++row) {
+    for (unsigned block = 0; block < 2; ++block) {
+      uint8_t encoded[16] = {0};
+      const bool accepted = scale_supported[row][block] &&
+        mxfp_encode_supplied_block(source[row] + block * 32,
+          scales[row][block], 1, 0, encoded);
+      if (!accepted) {
+        scales[row][block] = 0;
+        flags |= 0x10;
+        dynamic_success = false;
+      }
+      memcpy(encoded_payload[row] + block * sizeof(encoded), encoded,
+        sizeof(encoded));
+    }
+  }
+
+  const unsigned scale_reg = (is_b_side ? 4 : 0) + td;
+  memset(cpu.mscale[scale_reg], 127, sizeof(cpu.mscale[scale_reg]));
+  for (unsigned row = 0; row < 8; ++row) {
+    memcpy(cpu.mscale[scale_reg][row], scales[row], 2);
+  }
+  cpu.mscale_valid[scale_reg] = dynamic_success;
+  cpu.mscale_rows[scale_reg] = 8;
+  cpu.mscale_blocks[scale_reg] = 2;
+  cpu.mscale_generation[scale_reg]++;
+  cpu.mscale_source_stride[scale_reg] = stride;
+  cpu.mscale_mode[scale_reg] = 10;
+  mfflags->val |= flags;
+  mcsr->mfflags = mfflags->val;
+  mp_set_dirty();
+
+  amu_ctrl_event_t event = {0};
+  event.valid = 1;
+  event.op = 1;
+  event.md = td;
+  event.types2 = !is_b_side;
+  event.base = physical_base;
+  event.stride = stride;
+  event.mtilem = is_b_side ? 64 : 8;
+  event.mtilen = is_b_side ? 8 : 64;
+  event.typed = 2;
+  event.computeType = 10;
+  event.isConvertF32 = 1;
+  event.isDynamicMxfpQuant = 1;
+  event.pc = s->pc;
+  amu_matrix_view_t expected_tr = {
+    .bytes = &encoded_payload[0][0],
+    .capacity = sizeof(encoded_payload),
+    .row_pitch = 32,
+    .reserved = 0,
+  };
+  amu_ctrl_queue_push_snapshot(event, flags, &expected_tr);
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+  ame_matrix_region_mark_write(td, 8, 32, s->pc);
+#endif
+#else
+  (void)s;
+  (void)is_b_side;
+  longjmp_exception(EX_II);
+#endif
 }
 
 #endif // CONFIG_RV_AME

@@ -249,6 +249,15 @@
 #define MATRIX_INSTR_TERNARY(f)
 #endif // CONFIG_RV_AME
 
+#if defined(CONFIG_RV_AME_FP4) && defined(CONFIG_FPU_SOFT) && \
+    defined(CONFIG_SHARE_REF) && defined(CONFIG_DIFFTEST_AMU_CTRL) && \
+    !defined(CONFIG_SHARE_CTRL)
+#define MATRIX_MXFP4_CONVERT_INSTR_TERNARY(f) \
+  f(mlacvt_f32_mx) f(mlbcvt_f32_mx)
+#else
+#define MATRIX_MXFP4_CONVERT_INSTR_TERNARY(f)
+#endif
+
 #ifdef CONFIG_RV_CBO
 #define CBO_INSTR_TERNARY(f) \
   f(cbo_zero) f(cbo_inval) f(cbo_flush) f(cbo_clean) \
@@ -490,6 +499,7 @@
   ZVFBF_MIN_INSTR_TERNARY(f) \
   ZVFBF_WMA_INSTR_TERNARY(f) \
   MATRIX_INSTR_TERNARY(f) \
+  MATRIX_MXFP4_CONVERT_INSTR_TERNARY(f) \
   CBO_INSTR_TERNARY(f) \
   ZIMOP_INSTR_TERNARY(f) \
   ZFH_INSTR_TERNARY(f) \
