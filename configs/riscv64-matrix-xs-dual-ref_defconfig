@@ -5,7 +5,6 @@
 # layer: fragments/ext/ame-matrix.config
 # layer: fragments/difftest/multicore.config
 
-CONFIG_RV_AME_FP4=y
 CONFIG_CC_DEBUG=y
 # CONFIG_CC_O3 is not set
 CONFIG_DIFFTEST_AMU_CTRL=y

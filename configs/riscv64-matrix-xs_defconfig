@@ -3,7 +3,6 @@
 # layer: riscv64/xs/dut.config
 # layer: fragments/ext/ame-matrix.config
 
-CONFIG_RV_AME_FP4=y
 CONFIG_AME_MLDST_VECTORIZE=y
 CONFIG_AME_MMACC_VECTORIZE=y
 # CONFIG_RV_SMCNTRPMF is not set

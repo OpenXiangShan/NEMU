@@ -53,7 +53,7 @@ static inline uint8_t raw_fp4_set_nibble(uint8_t packed_byte, int logical_index,
   return (packed_byte & ~(0xf << shift)) | ((nibble & 0xf) << shift);
 }
 
-#if defined(CONFIG_RV_AME) && defined(CONFIG_RV_AME_FP4)
+#if defined(CONFIG_RV_AME)
 struct Decode;
 void raw_fp4_transfer_matrix(uint8_t *base, uint64_t stride, int rows, int columns,
                              bool transpose, bool store, int reg);

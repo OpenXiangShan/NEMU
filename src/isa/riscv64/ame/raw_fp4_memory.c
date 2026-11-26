@@ -27,7 +27,7 @@
 #include "../instr/ame/mreg.h"
 #include "../local-include/intr.h"
 
-#if defined(CONFIG_RV_AME) && defined(CONFIG_RV_AME_FP4)
+#if defined(CONFIG_RV_AME)
 
 static paddr_t raw_fp4_paddrs[RAW_FP4_TILE_BYTES];
 
@@ -204,4 +204,4 @@ bool raw_fp4_matrix_access(struct Decode *s, vaddr_t base, vaddr_t stride, int r
   return true;
 }
 
-#endif // CONFIG_RV_AME && CONFIG_RV_AME_FP4
+#endif // CONFIG_RV_AME

@@ -626,12 +626,10 @@ void pmem_record_reset() {
 void pmem_read_matrix(paddr_t base, paddr_t stride,
                       int row, int column, int msew, bool transpose,
                       char m_name, int mreg_id) {
-#ifdef CONFIG_RV_AME_FP4
   if (msew == MSEW_FP4) {
     raw_fp4_transfer_matrix(guest_to_host(base), stride, row, column, transpose, false, mreg_id);
     return;
   }
-#endif
   host_read_matrix(guest_to_host(base), stride, row, column, msew, transpose, m_name, mreg_id);
 }
 
@@ -690,12 +688,10 @@ void pmem_write_matrix(paddr_t base, paddr_t stride,
 #ifdef CONFIG_STORE_LOG
   pmem_record_matrix_store(base, stride, row, column, msew, transpose);
 #endif // CONFIG_STORE_LOG
-#ifdef CONFIG_RV_AME_FP4
   if (msew == MSEW_FP4) {
     raw_fp4_transfer_matrix(guest_to_host(base), stride, row, column, transpose, true, mreg_id);
     return;
   }
-#endif
   host_write_matrix(guest_to_host(base), stride, row, column, msew, transpose, m_name, mreg_id);
 }
 #endif // CONFIG_RV_AME

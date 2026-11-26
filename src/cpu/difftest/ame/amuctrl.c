@@ -187,7 +187,7 @@ static bool get_amu_write_region(const amu_ctrl_event_t *event, amu_write_region
     region->active_columns = region->reg_row_bytes / sizeof(uint64_t);
     region->element_bytes = sizeof(uint64_t);
   } else if (event->op == 1 && event->sat == 0 && (event->typed <= 3 ||
-             MUXDEF(CONFIG_RV_AME_FP4, (!is_acc && event->typed == MSEW_FP4), false))) {
+             (!is_acc && event->typed == MSEW_FP4))) {
     const bool is_b = !event->types1 && !event->types2;
     region->active_rows = is_b ? event->mtilen : event->mtilem;
     region->active_columns = is_b ? event->mtilem : event->mtilen;

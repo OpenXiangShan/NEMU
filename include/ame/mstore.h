@@ -7,14 +7,10 @@
 
 #include <isa-def.h>
 
-#ifdef CONFIG_RV_AME_FP4
 enum { MSEW_FP4 = 7 };
-#endif
 
 static inline size_t matrix_row_bytes(size_t columns, int msew) {
-#ifdef CONFIG_RV_AME_FP4
   if (msew == MSEW_FP4) return (columns + 1) / 2;
-#endif
   return columns << msew;
 }
 
