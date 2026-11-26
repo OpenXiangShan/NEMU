@@ -72,10 +72,8 @@ static void write_svstore_queue(uint8_t **cursor, size_t count) {
 
 static void write_amu_ctrl_queue(uint8_t **cursor, size_t count) {
   for (size_t i = 0; i < count; ++i) {
-    amu_ctrl_event_t entry = amu_ctrl_queue_front();
-    amu_ctrl_queue_pop();
+    amu_ctrl_event_t entry = amu_ctrl_queue_at(i);
     write_value(cursor, &entry, sizeof(entry));
-    amu_ctrl_queue_push(entry);
   }
 }
 

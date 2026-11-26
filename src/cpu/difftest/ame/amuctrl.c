@@ -13,6 +13,30 @@
 #endif
 
 amu_ctrl_event_t amu_ctrl_event_data;
+static bool snapshot_admitted;
+
+bool amu_snapshot_ready(void) {
+  return snapshot_admitted;
+}
+
+void amu_snapshot_reset(void) {
+  snapshot_admitted = false;
+}
+
+int amu_snapshot_negotiate(uint32_t version, uint32_t ctrl_size, uint32_t mma_size,
+                           uint32_t event_prefix_size, uint32_t tile_bytes,
+                           uint32_t acc_bytes) {
+#ifdef CONFIG_RV_AME_FP4
+  snapshot_admitted = version == AMU_CTRL_SNAPSHOT_VERSION &&
+    version == AMU_MMA_SNAPSHOT_VERSION && ctrl_size == sizeof(amu_ctrl_snapshot_t) &&
+    mma_size == sizeof(amu_mma_snapshot_t) &&
+    event_prefix_size == sizeof(amu_ctrl_event_t) && tile_bytes == TLEN / 8 &&
+    acc_bytes == ALEN / 8;
+#else
+  snapshot_admitted = false;
+#endif
+  return snapshot_admitted ? 0 : -2;
+}
 
 amu_ctrl_event_t get_amu_ctrl_info() {
   return amu_ctrl_event_data;
@@ -46,48 +70,44 @@ static void print_amu_ctrl_event(amu_ctrl_event_t *event) {
   }
 }
 
-static bool cmp_amu_ctrl(amu_ctrl_event_t *l, amu_ctrl_event_t *r) {
+static bool cmp_amu_ctrl(amu_ctrl_event_t *l, amu_ctrl_event_t *r, bool compare_metadata) {
   bool cmp_mma = l->op == 0 && r->op == 0 && l->rm == r->rm && l->md == r->md
                  && l->sat == r->sat && l->isfp == r->isfp
                  && l->ms1 == r->ms1 && l->ms2 == r->ms2
                  && l->mtilem == r->mtilem && l->mtilen == r->mtilen && l->mtilek == r->mtilek
                  && l->types1 == r->types1 && l->types2 == r->types2 && l->typed == r->typed;
   bool cmp_mls = l->op == 1 && r->op == 1 && l->md == r->md && l->sat == r->sat
-                 && l->isfp == r->isfp
+                 && l->isfp == r->isfp && l->types1 == r->types1 && l->types2 == r->types2
                  && l->base == r->base && l->stride == r->stride 
                  && l->mtilem == r->mtilem && l->mtilen == r->mtilen
                  && l->typed == r->typed;
   bool cmp_mrelease = l->op == 2 && r->op == 2 && l->mtilem == r->mtilem;
   bool cmp_mzero = l->op == 3 && r->op == 3 && l->md == r->md && l->base == r->base;
   bool cmp_pc = l->pc == r->pc;
-  return !((cmp_mma || cmp_mls || cmp_mrelease || cmp_mzero) && cmp_pc);
+  bool cmp_metadata = !compare_metadata ||
+    (l->computeType == r->computeType && l->isScale == r->isScale &&
+     l->isConvertF32 == r->isConvertF32 && l->isDynamicMxfpQuant == r->isDynamicMxfpQuant);
+  return !((cmp_mma || cmp_mls || cmp_mrelease || cmp_mzero) && cmp_pc && cmp_metadata);
 }
 
-int check_amu_ctrl(amu_ctrl_event_t *cmp) {
+static bool amu_ctrl_has_extended_metadata(const amu_ctrl_event_t *event) {
+  return event->computeType || event->isScale || event->isConvertF32 || event->isDynamicMxfpQuant;
+}
+
+static int check_amu_ctrl_impl(amu_ctrl_event_t *cmp, bool full_event) {
+  if (!cmp) return -2;
   int result = 0;
   if (amu_ctrl_queue_empty()) {
     Log("NEMU does not commit any AMU ctrl signals.");
-    cmp->op = -1;
-    cmp->rm = 0;
-    cmp->md = 0;
-    cmp->sat = 0;
-    cmp->isfp = 0;
-    cmp->ms1 = 0;
-    cmp->ms2 = 0;
-    cmp->mtilem = 0;
-    cmp->mtilen = 0;
-    cmp->mtilek = 0;
-    cmp->types1 = 0;
-    cmp->types2 = 0;
-    cmp->typed = 0;
-    cmp->base = 0;
-    cmp->stride = 0;
-    cmp->pc = 0;
+    memset(cmp, 0, full_event ? sizeof(*cmp) : offsetof(amu_ctrl_event_t, computeType));
+    cmp->op = UINT8_MAX;
     result = -1;
   } else {
     amu_ctrl_event_data = amu_ctrl_queue_front();
-    amu_ctrl_queue_pop();
-    if (cmp_amu_ctrl(&amu_ctrl_event_data, cmp)) {
+    if (!full_event && amu_ctrl_has_extended_metadata(&amu_ctrl_event_data)) return -2;
+    if (cmp_amu_ctrl(&amu_ctrl_event_data, cmp, full_event)) {
+      memcpy(cmp, &amu_ctrl_event_data,
+        full_event ? sizeof(*cmp) : offsetof(amu_ctrl_event_t, computeType));
       // There're differences between NEMU and DUT
       // replace them with NEMU's data
       cmp->op = amu_ctrl_event_data.op;
@@ -127,8 +147,31 @@ int check_amu_ctrl(amu_ctrl_event_t *cmp) {
       }
       result = 1;
     }
+    if (result == 0) amu_ctrl_queue_complete_pending();
+    else amu_ctrl_queue_pop();
   }
   return result;
+}
+
+int check_amu_ctrl(amu_ctrl_event_t *cmp) {
+  return check_amu_ctrl_impl(cmp, false);
+}
+
+int check_amu_ctrl_snapshot(amu_ctrl_event_t *cmp, amu_ctrl_snapshot_t *snapshot) {
+  if (!cmp || !snapshot) return -2;
+  if (!amu_snapshot_ready()) return -2;
+  if (amu_ctrl_queue_empty()) return -1;
+  const int result = amu_ctrl_queue_copy_snapshot(snapshot);
+  if (result != 0) return result;
+  return check_amu_ctrl_impl(cmp, true);
+}
+
+int exec_amu_lazy_snapshot(const amu_ctrl_event_t *event, amu_mma_snapshot_t *snapshot) {
+  if (!amu_snapshot_ready()) return -2;
+  if (event && event->isDynamicMxfpQuant) {
+    return amu_ctrl_queue_apply_dynamic_snapshot(event, snapshot);
+  }
+  return -2;
 }
 
 static void exec_amu_load_store(void *amu_ctrl) {

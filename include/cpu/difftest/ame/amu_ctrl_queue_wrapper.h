@@ -8,14 +8,21 @@ extern "C" {
 #endif
 
 #if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
-#include <ame/event.h>
+#include <cpu/difftest/ame/amuctrl.h>
 void amu_ctrl_queue_reset();
 void amu_ctrl_queue_push(amu_ctrl_event_t amu_ctrl_event);
+void amu_ctrl_queue_push_snapshot(amu_ctrl_event_t amu_ctrl_event, uint32_t raised_flags,
+                                  const amu_matrix_view_t *expected_tr);
 void amu_ctrl_queue_pop();
 amu_ctrl_event_t amu_ctrl_queue_front();
 amu_ctrl_event_t amu_ctrl_queue_back();
+amu_ctrl_event_t amu_ctrl_queue_at(size_t index);
 size_t amu_ctrl_queue_size();
 bool amu_ctrl_queue_empty();
+int amu_ctrl_queue_copy_snapshot(amu_ctrl_snapshot_t *snapshot);
+void amu_ctrl_queue_complete_pending();
+int amu_ctrl_queue_apply_dynamic_snapshot(const amu_ctrl_event_t *event,
+                                          amu_mma_snapshot_t *snapshot);
 
 void amu_ctrl_queue_mma_emplace(uint8_t md, uint8_t rm, bool sat, bool isfp,
                                 uint8_t ms1, uint8_t ms2,

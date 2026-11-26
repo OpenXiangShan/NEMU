@@ -349,6 +349,14 @@ int difftest_amu_ctrl(void *cmp) {
 #endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 }
 
+int difftest_amu_ctrl_snapshot(void *cmp, void *snapshot) {
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+  return check_amu_ctrl_snapshot((amu_ctrl_event_t *)cmp, (amu_ctrl_snapshot_t *)snapshot);
+#else
+  return -2;
+#endif
+}
+
 int difftest_msync_event(void *cmp) {
   // Check if the queue head matches the given cmp.
   // If they don't match, save the queue head to cmp.
@@ -384,6 +392,26 @@ void difftest_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *
 #if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
   exec_amu_lazy(amu_ctrl, res, src1, src2, src3);
 #endif // defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+}
+
+int difftest_amu_lazy_snapshot(void *amu_ctrl, void *snapshot) {
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+  return exec_amu_lazy_snapshot((const amu_ctrl_event_t *)amu_ctrl,
+                                (amu_mma_snapshot_t *)snapshot);
+#else
+  return -2;
+#endif
+}
+
+int difftest_amu_snapshot_negotiate(uint32_t version, uint32_t ctrl_size,
+                                    uint32_t mma_size, uint32_t event_prefix_size,
+                                    uint32_t tile_bytes, uint32_t acc_bytes) {
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+  return amu_snapshot_negotiate(version, ctrl_size, mma_size, event_prefix_size,
+                                tile_bytes, acc_bytes);
+#else
+  return -2;
+#endif
 }
 
 #if defined(CONFIG_MULTICORE_DIFF) && defined(CONFIG_RVV)
@@ -445,6 +473,9 @@ void difftest_runahead_init() {
 }
 
 void difftest_init() {
+#if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
+  amu_snapshot_reset();
+#endif
   IFDEF(CONFIG_STORE_LOG_HASH, store_log_hash_reset());
   IFDEF(CONFIG_STORE_LOG_HASH, store_log_hash_set_enabled(true));
 #ifdef CONFIG_SHARE_OUTPUT_LOG_TO_FILE
