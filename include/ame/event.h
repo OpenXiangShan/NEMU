@@ -2,6 +2,7 @@
 #define __AME_EVENT_H__
 
 #include <common.h>
+#include <stddef.h>
 
 #ifdef CONFIG_RV_AME
 
@@ -24,7 +25,19 @@ typedef struct {
   uint64_t base;
   uint64_t stride;
   uint64_t pc;
+  uint8_t computeType;
+  uint8_t isScale;
+  uint8_t isConvertF32;
+  uint8_t isDynamicMxfpQuant;
 } amu_ctrl_event_t;
+
+#if defined(__cplusplus)
+static_assert(offsetof(amu_ctrl_event_t, computeType) == 48, "AMU event ABI offset changed");
+static_assert(sizeof(amu_ctrl_event_t) == 56, "AMU event ABI size changed");
+#else
+_Static_assert(offsetof(amu_ctrl_event_t, computeType) == 48, "AMU event ABI offset changed");
+_Static_assert(sizeof(amu_ctrl_event_t) == 56, "AMU event ABI size changed");
+#endif
 
 // Natural-layout CRC64-ISO completion, shared with DiffTest's MatrixHashResult.
 // lo is the CRC, hi is reserved and must be zero; preserve the ABI field order.
