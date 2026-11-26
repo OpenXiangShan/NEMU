@@ -6,6 +6,7 @@
 #include <isa.h>
 #include <memory/paddr.h>
 #include <ame/raw-fp4.h>
+#include "../../../isa/riscv64/instr/ame/mcompute_impl.h"
 
 #if defined(CONFIG_RV_AME) && defined(CONFIG_SHARE_REF)
 
@@ -28,7 +29,7 @@ int amu_snapshot_negotiate(uint32_t version, uint32_t ctrl_size, uint32_t mma_si
                            uint32_t event_prefix_size, uint32_t tile_bytes,
                            uint32_t acc_bytes) {
 #if defined(CONFIG_RV_AME_FP4) && defined(CONFIG_FPU_SOFT) && \
-    defined(CONFIG_DIFFTEST_AMU_CTRL)
+    defined(CONFIG_DIFFTEST_AMU_CTRL) && !defined(CONFIG_SHARE_CTRL)
   snapshot_admitted = version == AMU_CTRL_SNAPSHOT_VERSION &&
     version == AMU_MMA_SNAPSHOT_VERSION && ctrl_size == sizeof(amu_ctrl_snapshot_t) &&
     mma_size == sizeof(amu_mma_snapshot_t) &&
@@ -168,10 +169,149 @@ int check_amu_ctrl_snapshot(amu_ctrl_event_t *cmp, amu_ctrl_snapshot_t *snapshot
   return check_amu_ctrl_impl(cmp, true);
 }
 
+static bool valid_mma_view(const amu_matrix_view_t *view, size_t rows,
+                           size_t pitch, size_t *bytes) {
+  if (!view || !view->bytes || !rows || !pitch || view->reserved ||
+      view->row_pitch != pitch || rows > SIZE_MAX / pitch) return false;
+  *bytes = rows * pitch;
+  return view->capacity >= *bytes;
+}
+
+static bool disjoint_mma_views(const amu_matrix_view_t *views[4],
+                               const size_t sizes[4]) {
+  uintptr_t starts[4], ends[4];
+  for (unsigned index = 0; index < 4; ++index) {
+    starts[index] = (uintptr_t)views[index]->bytes;
+    if (sizes[index] > UINTPTR_MAX - starts[index]) return false;
+    ends[index] = starts[index] + sizes[index];
+  }
+  for (unsigned left = 0; left < 4; ++left) {
+    for (unsigned right = left + 1; right < 4; ++right) {
+      if (starts[left] < ends[right] && starts[right] < ends[left]) return false;
+    }
+  }
+  return true;
+}
+
+int exec_amu_scaled_mma_snapshot(const amu_ctrl_event_t *event,
+                                 const uint8_t *scale_a, size_t scale_a_size,
+                                 const uint8_t *scale_b, size_t scale_b_size,
+                                 amu_mma_snapshot_t *snapshot) {
+#if defined(CONFIG_RV_AME_FP4) && defined(CONFIG_FPU_SOFT) && \
+    defined(CONFIG_DIFFTEST_AMU_CTRL) && !defined(CONFIG_SHARE_CTRL)
+  if (!amu_snapshot_ready() || !event || !snapshot || !scale_a || !scale_b ||
+      !snapshot->scales || snapshot->version != AMU_MMA_SNAPSHOT_VERSION ||
+      snapshot->struct_size != sizeof(*snapshot) || snapshot->reserved ||
+      snapshot->scales->version != AMU_CTRL_SNAPSHOT_VERSION ||
+      snapshot->scales->struct_size != sizeof(*snapshot->scales) ||
+      snapshot->scales->reserved ||
+      snapshot->scales->raised_flags || snapshot->scales->expected_tr.bytes ||
+      snapshot->scales->expected_tr.capacity || snapshot->scales->expected_tr.row_pitch ||
+      snapshot->scales->expected_tr.reserved || !event->valid || event->op != 0 ||
+      event->md < 4 || event->md >= 8 || event->ms1 >= 4 || event->ms2 >= 4 ||
+      !event->isfp || event->sat || event->rm != 0 || event->isScale ||
+      event->isConvertF32 || event->isDynamicMxfpQuant || event->base || event->stride) return -2;
+
+  const uint8_t mode = event->computeType;
+  const uint8_t source_type = mode == 7 ? MTYPECODE_FP8E4M3 :
+    mode == 8 ? MTYPECODE_FP8E5M2 : mode == 10 ? MTYPECODE_MXFP4 : UINT8_MAX;
+  if (source_type == UINT8_MAX || event->types1 != get_mma_op_amuctrl(source_type) ||
+      event->types2 != get_mma_op_amuctrl(source_type) ||
+      event->typed != get_mma_op_amuctrl(MTYPECODE_FP32) ||
+      !event->mtilem || event->mtilem > ROWNUM || !event->mtilen ||
+      event->mtilen > ROWNUM || event->mtilen > ARENUM32 || !event->mtilek ||
+      event->mtilek > TRENUM8 * (mode == 10 ? 2 : 1)) return -2;
+
+  const size_t rows_a = event->mtilem;
+  const size_t rows_b = event->mtilen;
+  const size_t blocks = (event->mtilek + AME_MX_BLOCK_SIZE - 1) / AME_MX_BLOCK_SIZE;
+  const size_t ab_pitch = mode == 10 ? (event->mtilek + 1) / 2 : event->mtilek;
+  const size_t c_pitch = event->mtilen * sizeof(uint32_t);
+  if (blocks > AME_MAX_SCALE_BLOCKS || rows_a > SIZE_MAX / blocks ||
+      rows_b > SIZE_MAX / blocks || rows_a > SIZE_MAX / ab_pitch ||
+      rows_b > SIZE_MAX / ab_pitch || rows_a > SIZE_MAX / c_pitch) return -2;
+  const size_t scale_bytes_a = rows_a * blocks;
+  const size_t scale_bytes_b = rows_b * blocks;
+  if (scale_a_size != scale_bytes_a || scale_b_size != scale_bytes_b ||
+      ab_pitch > TRENUM8 || c_pitch > ARENUM32 * sizeof(uint32_t)) return -2;
+  const amu_scale_snapshot_t *scales = snapshot->scales->scales;
+  const amu_scale_metadata_t *meta_a = &scales[0].metadata;
+  const amu_scale_metadata_t *meta_b = &scales[1].metadata;
+  if (!meta_a->generation || !meta_b->generation ||
+      meta_a->rows != rows_a || meta_b->rows != rows_b ||
+      meta_a->blocks != blocks || meta_b->blocks != blocks ||
+      meta_a->row_pitch != blocks || meta_b->row_pitch != blocks ||
+      meta_a->reg_id != event->ms1 || meta_b->reg_id != event->ms2 ||
+      meta_a->side != 0 || meta_b->side != 1 || !meta_a->valid || !meta_b->valid ||
+      meta_a->reserved || meta_b->reserved ||
+      meta_a->source_stride < blocks || meta_b->source_stride < blocks ||
+      scales[0].capacity < scale_bytes_a || scales[1].capacity < scale_bytes_b ||
+      !scales[0].bytes || !scales[1].bytes) return -2;
+  for (size_t row = 0; row < rows_a; ++row) {
+    if (memcmp(scales[0].bytes + row * blocks, scale_a + row * blocks, blocks) != 0) return -2;
+  }
+  for (size_t row = 0; row < rows_b; ++row) {
+    if (memcmp(scales[1].bytes + row * blocks, scale_b + row * blocks, blocks) != 0) return -2;
+  }
+
+  const size_t view_rows[4] = {rows_a, rows_b, rows_a, rows_a};
+  const size_t view_pitch[4] = {ab_pitch, ab_pitch, c_pitch, c_pitch};
+  size_t view_bytes[4];
+  const amu_matrix_view_t *views[4];
+  for (unsigned index = 0; index < 4; ++index) {
+    views[index] = &snapshot->matrices[index];
+    if (!valid_mma_view(views[index], view_rows[index], view_pitch[index],
+                        &view_bytes[index])) return -2;
+  }
+  if (!disjoint_mma_views(views, view_bytes)) return -2;
+
+  uint32_t output[ROWNUM][ARENUM32];
+  uint8_t raised_flags = 0;
+  for (size_t row = 0; row < rows_a; ++row) {
+    for (size_t col = 0; col < rows_b; ++col) {
+      const uint32_t acc = cpu.macc[event->md - 4][row]._32[col];
+      output[row][col] = mxfp_mmacc_element(mode,
+        acc, cpu.mtr[event->ms1][row]._8, cpu.mtr[event->ms2][col]._8,
+        scale_a + row * blocks, scale_b + col * blocks,
+        event->mtilek, &raised_flags);
+    }
+  }
+
+  for (size_t row = 0; row < rows_a; ++row) {
+    memcpy(snapshot->matrices[0].bytes + row * ab_pitch,
+      cpu.mtr[event->ms1][row]._8, ab_pitch);
+    memcpy(snapshot->matrices[2].bytes + row * c_pitch,
+      cpu.macc[event->md - 4][row]._32, c_pitch);
+    memcpy(snapshot->matrices[3].bytes + row * c_pitch,
+      output[row], c_pitch);
+    memcpy(cpu.macc[event->md - 4][row]._32, output[row], c_pitch);
+  }
+  for (size_t row = 0; row < rows_b; ++row) {
+    memcpy(snapshot->matrices[1].bytes + row * ab_pitch,
+      cpu.mtr[event->ms2][row]._8, ab_pitch);
+  }
+  mfflags->val |= raised_flags;
+  mcsr->mfflags = mfflags->val;
+  snapshot->raised_flags = raised_flags;
+  return 0;
+#else
+  (void)event;
+  (void)scale_a;
+  (void)scale_a_size;
+  (void)scale_b;
+  (void)scale_b_size;
+  (void)snapshot;
+  return -2;
+#endif
+}
+
 int exec_amu_lazy_snapshot(const amu_ctrl_event_t *event, amu_mma_snapshot_t *snapshot) {
   if (!amu_snapshot_ready()) return -2;
   if (event && event->isDynamicMxfpQuant) {
     return amu_ctrl_queue_apply_dynamic_snapshot(event, snapshot);
+  }
+  if (event && event->op == 0 && event->computeType) {
+    return amu_ctrl_queue_apply_scaled_mma_snapshot(event, snapshot);
   }
   return -2;
 }

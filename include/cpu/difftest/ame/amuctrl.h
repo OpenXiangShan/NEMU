@@ -89,6 +89,10 @@ int exec_amu(void *amu_ctrl, void *res);
 int exec_amu_hash(void *amu_ctrl, amu_hash_t *res);
 void exec_amu_lazy(void *amu_ctrl, void *res, void *src1, void *src2, void *src3);
 int exec_amu_lazy_snapshot(const amu_ctrl_event_t *event, amu_mma_snapshot_t *snapshot);
+int exec_amu_scaled_mma_snapshot(const amu_ctrl_event_t *event,
+                                 const uint8_t *scale_a, size_t scale_a_size,
+                                 const uint8_t *scale_b, size_t scale_b_size,
+                                 amu_mma_snapshot_t *snapshot);
 int amu_snapshot_negotiate(uint32_t version, uint32_t ctrl_size, uint32_t mma_size,
                            uint32_t event_prefix_size, uint32_t tile_bytes,
                            uint32_t acc_bytes);

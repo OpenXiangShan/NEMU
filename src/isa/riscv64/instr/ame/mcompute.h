@@ -48,37 +48,57 @@ def_EHelper(mmacc) {
   mcfg_t dmcfg = cpu.mcfg[td];
   mcfg_t s1mcfg = cpu.mcfg[ts1];
   mcfg_t s2mcfg = cpu.mcfg[ts2];
+  mmacc_type_t mmacc_type = MMACC_TYPE_INVALID;
+  const uint8_t mx_mode = get_mxfp_mmacc_mode(s1mcfg, s2mcfg, dmcfg);
   if (s1mcfg.table_set || s2mcfg.table_set || dmcfg.table_set) {
-#ifndef CONFIG_SHARE
-    const uint8_t mode = get_mxfp_mmacc_mode(s1mcfg, s2mcfg, dmcfg);
-    if (mxfp_mmacc_admissible(mode, td, ts1, ts2, tile_m, tile_n, tile_k, mfrm->val)) {
-#ifdef CONFIG_AME_TILEREG_UB_CHECK
-      const uint64_t pack = get_pack(s1mcfg);
-      const uint64_t ab_bytes = (tile_k + pack - 1) / pack;
-      const uint64_t c_bytes = tile_n * sizeof(uint32_t);
-      ame_matrix_region_check_read(ts1, tile_m, ab_bytes, s->pc);
-      ame_matrix_region_check_read(ts2, tile_n, ab_bytes, s->pc);
-      ame_matrix_region_check_read(td, tile_m, c_bytes, s->pc);
-#endif
-      mp_set_dirty();
-      uint8_t raised_flags = 0;
-      for (unsigned row = 0; row < tile_m; ++row) {
-        const uint8_t *a_row = get_mreg_row_addr(ts1, row);
-        for (unsigned col = 0; col < tile_n; ++col) {
-          const uint8_t *b_row = get_mreg_row_addr(ts2, col);
-          macc_l32(td, row, col) = mxfp_mmacc_element(mode, macc_l32(td, row, col),
-            a_row, b_row, cpu.mscale[ts1][row], cpu.mscale[4 + ts2][col], tile_k, &raised_flags);
-        }
-      }
-      mfflags->val |= raised_flags;
-      mcsr->mfflags = mfflags->val;
-#ifdef CONFIG_AME_TILEREG_UB_CHECK
-      ame_matrix_region_mark_write(td, tile_m, c_bytes, s->pc);
-#endif
-      goto mmacc_done;
+#if defined(CONFIG_RV_AME_FP4) && defined(CONFIG_FPU_SOFT)
+    if (msaten->val || !mxfp_mmacc_admissible(mx_mode, td, ts1, ts2, tile_m, tile_n,
+                               tile_k, mfrm->val)) {
+      longjmp_exception(EX_II);
     }
+#if defined(CONFIG_SHARE_REF) && defined(CONFIG_DIFFTEST_AMU_CTRL) && \
+    !defined(CONFIG_SHARE_CTRL)
+    mp_set_dirty();
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+    const uint64_t c_bytes = tile_n * sizeof(uint32_t);
+    const uint64_t ab_bytes = mx_mode == 10 ? (tile_k + 1) / 2 : tile_k;
+    ame_matrix_region_check_read(ts1, tile_m, ab_bytes, s->pc);
+    ame_matrix_region_check_read(ts2, tile_n, ab_bytes, s->pc);
+    ame_matrix_region_check_read(td, tile_m, c_bytes, s->pc);
+    ame_matrix_region_mark_write(td, tile_m, c_bytes, s->pc);
 #endif
+    goto mmacc_emit_event;
+#elif !defined(CONFIG_SHARE)
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+    const uint64_t c_bytes = tile_n * sizeof(uint32_t);
+    const uint64_t ab_bytes = mx_mode == 10 ? (tile_k + 1) / 2 : tile_k;
+    ame_matrix_region_check_read(ts1, tile_m, ab_bytes, s->pc);
+    ame_matrix_region_check_read(ts2, tile_n, ab_bytes, s->pc);
+    ame_matrix_region_check_read(td, tile_m, c_bytes, s->pc);
+#endif
+    mp_set_dirty();
+    uint8_t raised_flags = 0;
+    for (unsigned row = 0; row < tile_m; ++row) {
+      const uint8_t *a_row = get_mreg_row_addr(ts1, row);
+      for (unsigned col = 0; col < tile_n; ++col) {
+        const uint8_t *b_row = get_mreg_row_addr(ts2, col);
+        macc_l32(td, row, col) = mxfp_mmacc_element(mx_mode, macc_l32(td, row, col),
+          a_row, b_row, cpu.mscale[ts1][row], cpu.mscale[4 + ts2][col],
+          tile_k, &raised_flags);
+      }
+    }
+    mfflags->val |= raised_flags;
+    mcsr->mfflags = mfflags->val;
+#ifdef CONFIG_AME_TILEREG_UB_CHECK
+    ame_matrix_region_mark_write(td, tile_m, c_bytes, s->pc);
+#endif
+    goto mmacc_done;
+#else
     longjmp_exception(EX_II);
+#endif
+#else
+    longjmp_exception(EX_II);
+#endif
   }
   mp_set_dirty();
 #ifdef CONFIG_RV_AME_FP4
@@ -99,7 +119,7 @@ def_EHelper(mmacc) {
   if (!tilem_valid || !tilen_valid || !tilek_valid) {
     longjmp_exception(EX_II);
   }
-  mmacc_type_t mmacc_type = get_mmacc_type(s1mcfg, s2mcfg, dmcfg);
+  mmacc_type = get_mmacc_type(s1mcfg, s2mcfg, dmcfg);
   if (mmacc_type == MMACC_TYPE_INVALID) {
     longjmp_exception(EX_II);
   }
@@ -217,18 +237,19 @@ def_EHelper(mmacc) {
     ame_matrix_region_mark_write(td, tile_m, tile_n << dsize, s->pc);
   }
 #endif // CONFIG_AME_TILEREG_UB_CHECK
+mmacc_emit_event: ;
 #if defined(CONFIG_DIFFTEST_AMU_CTRL) || defined(CONFIG_SHARE_CTRL) || defined(PRINT_AMUCTRLIO)
   uint8_t event_s1 = get_mma_op_amuctrl(s1mcfg.type_code);
   uint8_t event_s2 = get_mma_op_amuctrl(s2mcfg.type_code);
   uint8_t event_d = get_mma_op_amuctrl(dmcfg.type_code);
-  bool is_float_mmacc = mmacc_type == MMACC_TYPE_FLOAT;
+  bool is_float_mmacc = mx_mode != 0 || mmacc_type == MMACC_TYPE_FLOAT;
   uint8_t event_rm = is_float_mmacc ? mfrm->val : mxrm->val;
 #endif
 #ifdef CONFIG_DIFFTEST_AMU_CTRL
   amu_ctrl_queue_mma_emplace(
     td, event_rm, msaten->val, is_float_mmacc, ts1, ts2,
     mtilem->val, mtilen->val, mtilek->val,
-    event_s1, event_s2, event_d
+    event_s1, event_s2, event_d, mx_mode
   );
 #endif // CONFIG_DIFFTEST_AMU_CTRL
 #ifdef CONFIG_SHARE_CTRL

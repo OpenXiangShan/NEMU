@@ -23,11 +23,14 @@ int amu_ctrl_queue_copy_snapshot(amu_ctrl_snapshot_t *snapshot);
 void amu_ctrl_queue_complete_pending();
 int amu_ctrl_queue_apply_dynamic_snapshot(const amu_ctrl_event_t *event,
                                           amu_mma_snapshot_t *snapshot);
+int amu_ctrl_queue_apply_scaled_mma_snapshot(const amu_ctrl_event_t *event,
+                                             amu_mma_snapshot_t *snapshot);
 
 void amu_ctrl_queue_mma_emplace(uint8_t md, uint8_t rm, bool sat, bool isfp,
                                 uint8_t ms1, uint8_t ms2,
                                 uint16_t mtilem, uint16_t mtilen, uint16_t mtilek,
-                                uint8_t types1, uint8_t types2, uint8_t typed);
+                                uint8_t types1, uint8_t types2, uint8_t typed,
+                                uint8_t compute_type);
 void amu_ctrl_queue_mls_emplace(uint8_t ms, bool ls, bool transpose, bool isacc,
                                 bool isA, uint64_t base, uint64_t stride,
                                 uint16_t row, uint16_t column, uint8_t msew);

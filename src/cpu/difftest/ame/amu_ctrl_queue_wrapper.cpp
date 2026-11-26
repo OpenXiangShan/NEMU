@@ -33,16 +33,18 @@ static auto pending_head() {
     [](const OwnedAmuCtrl &owned) { return !owned.delivered; });
 }
 
-static auto oldest_delivered_dynamic() {
-  return std::find_if(cpp_amu_ctrl_queue.begin(), cpp_amu_ctrl_queue.end(),
-    [](const OwnedAmuCtrl &owned) {
-      return owned.delivered && owned.event.isDynamicMxfpQuant;
-    });
-}
-
 static bool is_mx_mma(const amu_ctrl_event_t &event) {
   return event.op == 0 && (event.computeType == 7 || event.computeType == 8 ||
                            event.computeType == 10);
+}
+
+static bool needs_lazy_snapshot(const OwnedAmuCtrl &owned) {
+  return owned.event.isDynamicMxfpQuant || is_mx_mma(owned.event);
+}
+
+static auto oldest_delivered_snapshot() {
+  return std::find_if(cpp_amu_ctrl_queue.begin(), cpp_amu_ctrl_queue.end(),
+    [](const OwnedAmuCtrl &owned) { return owned.delivered && needs_lazy_snapshot(owned); });
 }
 
 static void capture_scale(OwnedAmuCtrl *owned, unsigned side, unsigned reg,
@@ -117,6 +119,19 @@ void amu_ctrl_queue_push_snapshot(amu_ctrl_event_t store_commit, uint32_t raised
       (side == 0 ? store_commit.ms1 : store_commit.ms2);
     capture_scale(&owned, side, reg, generated);
     amu_scale_metadata_t *metadata = &owned.scales[side];
+    if (is_mx_mma(store_commit)) {
+      const unsigned rows = side ? store_commit.mtilen : store_commit.mtilem;
+      const unsigned blocks = (store_commit.mtilek + AME_MX_BLOCK_SIZE - 1) /
+        AME_MX_BLOCK_SIZE;
+      const unsigned index = side * 4 + reg;
+      if (!metadata->valid || !metadata->generation || metadata->rows != rows ||
+          metadata->blocks != blocks || metadata->row_pitch != blocks ||
+          metadata->reg_id != reg || metadata->side != side || metadata->reserved ||
+          metadata->source_stride < blocks || cpu.mscale_mode[index] != store_commit.computeType ||
+          owned.bytes[side].size() != size_t(rows) * blocks) {
+        queue_invariant_failure("scaled MMA scale metadata does not match its active tile");
+      }
+    }
     if (generated && (metadata->generation == 0 || metadata->rows != 8 ||
         metadata->blocks != 2 || metadata->source_stride != store_commit.stride ||
         metadata->valid != (raised_flags == 0))) {
@@ -192,7 +207,7 @@ int amu_ctrl_queue_copy_snapshot(amu_ctrl_snapshot_t *snapshot) {
 void amu_ctrl_queue_complete_pending() {
   auto pending = pending_head();
   if (pending == cpp_amu_ctrl_queue.end()) return;
-  if (pending->event.isDynamicMxfpQuant) pending->delivered = true;
+  if (needs_lazy_snapshot(*pending)) pending->delivered = true;
   else cpp_amu_ctrl_queue.erase(pending);
 }
 
@@ -229,7 +244,7 @@ int amu_ctrl_queue_apply_dynamic_snapshot(const amu_ctrl_event_t *event,
   }
 
   const unsigned side = event->types2 ? 0 : 1;
-  auto delivered = oldest_delivered_dynamic();
+  auto delivered = oldest_delivered_snapshot();
   if (delivered == cpp_amu_ctrl_queue.end()) return -1;
   for (auto iter = cpp_amu_ctrl_queue.begin(); iter != delivered; ++iter) {
     if (!iter->delivered) return -1;
@@ -269,10 +284,69 @@ int amu_ctrl_queue_apply_dynamic_snapshot(const amu_ctrl_event_t *event,
   return 0;
 }
 
+static bool same_scaled_mma_event(const amu_ctrl_event_t &left,
+                                  const amu_ctrl_event_t &right) {
+  return left.valid == right.valid && left.op == 0 && right.op == 0 &&
+    left.rm == right.rm && left.md == right.md && left.sat == right.sat &&
+    left.isfp == right.isfp && left.ms1 == right.ms1 && left.ms2 == right.ms2 &&
+    left.mtilem == right.mtilem && left.mtilen == right.mtilen &&
+    left.mtilek == right.mtilek && left.types1 == right.types1 &&
+    left.types2 == right.types2 && left.typed == right.typed &&
+    left.base == right.base && left.stride == right.stride && left.pc == right.pc &&
+    left.computeType == right.computeType && left.isScale == right.isScale &&
+    left.isConvertF32 == right.isConvertF32 &&
+    left.isDynamicMxfpQuant == right.isDynamicMxfpQuant;
+}
+
+int amu_ctrl_queue_apply_scaled_mma_snapshot(const amu_ctrl_event_t *event,
+                                             amu_mma_snapshot_t *snapshot) {
+  if (!amu_snapshot_ready() || !event || !snapshot ||
+      snapshot->version != AMU_MMA_SNAPSHOT_VERSION ||
+      snapshot->struct_size != sizeof(*snapshot) || snapshot->reserved || !snapshot->scales ||
+      snapshot->scales->version != AMU_CTRL_SNAPSHOT_VERSION ||
+      snapshot->scales->struct_size != sizeof(*snapshot->scales) || snapshot->scales->reserved ||
+      !is_mx_mma(*event)) return -2;
+
+  auto delivered = oldest_delivered_snapshot();
+  if (delivered == cpp_amu_ctrl_queue.end()) return -1;
+  for (auto iter = cpp_amu_ctrl_queue.begin(); iter != delivered; ++iter) {
+    if (!iter->delivered) return -1;
+  }
+  if (!same_scaled_mma_event(delivered->event, *event) ||
+      snapshot->scales->epoch != delivered->epoch || snapshot->scales->raised_flags ||
+      snapshot->scales->expected_tr.bytes || snapshot->scales->expected_tr.capacity ||
+      snapshot->scales->expected_tr.row_pitch || snapshot->scales->expected_tr.reserved) return 1;
+
+  const unsigned blocks = (event->mtilek + AME_MX_BLOCK_SIZE - 1) / AME_MX_BLOCK_SIZE;
+  for (unsigned side = 0; side < 2; ++side) {
+    const unsigned rows = side ? event->mtilen : event->mtilem;
+    const size_t byte_count = size_t(rows) * blocks;
+    const amu_scale_snapshot_t &scale = snapshot->scales->scales[side];
+    const amu_scale_metadata_t &actual = scale.metadata;
+    const amu_scale_metadata_t &expected = delivered->scales[side];
+    if (!scale.bytes || scale.capacity < byte_count ||
+        delivered->bytes[side].size() != byte_count ||
+        actual.generation != expected.generation || actual.rows != expected.rows ||
+        actual.blocks != expected.blocks || actual.row_pitch != expected.row_pitch ||
+        actual.reg_id != expected.reg_id || actual.side != expected.side ||
+        actual.valid != expected.valid || actual.reserved ||
+        actual.source_stride != expected.source_stride ||
+        memcmp(scale.bytes, delivered->bytes[side].data(), byte_count) != 0) return 1;
+  }
+
+  const int result = exec_amu_scaled_mma_snapshot(event,
+    delivered->bytes[0].data(), delivered->bytes[0].size(),
+    delivered->bytes[1].data(), delivered->bytes[1].size(), snapshot);
+  if (result != 0) return result;
+  cpp_amu_ctrl_queue.erase(delivered);
+  return 0;
+}
+
 void amu_ctrl_queue_mma_emplace(uint8_t md, uint8_t rm, bool sat, bool isfp,
                                 uint8_t ms1, uint8_t ms2,
                                 uint16_t mtilem, uint16_t mtilen, uint16_t mtilek,
-                                uint8_t types1, uint8_t types2, uint8_t typed) {
+                                uint8_t types1, uint8_t types2, uint8_t typed,
+                                uint8_t compute_type) {
   amu_ctrl_event_t event = {};
   event.valid = true;
   event.op = 0;
@@ -288,6 +362,7 @@ void amu_ctrl_queue_mma_emplace(uint8_t md, uint8_t rm, bool sat, bool isfp,
   event.types2 = types2;
   event.typed = typed;
   event.isfp = isfp;
+  event.computeType = compute_type;
   event.pc = prev_s->pc;
   amu_ctrl_queue_push(event);
 }
