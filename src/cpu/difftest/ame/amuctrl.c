@@ -26,7 +26,8 @@ void amu_snapshot_reset(void) {
 int amu_snapshot_negotiate(uint32_t version, uint32_t ctrl_size, uint32_t mma_size,
                            uint32_t event_prefix_size, uint32_t tile_bytes,
                            uint32_t acc_bytes) {
-#ifdef CONFIG_RV_AME_FP4
+#if defined(CONFIG_RV_AME_FP4) && defined(CONFIG_FPU_SOFT) && \
+    defined(CONFIG_DIFFTEST_AMU_CTRL)
   snapshot_admitted = version == AMU_CTRL_SNAPSHOT_VERSION &&
     version == AMU_MMA_SNAPSHOT_VERSION && ctrl_size == sizeof(amu_ctrl_snapshot_t) &&
     mma_size == sizeof(amu_mma_snapshot_t) &&
