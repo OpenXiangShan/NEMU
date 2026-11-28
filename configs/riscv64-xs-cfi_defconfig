@@ -3,4 +3,4 @@
 # layer: riscv64/xs/dut.config
 
 # CONFIG_RV_ZABHA is not set
-CONFIG_RV_ZICFILP=y
+CONFIG_RV_CFI=y
