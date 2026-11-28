@@ -19,9 +19,7 @@
 #define __RISCV64_MREG_H__
 
 #include "common.h"
-#ifdef CONFIG_RV_AME_FP4
 #include "ame/raw-fp4.h"
-#endif
 
 #define TLEN   CONFIG_RV_AME_TLEN
 #define TRLEN  CONFIG_RV_AME_TRLEN
@@ -33,9 +31,7 @@
 #define TRENUM32 (TRLEN / 32)
 #define TRENUM16 (TRLEN / 16)
 #define TRENUM8  (TRLEN / 8)
-#ifdef CONFIG_RV_AME_FP4
 #define RAW_FP4_TILE_BYTES (ROWNUM * TRENUM8)
-#endif
 
 #define ALEN     (ROWNUM * ROWNUM * MELEN)
 #define ARLEN    (ROWNUM * MELEN)
@@ -78,7 +74,6 @@ typedef union {
   uint64_t val;
 } mcfg_t;
 
-#ifdef CONFIG_RV_AME_FP4
 static inline bool is_raw_fp4_type_code(mcfg_t cfg) {
   return cfg.type_code == MTYPECODE_NVFP4 || cfg.type_code == MTYPECODE_MXFP4;
 }
@@ -86,7 +81,6 @@ static inline bool is_raw_fp4_type_code(mcfg_t cfg) {
 static inline bool is_raw_fp4(mcfg_t cfg) {
   return cfg.table_set == 0 && is_raw_fp4_type_code(cfg);
 }
-#endif
 
 static inline int check_mtreg_num(int num) {
 #ifdef CONFIG_AME_REG_ACCESS_CHECK
@@ -168,11 +162,9 @@ void ame_matrix_region_state_restore(const void *state);
 #endif // CONFIG_SHARE_REF
 #endif // CONFIG_AME_TILEREG_UB_CHECK
 
-#ifdef CONFIG_RV_AME_FP4
 uint8_t get_mreg_nibble(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx);
 void set_mreg_nibble(int mtr_num, uint64_t mtr_row, uint64_t mtr_idx,
                      uint8_t src_data);
-#endif
 
 #endif //__RISCV64_MREG_H__
 

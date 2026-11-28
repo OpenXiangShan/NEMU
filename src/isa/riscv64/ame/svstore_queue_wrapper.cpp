@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MulanPSL-2.0
 // Copyright (c) 2026 Beijing Institute of Open Source Chip (BOSC)
+#include <ame/mstore.h>
 #include <ame/svstore_queue_wrapper.h>
 
 #ifdef CONFIG_AME_MEM_ACCESS_CHECK
@@ -117,10 +118,9 @@ bool svstore_queue_check_matrix_addr_conflict(
     paddr_t base, paddr_t stride, int row, int column, int msew,
     bool transpose, vaddr_t pc, vaddr_t vbase) {
   if (svstore_queue_empty() || row <= 0 || column <= 0) return false;
-  const uint64_t width = 1ULL << msew;
   const uint64_t rows = transpose ? (uint64_t)column : (uint64_t)row;
   const uint64_t cols = transpose ? (uint64_t)row : (uint64_t)column;
-  const uint64_t row_len = cols * width;
+  const uint64_t row_len = matrix_row_bytes(cols, msew);
   for (uint64_t r = 0; r < rows; ++r) {
     // Match the existing matrix memory path's paddr_t arithmetic, including
     // zero/overlapping strides; do not divide by stride or include padding.

@@ -41,7 +41,6 @@ bool mstore_queue_empty() {
   return cpp_mstore_queue.empty();
 }
 
-#ifdef CONFIG_RV_AME_FP4
 static bool ranges_overlap(uint64_t lhs_start, uint64_t lhs_len,
                            uint64_t rhs_start, uint64_t rhs_len) {
   if (lhs_start <= rhs_start) {
@@ -49,7 +48,6 @@ static bool ranges_overlap(uint64_t lhs_start, uint64_t lhs_len,
   }
   return lhs_start - rhs_start < rhs_len;
 }
-#endif
 
 void mstore_queue_emplace(uint64_t base_vaddr, uint64_t stride,
                           uint32_t row, uint32_t column, uint32_t msew,
@@ -108,7 +106,6 @@ bool mstore_queue_check_addr_conflict(uint64_t addr, int len) {
     uint32_t row_mem = mstore.transpose ? mstore.column : mstore.row;
     uint32_t column_mem = mstore.transpose ? mstore.row : mstore.column;
 
-#ifdef CONFIG_RV_AME_FP4
     if (mstore.msew == MSEW_FP4) {
       if (row_mem == 0 || column_mem == 0) {
         continue;
@@ -129,7 +126,6 @@ bool mstore_queue_check_addr_conflict(uint64_t addr, int len) {
       }
       continue;
     }
-#endif
 
     uint32_t width = 1 << mstore.msew;
 

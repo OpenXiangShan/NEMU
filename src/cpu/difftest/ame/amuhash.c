@@ -22,9 +22,17 @@
 
 AMU_HASH_TARGET_BASELINE
 amu_hash_t hash_amu_region(const amu_write_region_t *region) {
-  const size_t active_row_bytes = region->active_columns * region->element_bytes;
+  const size_t active_row_bytes = amu_active_row_bytes(region);
   uint64_t hash = 0;
-  if (region->active_rows != 0 && active_row_bytes != 0) {
+  if (!region->element_bytes && (region->active_columns & 1)) {
+    for (size_t r = region->active_rows; r-- > 0;) {
+      if (r + 1 != region->active_rows)
+        hash = hash_advance_unwritten(hash, region->reg_row_bytes - active_row_bytes);
+      const uint8_t *row = region->reg_data + r * region->reg_row_bytes;
+      hash = gf32_shift(hash, 9) ^ (0x10 | (row[active_row_bytes - 1] & 15));
+      hash = hash_update_data(hash, row, active_row_bytes - 1);
+    }
+  } else if (region->active_rows != 0 && active_row_bytes != 0) {
 #ifdef AMU_HASH_X86
     if (!hash_amu_x86_try(region->reg_data, region->reg_row_bytes,
                           region->active_rows, active_row_bytes, &hash))

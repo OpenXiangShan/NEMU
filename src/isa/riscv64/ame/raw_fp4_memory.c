@@ -17,7 +17,7 @@
 #include <isa.h>
 #include <cpu/cpu.h>
 #include <cpu/decode.h>
-#include <memory/host.h>
+#include <ame/mstore.h>
 #include <memory/paddr.h>
 #include <memory/vaddr.h>
 #include "ame/raw-fp4.h"
@@ -27,7 +27,7 @@
 #include "../instr/ame/mreg.h"
 #include "../local-include/intr.h"
 
-#if defined(CONFIG_RV_AME) && defined(CONFIG_RV_AME_FP4)
+#if defined(CONFIG_RV_AME)
 
 static paddr_t raw_fp4_paddrs[RAW_FP4_TILE_BYTES];
 
@@ -55,20 +55,21 @@ static bool raw_fp4_byte_vaddr(vaddr_t base, vaddr_t stride, int memory_row,
   return raw_fp4_add_offset(base, row_offset + (uint64_t)byte_index, address);
 }
 
+// Both matrix issue and standalone byte preflight translate a byte-sized access.
+static bool translate_byte(vaddr_t address, int type, paddr_t *paddr) {
+  if (isa_mmu_check(address, 1, type) == MMU_DIRECT) {
+    *paddr = address;
+    return true;
+  }
+  paddr_t page_base = isa_mmu_translate(address, 1, type);
+  if ((page_base & PAGE_MASK) != MEM_RET_OK) return false;
+  *paddr = page_base | (address & PAGE_MASK);
+  return true;
+}
+
 static bool raw_fp4_translate_byte(vaddr_t address, int type, paddr_t *paddr) {
   address = get_effective_address(address, type);
-  int mmu_mode = isa_mmu_check(address, 1, type);
-
-  if (mmu_mode == MMU_DIRECT) {
-    *paddr = address;
-  } else {
-    paddr_t page_base = isa_mmu_translate(address, 1, type);
-    if ((page_base & PAGE_MASK) != MEM_RET_OK) {
-      return false;
-    }
-    *paddr = page_base | (address & PAGE_MASK);
-  }
-
+  if (!translate_byte(address, type, paddr)) return false;
   if (!check_paddr(*paddr, 1, type, type, cpu.mode, address)) {
     return false;
   }
@@ -97,16 +98,61 @@ static bool raw_fp4_preflight(vaddr_t base, vaddr_t stride, int memory_rows,
   return true;
 }
 
-bool raw_fp4_matrix_access(struct Decode *s, vaddr_t base, vaddr_t stride,
-                           int row, int column, bool transpose, bool store, int mreg_id) {
-#if defined(CONFIG_SHARE) || defined(CONFIG_SHARE_REF) || \
-    defined(CONFIG_SHARE_CTRL) || defined(CONFIG_DIFFTEST_AMU_CTRL) || \
-    defined(CONFIG_DIFFTEST_STORE_COMMIT) || \
-    defined(CONFIG_STORE_LOG)
-  longjmp_exception(EX_II);
-#endif
+static void raw_fp4_transfer_byte(uint8_t *memory, int row, int first_column, int columns,
+                           bool transpose, bool store, int mreg_id) {
+  uint8_t packed = *memory;
+  for (int column = first_column; column < first_column + 2 && column < columns; ++column) {
+    int r = raw_fp4_register_row(row, column, transpose);
+    int k = raw_fp4_register_column(row, column, transpose);
+    if (store) {
+      packed = raw_fp4_set_nibble(packed, column, get_mreg_nibble(mreg_id, r, k));
+    } else {
+      set_mreg_nibble(mreg_id, r, k, raw_fp4_get_nibble(packed, column));
+    }
+  }
+  if (store) *memory = packed;
+}
 
-  (void)s;
+void raw_fp4_transfer_matrix(uint8_t *base, uint64_t stride, int rows, int columns,
+                             bool transpose, bool store, int reg) {
+  int memory_rows = raw_fp4_memory_rows(rows, columns, transpose);
+  int memory_columns = raw_fp4_memory_columns(rows, columns, transpose);
+  for (int r = 0; r < memory_rows; ++r) {
+    for (int c = 0; c < memory_columns; c += 2) {
+      raw_fp4_transfer_byte(base + r * stride + c / 2, r, c, memory_columns, transpose, store, reg);
+    }
+  }
+}
+
+static bool issue_packed_matrix(struct Decode *s, vaddr_t base, vaddr_t stride, int row,
+                                int column, bool transpose, bool store, char m_name, int mreg_id) {
+  // Issue one event with its original element dimensions. SHARE_REF transfers
+  // the data when the corresponding AMU completion arrives.
+  paddr_t pbase;
+  save_globals(s);
+  int type = store ? MEM_TYPE_MATRIX_WRITE : MEM_TYPE_MATRIX_READ;
+  if (!translate_byte(base, type, &pbase)) return false;
+  if (store) {
+    paddr_write_matrix(pbase, stride, row, column, MSEW_FP4, transpose, cpu.mode, base, m_name, mreg_id);
+  } else {
+    paddr_read_matrix(pbase, stride, row, column, MSEW_FP4, transpose, cpu.mode, base, m_name, mreg_id);
+  }
+#ifdef CONFIG_QUERY_REF
+  cpu.query_mem_event.pc = cpu.debug.current_pc;
+  cpu.query_mem_event.mem_access = true;
+  cpu.query_mem_event.mem_access_is_load = !store;
+  cpu.query_mem_event.mem_access_vaddr = base;
+#endif
+  return true;
+}
+
+bool raw_fp4_matrix_access(struct Decode *s, vaddr_t base, vaddr_t stride, int row,
+                           int column, bool transpose, bool store, char m_name, int mreg_id) {
+  if (ISDEF(CONFIG_SHARE) || ISDEF(CONFIG_DIFFTEST_AMU_CTRL) ||
+      ISDEF(CONFIG_DIFFTEST_STORE_COMMIT) || ISDEF(CONFIG_STORE_LOG)) {
+    return issue_packed_matrix(s, base, stride, row, column, transpose, store, m_name, mreg_id);
+  }
+
   if (mreg_id < 0 || mreg_id >= 4 || row < 0 || column < 0) {
     longjmp_exception(EX_II);
   }
@@ -151,37 +197,11 @@ bool raw_fp4_matrix_access(struct Decode *s, vaddr_t base, vaddr_t stride,
       analysis_memory_commit(raw_fp4_paddrs[byte_count]);
 #endif
 
-      if (!store) {
-        uint8_t packed_byte = *host_byte;
-        for (int nibble = 0; nibble < 2 && memory_column + nibble < memory_columns; nibble++) {
-          int register_row = raw_fp4_register_row(memory_row, memory_column + nibble, transpose);
-          int register_column = raw_fp4_register_column(memory_row, memory_column + nibble, transpose);
-          set_mreg_nibble(mreg_id, register_row, register_column,
-                          raw_fp4_get_nibble(packed_byte, memory_column + nibble));
-        }
-      } else {
-        int register_row = raw_fp4_register_row(memory_row, memory_column, transpose);
-        int register_column = raw_fp4_register_column(memory_row, memory_column, transpose);
-        uint8_t packed_byte = get_mreg_nibble(mreg_id, register_row, register_column);
-
-        if (memory_column + 1 < memory_columns) {
-          register_row = raw_fp4_register_row(memory_row, memory_column + 1, transpose);
-          register_column = raw_fp4_register_column(memory_row, memory_column + 1, transpose);
-          packed_byte |= get_mreg_nibble(mreg_id, register_row, register_column) << 4;
-        } else {
-          packed_byte = raw_fp4_set_nibble(*host_byte, memory_column, packed_byte);
-        }
-        *host_byte = packed_byte;
-      }
-    }
-  }
-
-  if (!store && (column & 1)) {
-    for (int register_row = 0; register_row < row; register_row++) {
-      set_mreg_nibble(mreg_id, register_row, column, 0);
+      raw_fp4_transfer_byte(host_byte, memory_row, memory_column, memory_columns,
+                            transpose, store, mreg_id);
     }
   }
   return true;
 }
 
-#endif // CONFIG_RV_AME && CONFIG_RV_AME_FP4
+#endif // CONFIG_RV_AME

@@ -1,4 +1,5 @@
 #include <cpu/difftest/ame/amuctrl.h>
+#include <ame/mstore.h>
 #include <cpu/difftest/ame/amu_ctrl_queue_wrapper.h>
 #ifdef CONFIG_AME_MEM_ACCESS_CHECK
 #include <ame/mstore_queue_wrapper.h>
@@ -185,17 +186,18 @@ static bool get_amu_write_region(const amu_ctrl_event_t *event, amu_write_region
     region->active_rows = region->reg_size_bytes / region->reg_row_bytes;
     region->active_columns = region->reg_row_bytes / sizeof(uint64_t);
     region->element_bytes = sizeof(uint64_t);
-  } else if (event->op == 1 && event->sat == 0 && event->typed <= 3) {
+  } else if (event->op == 1 && event->sat == 0 && (event->typed <= 3 ||
+             (!is_acc && event->typed == MSEW_FP4))) {
     const bool is_b = !event->types1 && !event->types2;
     region->active_rows = is_b ? event->mtilen : event->mtilem;
     region->active_columns = is_b ? event->mtilem : event->mtilen;
-    region->element_bytes = (size_t)1 << event->typed;
+    region->element_bytes = event->typed <= 3 ? (size_t)1 << event->typed : 0;
   } else {
     return false;
   }
 
   return region->active_rows <= region->reg_size_bytes / region->reg_row_bytes &&
-         region->active_columns <= region->reg_row_bytes / region->element_bytes;
+         amu_active_row_bytes(region) <= region->reg_row_bytes;
 }
 
 static bool compare_amu_hash(const amu_ctrl_event_t *event, const amu_hash_t *dut) {
@@ -217,15 +219,18 @@ static bool compare_amu_register(const amu_ctrl_event_t *event, const void *dut_
   Assert(dut_result != NULL, "Missing DUT result for AMU comparison");
 
   const uint8_t *dut = dut_result;
-  const size_t active_row_bytes = region.active_columns * region.element_bytes;
+  const size_t active_row_bytes = amu_active_row_bytes(&region);
+  const bool odd_tail = !region.element_bytes && (region.active_columns & 1);
+  const size_t whole_bytes = active_row_bytes - odd_tail;
   bool different = false;
   // Keep the common equal case in memcmp; full-width rows are contiguous.
-  if (active_row_bytes == region.reg_row_bytes) {
+  if (!odd_tail && active_row_bytes == region.reg_row_bytes) {
     different = memcmp(region.reg_data, dut, region.active_rows * region.reg_row_bytes) != 0;
   } else {
     for (size_t row = 0; row < region.active_rows; ++row) {
       const size_t offset = row * region.reg_row_bytes;
-      if (memcmp(region.reg_data + offset, dut + offset, active_row_bytes) != 0) {
+      if (memcmp(region.reg_data + offset, dut + offset, whole_bytes) != 0 ||
+          (odd_tail && ((region.reg_data[offset + whole_bytes] ^ dut[offset + whole_bytes]) & 15))) {
         different = true;
         break;
       }
@@ -242,8 +247,14 @@ static bool compare_amu_register(const amu_ctrl_event_t *event, const void *dut_
       const size_t offset = row * region.reg_row_bytes + column * region.element_bytes;
       uint64_t ref_val = 0;
       uint64_t dut_val = 0;
-      memcpy(&ref_val, region.reg_data + offset, region.element_bytes);
-      memcpy(&dut_val, dut + offset, region.element_bytes);
+      if (region.element_bytes) {
+        memcpy(&ref_val, region.reg_data + offset, region.element_bytes);
+        memcpy(&dut_val, dut + offset, region.element_bytes);
+      } else {
+        unsigned shift = 4 * (column & 1);
+        ref_val = (region.reg_data[offset + column / 2] >> shift) & 15;
+        dut_val = (dut[offset + column / 2] >> shift) & 15;
+      }
       if (ref_val != dut_val) {
         total_diff++;
         if (printed < MATRIX_DIFF_PRINT_CNT) {

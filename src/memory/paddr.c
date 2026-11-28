@@ -20,6 +20,10 @@
 #include <isa.h>
 #include <macro.h>
 #include <memory/host.h>
+#ifdef CONFIG_RV_AME
+#include <ame/mstore.h>
+#include <ame/raw-fp4.h>
+#endif
 #include <memory/paddr.h>
 #include <memory/store_queue_wrapper.h>
 #include <memory/store_log_hash.h>
@@ -454,7 +458,7 @@ void paddr_read_matrix(paddr_t base, paddr_t stride,
   __attribute__((unused)) int cross_page_load = (mode & CROSS_PAGE_LD_FLAG) != 0;
   mode &= ~CROSS_PAGE_LD_FLAG;
 
-  if (!check_paddr(base, 1 << msew, MEM_TYPE_MATRIX_READ, MEM_TYPE_MATRIX_READ, mode, vbase)) {
+  if (!check_paddr(base, matrix_row_bytes(1, msew), MEM_TYPE_MATRIX_READ, MEM_TYPE_MATRIX_READ, mode, vbase)) {
     // TODO: do something here?
     return;
   }
@@ -622,6 +626,10 @@ void pmem_record_reset() {
 void pmem_read_matrix(paddr_t base, paddr_t stride,
                       int row, int column, int msew, bool transpose,
                       char m_name, int mreg_id) {
+  if (msew == MSEW_FP4) {
+    raw_fp4_transfer_matrix(guest_to_host(base), stride, row, column, transpose, false, mreg_id);
+    return;
+  }
   host_read_matrix(guest_to_host(base), stride, row, column, msew, transpose, m_name, mreg_id);
 }
 
@@ -639,7 +647,7 @@ static void pmem_record_matrix_store(paddr_t base, paddr_t stride,
 
   const size_t rows = transpose ? column : row;
   const size_t columns = transpose ? row : column;
-  const size_t row_bytes = columns * ((size_t)1 << msew);
+  const size_t row_bytes = matrix_row_bytes(columns, msew);
   const size_t bytes = rows * row_bytes;
   matrix_store_log_t *matrix = malloc(sizeof(*matrix) + bytes);
   assert(matrix != NULL);
@@ -680,6 +688,10 @@ void pmem_write_matrix(paddr_t base, paddr_t stride,
 #ifdef CONFIG_STORE_LOG
   pmem_record_matrix_store(base, stride, row, column, msew, transpose);
 #endif // CONFIG_STORE_LOG
+  if (msew == MSEW_FP4) {
+    raw_fp4_transfer_matrix(guest_to_host(base), stride, row, column, transpose, true, mreg_id);
+    return;
+  }
   host_write_matrix(guest_to_host(base), stride, row, column, msew, transpose, m_name, mreg_id);
 }
 #endif // CONFIG_RV_AME
@@ -765,7 +777,7 @@ void paddr_write_matrix(paddr_t base, paddr_t stride,
                         int row, int column, int msew, bool transpose,
                         int mode, vaddr_t vbase, char m_name, int mreg_id) {
   // TODO: more check on matrix_paddr
-  if (!check_paddr(base, 1 << msew, MEM_TYPE_MATRIX_WRITE, MEM_TYPE_MATRIX_WRITE, mode, vbase)) {
+  if (!check_paddr(base, matrix_row_bytes(1, msew), MEM_TYPE_MATRIX_WRITE, MEM_TYPE_MATRIX_WRITE, mode, vbase)) {
     return;
   }
 #ifndef CONFIG_SHARE
