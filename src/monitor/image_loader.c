@@ -14,20 +14,15 @@
 ***************************************************************************************/
 
 #include <assert.h>
-#include <errno.h>
-#include <fcntl.h>
 #include <isa.h>
 #include <macro.h>
 #include <memory/elfloader.h>
+#include <memory/image_loader.h>
 #include <memory/paddr.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <device/flash.h>
-#include <unistd.h>
 #include <zlib.h>
-#ifdef CONFIG_ZSTD_COMPRESS
-#include <zstd.h>
-#endif
 
 #ifndef CONFIG_MODE_USER
 
@@ -69,151 +64,7 @@ long load_gz_img(const char *filename, uint8_t* load_start, size_t img_size) {
   return curr_size;
 }
 
-#ifdef CONFIG_ZSTD_COMPRESS
-long load_zstd_img(const char *filename, uint8_t* load_start, size_t img_size){
-  assert(filename);
-
-  int fd = -1;
-  off_t file_size = 0;
-  size_t compressed_file_buffer_size = 0;
-  uint8_t *compress_file_buffer = NULL;
-
-  fd = open(filename, O_RDONLY);
-  if (fd < 0) {
-    printf("Cannot open compressed file %s\n", filename);
-    return -1;
-  }
-
-  file_size = lseek(fd, 0, SEEK_END);
-  if (file_size == (off_t)-1) {
-    printf("Cannot get compressed file size\n");
-    close(fd);
-    return -1;
-  }
-  if (file_size == 0) {
-    printf("File size is zero\n");
-    close(fd);
-    return -1;
-  }
-
-  lseek(fd, 0, SEEK_SET);
-
-  compress_file_buffer = malloc(file_size);
-  if (!compress_file_buffer) {
-    printf("Compress file buffer create failed\n");
-    close(fd);
-    return -1;
-  }
-
-  // read compressed file
-  while (compressed_file_buffer_size < (size_t)file_size) {
-    ssize_t bytes_read = read(fd, compress_file_buffer + compressed_file_buffer_size,
-                              (size_t)file_size - compressed_file_buffer_size);
-    if (bytes_read < 0 && errno == EINTR) {
-      continue;
-    }
-    if (bytes_read <= 0) {
-      printf("Compress file read failed\n");
-      free(compress_file_buffer);
-      close(fd);
-      return -1;
-    }
-    compressed_file_buffer_size += bytes_read;
-  }
-  printf("read file size %zu\n", compressed_file_buffer_size);
-
-  close(fd);
-
-  // create decompress input buffer
-  ZSTD_inBuffer input = {compress_file_buffer, compressed_file_buffer_size, 0};
-
-  // alloc decompress buffer
-  const uint64_t decompress_file_buffer_size = 16384;
-  uint64_t *decompress_file_buffer = (uint64_t *)calloc(decompress_file_buffer_size, sizeof(uint64_t));
-  if (!decompress_file_buffer) {
-    printf("Decompress file read failed\n");
-    free(compress_file_buffer);
-    return -1;
-  }
-
-  // create and init decompress stream object
-  ZSTD_DStream *dstream = ZSTD_createDStream();
-  if (!dstream) {
-    printf("Cannot create zstd dstream object\n");
-    free(compress_file_buffer);
-    free(decompress_file_buffer);
-    return -1;
-  }
-
-  size_t init_result = ZSTD_initDStream(dstream);
-  if (ZSTD_isError(init_result)) {
-    printf("Cannot init dstream object: %s\n", ZSTD_getErrorName(init_result));
-    ZSTD_freeDStream(dstream);
-    free(compress_file_buffer);
-    free(decompress_file_buffer);
-    return -1;
-  }
-
-  // def phymem
-  uint8_t *pmem_start = (uint8_t *)(load_start);
-  uint64_t *pmem_current;
-
-  // decompress and write in memory
-  uint64_t total_write_size = 0;
-  size_t load_size = img_size == 0 ? MEMORY_SIZE : img_size;
-  while (total_write_size < load_size) {
-
-    ZSTD_outBuffer output = {decompress_file_buffer, decompress_file_buffer_size * sizeof(uint64_t), 0};
-
-    size_t result = ZSTD_decompressStream(dstream, &output, &input);
-
-    if (ZSTD_isError(result)) {
-      printf("Decompress failed: %s\n", ZSTD_getErrorName(result));
-      ZSTD_freeDStream(dstream);
-      free(compress_file_buffer);
-      free(decompress_file_buffer);
-
-      return -1;
-    }
-
-    if (output.pos == 0) {
-      break;
-    }
-
-    assert(decompress_file_buffer_size * sizeof(uint64_t) == output.pos);
-
-    for (uint64_t x = 0; x < decompress_file_buffer_size; x++) {
-      pmem_current = (uint64_t *)(pmem_start + total_write_size) + x;
-      uint64_t read_data = *(decompress_file_buffer + x);
-      if (read_data != 0 || *pmem_current != 0) {
-        *pmem_current = read_data;
-      }
-    }
-    total_write_size += output.pos;
-  }
-
-  ZSTD_outBuffer output = {decompress_file_buffer, decompress_file_buffer_size * sizeof(uint64_t), 0};
-  size_t result = ZSTD_decompressStream(dstream, &output, &input);
-  if (ZSTD_isError(result) || output.pos != 0) {
-    printf("Decompress failed: %s\n", ZSTD_getErrorName(result));
-    printf("Binary size larger than memory\n");
-    ZSTD_freeDStream(dstream);
-    free(compress_file_buffer);
-    free(decompress_file_buffer);
-    return -1;
-  }
-
-  ZSTD_freeDStream(dstream);
-  free(compress_file_buffer);
-  free(decompress_file_buffer);
-
-  return total_write_size;
-}
-
-#endif  //  CONFIG_ZSTD_COMPRESS
-
-// Will check the magic number in file, if not gz or zstd archive,
-// will read in as a raw image
+// Detect the format by its magic bytes, with a raw-image fallback.
 long load_img(const char* img_name, const char *which_img, uint8_t* load_start, size_t img_size) {
   const char *loading_img = img_name;
   Log("Loading %s: %s\n", which_img, img_name);
@@ -228,12 +79,7 @@ long load_img(const char* img_name, const char *which_img, uint8_t* load_start, 
   }
 
   if (is_zstd_file(loading_img)) {
-#ifdef CONFIG_ZSTD_COMPRESS
-    Log("Loading Zstd image %s", loading_img);
     return load_zstd_img(loading_img, load_start, img_size);
-#else
-    panic("CONFIG_ZSTD_COMPRESS is disabled, turn it on in memuconfig!");
-#endif
   }
 
   if (is_elf_file(loading_img)) {

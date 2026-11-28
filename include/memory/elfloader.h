@@ -25,8 +25,12 @@ extern "C" {
 #endif
 
 bool is_elf_file(const char *filename);
+bool is_elf_image(const uint8_t *data, size_t size);
 long load_elf_image(const char *filename, uint8_t *memory, size_t memory_size,
                     uint64_t memory_base);
+// The caller retains ownership of fd.
+long load_elf_image_fd(int fd, const char *filename, uint8_t *memory,
+                       size_t memory_size, uint64_t memory_base);
 
 #ifdef __cplusplus
 }

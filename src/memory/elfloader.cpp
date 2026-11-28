@@ -39,14 +39,10 @@ struct LoadSegment {
 struct MappedFile {
   const uint8_t *data = nullptr;
   size_t size = 0;
-  int fd = -1;
 
   ~MappedFile() {
     if (data != nullptr) {
       munmap(const_cast<uint8_t *>(data), size);
-    }
-    if (fd >= 0) {
-      close(fd);
     }
   }
 };
@@ -69,14 +65,9 @@ static bool range_in_memory(uint64_t address, uint64_t length,
   return true;
 }
 
-static bool map_file(const char *filename, MappedFile *file) {
-  file->fd = open(filename, O_RDONLY);
-  if (file->fd < 0) {
-    return false;
-  }
-
+static bool map_file(int fd, MappedFile *file) {
   struct stat statbuf;
-  if (fstat(file->fd, &statbuf) < 0 || statbuf.st_size <= 0) {
+  if (fstat(fd, &statbuf) < 0 || statbuf.st_size <= 0) {
     return false;
   }
   if (static_cast<uint64_t>(statbuf.st_size) > SIZE_MAX) {
@@ -84,7 +75,7 @@ static bool map_file(const char *filename, MappedFile *file) {
   }
 
   file->size = static_cast<size_t>(statbuf.st_size);
-  void *mapped = mmap(nullptr, file->size, PROT_READ, MAP_PRIVATE, file->fd, 0);
+  void *mapped = mmap(nullptr, file->size, PROT_READ, MAP_PRIVATE, fd, 0);
   if (mapped == MAP_FAILED) {
     file->data = nullptr;
     return false;
@@ -184,6 +175,11 @@ static bool parse_load_segments(const MappedFile &file, std::vector<LoadSegment>
 
 }  // namespace
 
+extern "C" bool is_elf_image(const uint8_t *data, size_t size) {
+  return size > EI_CLASS && memcmp(data, ELFMAG, SELFMAG) == 0 &&
+         (data[EI_CLASS] == ELFCLASS32 || data[EI_CLASS] == ELFCLASS64);
+}
+
 extern "C" bool is_elf_file(const char *filename) {
   if (filename == nullptr) {
     return false;
@@ -197,8 +193,7 @@ extern "C" bool is_elf_file(const char *filename) {
   unsigned char ident[EI_CLASS + 1];
   ssize_t bytes_read = read(fd, ident, sizeof(ident));
   close(fd);
-  return bytes_read == sizeof(ident) && memcmp(ident, ELFMAG, SELFMAG) == 0 &&
-         (ident[EI_CLASS] == ELFCLASS32 || ident[EI_CLASS] == ELFCLASS64);
+  return bytes_read > 0 && is_elf_image(ident, static_cast<size_t>(bytes_read));
 }
 
 extern "C" long load_elf_image(const char *filename, uint8_t *memory,
@@ -207,8 +202,18 @@ extern "C" long load_elf_image(const char *filename, uint8_t *memory,
     return -1;
   }
 
+  int fd = open(filename, O_RDONLY);
+  long result = load_elf_image_fd(fd, filename, memory, memory_size, memory_base);
+  if (fd >= 0) {
+    close(fd);
+  }
+  return result;
+}
+
+extern "C" long load_elf_image_fd(int fd, const char *filename, uint8_t *memory,
+                                  size_t memory_size, uint64_t memory_base) {
   MappedFile file;
-  if (!map_file(filename, &file)) {
+  if (!map_file(fd, &file)) {
     fprintf(stderr, "cannot map ELF image '%s'\n", filename);
     return -1;
   }
